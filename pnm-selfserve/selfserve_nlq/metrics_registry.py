@@ -27,6 +27,52 @@ CONFIG_WIDE_FLAGS = [
     'config.py TABLES header: "# Canonical methodology: Metabase card #30311."',
 ]
 
+# ─────────────────────────────────────────────────────────────────────────────
+# CROSS-CUTTING BLOCKER discovered post-iteration-2 review (2026-07-07), affects
+# EVERY order-based section (orders, derived, tpo — and later p80, order_edits).
+# NOT a resolution — a decision teed up for the owner, stated with confidence.
+# ─────────────────────────────────────────────────────────────────────────────
+ORDERS_SOURCE_DECISION = {
+    "finding": (
+        "The staging query reads order_id, o_created_ts, o_completed_ts, customer_id, "
+        "status(=2/!=4 numeric), and the lifecycle timestamps (vendor_accepted_ts, "
+        "supervisor_assigned_ts, trip_started_ts, shifting_started_ts, pickup_completed_ts, "
+        "order_completed_ts) from PROD_CURATED.pnm_application.orders. Data Catalog shows that "
+        "raw table has only: id, crn, sr_id, source, created_at, updated_at, status(TEXT), "
+        "service_type, mobile. NONE of the columns the query needs exist there."
+    ),
+    "evidence": (
+        "The compiled SQL of PROD_ELDORIA.core.fact_pnm_orders (NI_PNM-owned dbt model) "
+        "ASSEMBLES those columns from multiple raw tables: o.id->order_id, o.created_at_ist-> "
+        "o_created_ts, allocation_infos.completed_ts_ist->o_completed_ts, supervisor_actions-> "
+        "trip/shifting/pickup/order_completed OLC timestamps, allocation_infos-> "
+        "supervisor_assigned/accepted & vendor_owner_accepted. It exposes order_id, o_created_ts, "
+        "o_completed_ts, crn, customer_mobile, sr_id and all lifecycle timestamps (some renamed, "
+        "e.g. trip_started_olc_ts, vendor_owner_accepted_ts; NO 'status' column)."
+    ),
+    "confidence": (
+        "~95% the configured raw table lacks the needed columns (so leads/orders/derived/tpo "
+        "cannot execute as written); ~90% core.fact_pnm_orders (+ dim_pnm_orders, mart.pnm_customers, "
+        "core.fact_pnm_opportunity) is the intended source. This aligns with Metabase card #30311, "
+        "which reads exactly these prod_eldoria core/mart models."
+    ),
+    "implication": (
+        "'Bug-for-bug fidelity to the pipeline' is fidelity to a pipeline that almost certainly "
+        "never ran (named-colon binds + missing columns + 'verify before first run'). There is no "
+        "sheet baseline to match, which weakens the case for staying on raw tables. Re-pointing "
+        "sections to the eldoria core/mart dbt models is now the stronger path AND it directly "
+        "unblocks Argus eligibility (governed models + semantic models already exist)."
+    ),
+    "choice_for_owner": (
+        "(A) Re-point all sections to PROD_ELDORIA core/mart dbt models — RECOMMENDED (~85% this is "
+        "right), a definition change but it makes the numbers real and Argus-ready; column names and "
+        "status->completed/cancelled semantics must be re-mapped and re-validated. "
+        "(B) Keep bug-for-bug on raw pnm_application tables — will not execute; only useful as a "
+        "record of the original (broken) intent. (~15%)"
+    ),
+    "status": "OPEN — owner decision required before any order-based section can be validated",
+}
+
 SECTIONS = {
     "leads": {
         "built": True,
@@ -123,17 +169,16 @@ SECTIONS = {
             "metric is structurally near-zero.",
         ],
         "evidence": [
-            "Data Catalog: NO pnm_application.tickets table found. The PnM tickets table "
-            "appears to be prod_curated.sfms_public.hs_tickets ('HubSpot-originated support "
-            "tickets for PNM/House Shifting'): its raised_by values (Customer ~61%, "
-            "Vendor-Owner ~21%, Vendor-Supervisor ~11%, Porter Support, Detractor, Chat) match "
-            "this query's filters exactly; the status-at-creation column is named "
-            "order_status_when_ticket_created (not order_status_at_creation); and there is NO "
-            "order_id column — tickets link to orders via crn / hs_order_id. As written, this "
-            "section's SQL will fail at execution. Adapting it is a definition decision for "
-            "the owner, not something this layer does silently.",
+            "APPLIED (owner-approved 2026-07-07, ~90% confidence): ticket side re-pointed to "
+            "PROD_CURATED.sfms_public.hs_tickets, joined on crn, status column "
+            "order_status_when_ticket_created, count on ticket id. raised_by / created_at / "
+            "detractor filter unchanged. The original ⚠ VERIFY flag is kept verbatim above; it is "
+            "addressed-pending-execution, not yet validated against real numbers.",
             "Data Catalog: pnm_application.order_allocation_infos exists as guessed — the "
             "allocation side of TPO is confirmed.",
+            "STILL BLOCKED by ORDERS_SOURCE_DECISION: the order base (orders_base_raw) reads "
+            "columns that do not exist on the configured raw orders table, so this query is not "
+            "executable end-to-end until the orders source is decided.",
         ],
     },
     "ota": {

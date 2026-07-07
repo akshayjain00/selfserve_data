@@ -17,6 +17,7 @@ WITH leads_base AS (
 orders_base_raw AS (
     SELECT
         o.order_id,
+        o.crn,
         o.sr_id,
         o.o_created_ts,
         o.o_completed_ts,

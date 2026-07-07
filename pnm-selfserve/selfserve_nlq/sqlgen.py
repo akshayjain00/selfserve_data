@@ -66,6 +66,7 @@ CTE_ORDERS = """\
 orders_base_raw AS (
     SELECT
         o.order_id,
+        o.crn,
         o.sr_id,
         o.o_created_ts,
         o.o_completed_ts,
@@ -153,10 +154,20 @@ ORDER BY 1"""
 def tpo_sql(month: str) -> str:
     ms, msp = month_bounds(month)
     ctes = (CTE_LEADS + ",\n" + CTE_ORDERS).format(month_start=ms, month_start_prev=msp)
+    # TICKET-SIDE ADAPTATION (owner-approved 2026-07-07, ~90% confidence from Data
+    # Catalog evidence): the pipeline's guessed PROD_CURATED.pnm_application.tickets
+    # does not exist. The PnM tickets table is PROD_CURATED.sfms_public.hs_tickets;
+    # it has no order_id (join on crn / hs_order_id) and the status-at-creation
+    # column is named order_status_when_ticket_created (not order_status_at_creation).
+    # raised_by, created_at, and the detractor filter are unchanged (confirmed to exist).
+    # NOTE: the surrounding order base (orders_base_raw) still references columns that
+    # do not exist on the configured raw orders table — see ORDERS_SOURCE_DECISION in
+    # metrics_registry. This query is not executable end-to-end until that is resolved.
     return f"""WITH {ctes},
 order_base AS (
     SELECT
         o.order_id,
+        o.crn,
         DATE_TRUNC('month', a.completed_ts) AS alloc_month
     FROM orders_base_raw o
     JOIN PROD_CURATED.pnm_application.order_allocation_infos a ON o.order_id = a.order_id
@@ -164,38 +175,38 @@ order_base AS (
       AND a.completed_ts IS NOT NULL
 ),
 ticket_data AS (
-    SELECT t.order_id, t.created_at, t.raised_by, t.order_status_at_creation
-    FROM PROD_CURATED.pnm_application.tickets t
-    JOIN order_base b ON t.order_id = b.order_id
+    SELECT t.id AS ticket_id, t.crn, t.created_at, t.raised_by, t.order_status_when_ticket_created
+    FROM PROD_CURATED.sfms_public.hs_tickets t
+    JOIN order_base b ON t.crn = b.crn
     WHERE LOWER(t.raised_by) NOT LIKE '%detractor%'
 ),
 monthly AS (
     SELECT
         b.alloc_month                                                                   AS month,
         COUNT(DISTINCT b.order_id)                                                      AS orders_base,
-        COUNT(t.order_id)                                                               AS tickets_overall,
+        COUNT(t.ticket_id)                                                              AS tickets_overall,
         COUNT(CASE WHEN t.raised_by IN ('Vendor-Owner','Vendor-Supervisor') THEN 1 END) AS tickets_vendor,
-        COUNT(CASE WHEN t.order_status_at_creation IN
+        COUNT(CASE WHEN t.order_status_when_ticket_created IN
                         ('open','supervisor_assigned','supervisor_accepted','vendor_accepted')
                    THEN 1 END)                                                          AS tickets_pre_trip,
-        COUNT(CASE WHEN t.order_status_at_creation IN
+        COUNT(CASE WHEN t.order_status_when_ticket_created IN
                         ('open','supervisor_assigned','supervisor_accepted','vendor_accepted')
                         AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_pre_trip_cust,
-        COUNT(CASE WHEN t.order_status_at_creation IN ('trip_started','shifting_started')
+        COUNT(CASE WHEN t.order_status_when_ticket_created IN ('trip_started','shifting_started')
                    THEN 1 END)                                                          AS tickets_trip_shift,
-        COUNT(CASE WHEN t.order_status_at_creation IN ('trip_started','shifting_started')
+        COUNT(CASE WHEN t.order_status_when_ticket_created IN ('trip_started','shifting_started')
                         AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_trip_shift_cust,
-        COUNT(CASE WHEN t.order_status_at_creation = 'pickup_completed' THEN 1 END)     AS tickets_pickup,
-        COUNT(CASE WHEN t.order_status_at_creation = 'pickup_completed'
+        COUNT(CASE WHEN t.order_status_when_ticket_created = 'pickup_completed' THEN 1 END) AS tickets_pickup,
+        COUNT(CASE WHEN t.order_status_when_ticket_created = 'pickup_completed'
                         AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_pickup_cust,
-        COUNT(CASE WHEN t.order_status_at_creation = 'completed' THEN 1 END)            AS tickets_completed,
-        COUNT(CASE WHEN t.order_status_at_creation = 'completed'
+        COUNT(CASE WHEN t.order_status_when_ticket_created = 'completed' THEN 1 END)     AS tickets_completed,
+        COUNT(CASE WHEN t.order_status_when_ticket_created = 'completed'
                         AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_completed_cust,
-        COUNT(CASE WHEN t.order_status_at_creation = 'cancelled' THEN 1 END)            AS tickets_cancelled,
-        COUNT(CASE WHEN t.order_status_at_creation = 'cancelled'
+        COUNT(CASE WHEN t.order_status_when_ticket_created = 'cancelled' THEN 1 END)     AS tickets_cancelled,
+        COUNT(CASE WHEN t.order_status_when_ticket_created = 'cancelled'
                         AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_cancelled_cust
     FROM order_base b
-    LEFT JOIN ticket_data t ON b.order_id = t.order_id
+    LEFT JOIN ticket_data t ON b.crn = t.crn
                              AND DATE_TRUNC('month', t.created_at) = b.alloc_month
     GROUP BY 1
 )

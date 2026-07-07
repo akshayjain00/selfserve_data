@@ -31,7 +31,7 @@ EXPECTED_TABLES = {
     "PROD_CURATED.pnm_application.pnm_customers",
     "PROD_CURATED.pnm_application.dim_pnm_orders",
     "PROD_CURATED.pnm_application.order_allocation_infos",
-    "PROD_CURATED.pnm_application.tickets",
+    "PROD_CURATED.sfms_public.hs_tickets",  # owner-approved ticket source (was guessed .tickets)
 }
 
 # (question, month, expected metric id)  — resolution + render must succeed

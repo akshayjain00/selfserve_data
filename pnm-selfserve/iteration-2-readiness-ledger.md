@@ -122,3 +122,30 @@ execution round.
 `pnm_application.tickets` (fails) or adopt `sfms_public.hs_tickets` + `crn` join +
 `order_status_when_ticket_created` as an explicit definition change; (3) still need
 `gsheet_client.py` uploaded for the drift-check work in iteration 3.
+
+---
+
+## Post-review update (2026-07-07, owner decisions applied)
+
+- **Decision 1 → Path A** (execution on owner's laptop via `ask.py --execute`). No production
+  Snowflake touch from this session.
+- **Decision 2 → TPO adaptation APPROVED and applied** (`sfms_public.hs_tickets` + `crn` join +
+  `order_status_when_ticket_created`). Committed in `sqlgen.py`; the original ⚠ VERIFY flag is
+  kept verbatim in the registry, now marked addressed-pending-execution. Confidence in the
+  adaptation was ~90% from Data Catalog evidence.
+- **Decision 3 → `gsheet_client.py` received and read.** Lock behavior confirmed exactly as
+  assumed: current MTD month row overwritten in place; completed months appended once then never
+  touched (`upsert_results`). No change to the prototype needed; iteration 3 drift/sanity checks
+  can rely on this.
+- **NEW cross-cutting blocker surfaced during decision-2 work (~95% confidence):** the orders
+  staging reads `order_id` and the lifecycle timestamps from the raw `pnm_application.orders`
+  table, but Data Catalog + the `core.fact_pnm_orders` compiled dbt SQL show those columns don't
+  exist there — they're assembled in the eldoria core model. This means leads/orders/derived/tpo
+  cannot execute against the configured raw tables at all. See `metrics_registry.ORDERS_SOURCE_DECISION`
+  and `HANDOFF.md` §"Open decision: orders source". This makes re-pointing to the eldoria dbt
+  models the recommended path (~85%) — and it happens to unblock Argus eligibility.
+- Owner also set a **global rule going forward: present choices with a % confidence.** Applied in
+  `ORDERS_SOURCE_DECISION` and `HANDOFF.md`.
+
+Continuation happens in a new Claude Code terminal — see **`HANDOFF.md`** at the repo root of
+`pnm-selfserve/`.
