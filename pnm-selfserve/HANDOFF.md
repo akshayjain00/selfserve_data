@@ -6,6 +6,15 @@ Branch: `claude/pnm-metrics-catalog-map-vg251i`. Owner: akshay.jain@theporter.in
 > No "handoff" skill exists in this workspace (searched — none found), so this is a
 > hand-written handoff doc. Read this first, then `iteration-2-readiness-ledger.md`.
 
+> **⚠ UPDATE 2026-07-08 — read `DECISION_LOG.md` first; parts of this doc are now stale.**
+> The §4 orders-source decision is **RESOLVED (Option A)** and implemented: `sqlgen.py` now
+> MIRRORS the owner's live-validated MBR automation (`pnm/pnm_mbr_monthly_metrics`) —
+> leads/orders/derived → `LEADS_CONVERSION_QUERY` (PROD_ELDORIA core/mart), tpo →
+> `TPO_TREND_QUERY` / card #47576 (PROD_CURATED raw). Nano rule: included in leads,
+> excluded from orders/tpo (→ LA). `run_tests.py` = 31/31. Sections remain PROTOTYPE-ONLY,
+> pending the owner-run execution round. Where this doc and `DECISION_LOG.md` disagree, the
+> log wins.
+
 ---
 
 ## 1. One-paragraph context
@@ -51,6 +60,12 @@ with quirks disclosed in every answer footer**.
 
 ## 4. THE decision that gates everything: orders source
 
+> **RESOLVED 2026-07-08 — Option A chosen, implemented, and reconciled.** Verified column-level via
+> Data Catalog and reconciled live against the owner's validated queries (see `DECISION_LOG.md` D3/D5/V3).
+> `sqlgen.py` now MIRRORS `LEADS_CONVERSION_QUERY` (PROD_ELDORIA core/mart) and `TPO_TREND_QUERY`/#47576
+> (PROD_CURATED raw). Nano: included in leads, excluded from orders/tpo (attributed to LA). 2026-05
+> numbers tie out EXACTLY. The analysis below is the historical record of how the decision was reached.
+
 **~95% confidence:** the pipeline's orders staging reads `order_id`, `o_created_ts`,
 `o_completed_ts`, `customer_id`, and lifecycle timestamps from `PROD_CURATED.pnm_application.orders`
 — but that raw table only has `id, crn, sr_id, source, created_at, updated_at, status(TEXT),
@@ -86,6 +101,11 @@ Full detail: `selfserve_nlq/metrics_registry.py` → `ORDERS_SOURCE_DECISION`.
 | `fact_pnm_opprotunity` typo | `core.fact_pnm_opportunity` (correct spelling) exists in eldoria, NI_PNM-owned, semantic model generated | — | verify at execution / see decision §4 |
 
 ## 6. What to do next (iteration 3 scope — do NOT start until owner says go)
+
+> **STATUS 2026-07-08:** steps 1-2 DONE (orders source = A, implemented & reconciled — V3). Step 3
+> execution round DONE for 2026-05 (exact match vs the validated queries). Remaining: extend to more
+> months + optional Notion Demand DB cross-check; then steps 4-6 (build p80/order_edits/ota, final
+> readiness ledger, formalize-as-skill verdict). Sections remain PROTOTYPE-ONLY.
 
 1. **Get the owner's orders-source decision (§4).** Everything else depends on it.
 2. If **(A)**: re-point leads/orders/derived/tpo to eldoria models, re-map columns + status
@@ -132,6 +152,6 @@ and **Metabase** (`mcp__Metabase__*`, database 108 = the PnM Business Health DB)
 the flag evidence above was gathered — use them for metadata, not for pulling MBR numbers without
 owner sign-off.
 
-**First question for the owner in the new terminal:** "Orders source — go with option A
-(re-point to the eldoria dbt models, ~85% recommended) or A/B something else?" Everything in
-iteration 3 keys off that answer.
+**~~First question for the owner in the new terminal~~ — CLOSED 2026-07-08:** Orders source = **Option A**
+(re-point to the eldoria dbt models), implemented and reconciled. See `DECISION_LOG.md`. (Historical
+prompt was: "Orders source — go with option A, ~85% recommended, or A/B something else?")

@@ -39,13 +39,13 @@ def refuse(msg: str, code: int = 2):
 def footer(section_name: str, month: str, executed: bool) -> str:
     s = SECTIONS[section_name]
     lines = []
-    lines.append(f"Source: PnM MBR catalog §{section_name} — adapted bug-for-bug from queries.py "
-                 f"(methodology: Metabase card #30311 + Notion MoM doc)")
+    lines.append(f"Source: PnM MBR catalog §{section_name} — mirrors the owner's live-validated MBR "
+                 f"automation (leads/orders/derived → LEADS_CONVERSION_QUERY; tpo → TPO_TREND_QUERY / card #47576)")
     lines.append(f"Month basis: {s['month_basis']}")
     lines.append(f"Base population: {s['base_population']}")
     if executed:
-        lines.append("Computed: live from PROD_CURATED.pnm_application at query time "
-                     "(may differ from the locked MBR sheet, a frozen weekly snapshot)")
+        lines.append("Computed: live at query time from the governed sources — PROD_ELDORIA core/mart "
+                     "(leads/orders/derived) and PROD_CURATED raw (tpo); reconcile against the MBR note / Notion Demand DB")
     if sqlgen.is_month_in_progress(month):
         lines.append(f"⚠ MONTH IN PROGRESS: this is an MTD value as of {date.today().isoformat()} — "
                      "not a final monthly number")

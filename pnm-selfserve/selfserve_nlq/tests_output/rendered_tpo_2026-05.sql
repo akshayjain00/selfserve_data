@@ -1,109 +1,68 @@
-WITH leads_base AS (
+WITH orders AS (
     SELECT
-        f.opp_id,
-        f.opp_created_ts,
-        f.source,
-        f.source_details,
-        f.sr_id,
-        d.intra_city,
-        d.user_flag,
-        d.is_nano
-    FROM PROD_CURATED.pnm_application.fact_pnm_opprotunity f
-    JOIN PROD_CURATED.pnm_application.dim_pnm_opportunity  d USING (opp_id)
-    WHERE DATE_TRUNC('month', f.opp_created_ts) IN ('2026-05-01', '2026-04-01')
-      AND d.intra_city = TRUE
-      AND d.user_flag  = 'normal'
+        DATE_TRUNC('month', DATEADD(minute, 330, b.completed_ts)) AS month,
+        COUNT(DISTINCT a.crn) AS total_orders
+    FROM PROD_CURATED.PNM_APPLICATION.ORDERS a
+    JOIN PROD_CURATED.PNM_APPLICATION.ORDER_ALLOCATION_INFOS b ON a.id = b.order_id AND b.is_active = true
+    LEFT JOIN PROD_CURATED.PNM_APPLICATION.SHIFTING_REQUIREMENTS c ON a.sr_id = c.id
+    WHERE a.crn LIKE '%PNM%'
+      AND c.package_name NOT ILIKE '%Nano%'
+      AND c.shifting_type = 'intra_city'
+      AND DATE_TRUNC('month', DATEADD(minute, 330, b.completed_ts)) = '2026-05-01'
+    GROUP BY 1
 ),
-orders_base_raw AS (
+tickets AS (
     SELECT
-        o.order_id,
-        o.crn,
-        o.sr_id,
-        o.o_created_ts,
-        o.o_completed_ts,
-        o.status,
-        d.intra_city,
-        d.user_flag,
-        d.is_nano,
-        l.source,
-        l.source_details,
-        o.vendor_accepted_ts,
-        o.supervisor_assigned_ts,
-        o.supervisor_accepted_ts,
-        o.trip_started_ts,
-        o.shifting_started_ts,
-        o.pickup_completed_ts,
-        o.order_completed_ts
-    FROM PROD_CURATED.pnm_application.orders o
-    INNER JOIN PROD_CURATED.pnm_application.pnm_customers  c ON o.customer_id = c.customer_id
-    LEFT  JOIN PROD_CURATED.pnm_application.dim_pnm_orders d USING (order_id)
-    LEFT  JOIN leads_base                                  l ON o.sr_id = l.sr_id
-    WHERE DATE_TRUNC('month', o.o_created_ts) IN ('2026-05-01', '2026-04-01')
-      AND d.intra_city = TRUE
-      AND d.user_flag  = 'normal'
-      AND o.status    != 4
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY o.sr_id ORDER BY o.o_created_ts) = 1
-),
-order_base AS (
-    SELECT
-        o.order_id,
-        o.crn,
-        DATE_TRUNC('month', a.completed_ts) AS alloc_month
-    FROM orders_base_raw o
-    JOIN PROD_CURATED.pnm_application.order_allocation_infos a ON o.order_id = a.order_id
-    WHERE o.is_nano = FALSE
-      AND a.completed_ts IS NOT NULL
-),
-ticket_data AS (
-    SELECT t.id AS ticket_id, t.crn, t.created_at, t.raised_by, t.order_status_when_ticket_created
-    FROM PROD_CURATED.sfms_public.hs_tickets t
-    JOIN order_base b ON t.crn = b.crn
-    WHERE LOWER(t.raised_by) NOT LIKE '%detractor%'
-),
-monthly AS (
-    SELECT
-        b.alloc_month                                                                   AS month,
-        COUNT(DISTINCT b.order_id)                                                      AS orders_base,
-        COUNT(t.ticket_id)                                                              AS tickets_overall,
-        COUNT(CASE WHEN t.raised_by IN ('Vendor-Owner','Vendor-Supervisor') THEN 1 END) AS tickets_vendor,
-        COUNT(CASE WHEN t.order_status_when_ticket_created IN
+        DATE_TRUNC('month', DATEADD(minute, 330, hst.created_at)) AS month,
+        COUNT(DISTINCT hst.ticket_number) AS tickets_overall,
+        COUNT(DISTINCT CASE WHEN hst.raised_by ILIKE 'Vendor%' THEN hst.ticket_number END) AS tickets_vendor,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created IN
                         ('open','supervisor_assigned','supervisor_accepted','vendor_accepted')
-                   THEN 1 END)                                                          AS tickets_pre_trip,
-        COUNT(CASE WHEN t.order_status_when_ticket_created IN
+                   THEN hst.ticket_number END) AS tickets_pre_trip,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created IN
                         ('open','supervisor_assigned','supervisor_accepted','vendor_accepted')
-                        AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_pre_trip_cust,
-        COUNT(CASE WHEN t.order_status_when_ticket_created IN ('trip_started','shifting_started')
-                   THEN 1 END)                                                          AS tickets_trip_shift,
-        COUNT(CASE WHEN t.order_status_when_ticket_created IN ('trip_started','shifting_started')
-                        AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_trip_shift_cust,
-        COUNT(CASE WHEN t.order_status_when_ticket_created = 'pickup_completed' THEN 1 END) AS tickets_pickup,
-        COUNT(CASE WHEN t.order_status_when_ticket_created = 'pickup_completed'
-                        AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_pickup_cust,
-        COUNT(CASE WHEN t.order_status_when_ticket_created = 'completed' THEN 1 END)     AS tickets_completed,
-        COUNT(CASE WHEN t.order_status_when_ticket_created = 'completed'
-                        AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_completed_cust,
-        COUNT(CASE WHEN t.order_status_when_ticket_created = 'cancelled' THEN 1 END)     AS tickets_cancelled,
-        COUNT(CASE WHEN t.order_status_when_ticket_created = 'cancelled'
-                        AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_cancelled_cust
-    FROM order_base b
-    LEFT JOIN ticket_data t ON b.crn = t.crn
-                             AND DATE_TRUNC('month', t.created_at) = b.alloc_month
+                        AND hst.raised_by = 'Customer' THEN hst.ticket_number END) AS tickets_pre_trip_cust,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created IN ('trip_started','shifting_started')
+                   THEN hst.ticket_number END) AS tickets_trip_shift,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created IN ('trip_started','shifting_started')
+                        AND hst.raised_by = 'Customer' THEN hst.ticket_number END) AS tickets_trip_shift_cust,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created = 'pickup_completed'
+                   THEN hst.ticket_number END) AS tickets_pickup,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created = 'pickup_completed'
+                        AND hst.raised_by = 'Customer' THEN hst.ticket_number END) AS tickets_pickup_cust,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created = 'completed'
+                   THEN hst.ticket_number END) AS tickets_completed,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created = 'completed'
+                        AND hst.raised_by = 'Customer' THEN hst.ticket_number END) AS tickets_completed_cust,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created = 'cancelled'
+                   THEN hst.ticket_number END) AS tickets_cancelled,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created = 'cancelled'
+                        AND hst.raised_by = 'Customer' THEN hst.ticket_number END) AS tickets_cancelled_cust
+    FROM PROD_CURATED.SFMS_PUBLIC.HS_TICKETS hst
+    LEFT JOIN PROD_CURATED.PNM_APPLICATION.ORDERS a ON hst.crn = a.crn
+    LEFT JOIN PROD_CURATED.PNM_APPLICATION.SHIFTING_REQUIREMENTS c ON a.sr_id = c.id
+    WHERE hst.crn LIKE '%PNM%'
+      AND hst.hs_package NOT ILIKE '%Nano%'
+      AND COALESCE(hst.shifting_type, c.shifting_type) = 'intra_city'
+      AND COALESCE(hst.raised_by, '') != 'Detractor'
+      AND DATE_TRUNC('month', DATEADD(minute, 330, hst.created_at)) = '2026-05-01'
     GROUP BY 1
 )
 SELECT
-    month,
-    orders_base,
-    ROUND(tickets_overall        / NULLIF(orders_base,0), 4) AS tpo_overall,
-    ROUND(tickets_vendor         / NULLIF(orders_base,0), 4) AS tpo_vendor_raised,
-    ROUND(tickets_pre_trip       / NULLIF(orders_base,0), 4) AS tpo_pre_trip,
-    ROUND(tickets_pre_trip_cust  / NULLIF(orders_base,0), 4) AS tpo_pre_trip_customer,
-    ROUND(tickets_trip_shift     / NULLIF(orders_base,0), 4) AS tpo_trip_shift,
-    ROUND(tickets_trip_shift_cust/ NULLIF(orders_base,0), 4) AS tpo_trip_shift_customer,
-    ROUND(tickets_pickup         / NULLIF(orders_base,0), 4) AS tpo_pickup,
-    ROUND(tickets_pickup_cust    / NULLIF(orders_base,0), 4) AS tpo_pickup_customer,
-    ROUND(tickets_completed      / NULLIF(orders_base,0), 4) AS tpo_completed,
-    ROUND(tickets_completed_cust / NULLIF(orders_base,0), 4) AS tpo_completed_customer,
-    ROUND(tickets_cancelled      / NULLIF(orders_base,0), 4) AS tpo_cancelled,
-    ROUND(tickets_cancelled_cust / NULLIF(orders_base,0), 4) AS tpo_cancelled_customer
-FROM monthly
-ORDER BY 1
+    o.month,
+    o.total_orders                                                       AS orders_base,
+    ROUND(t.tickets_overall         / NULLIF(o.total_orders, 0), 4) AS tpo_overall,
+    ROUND(t.tickets_vendor          / NULLIF(o.total_orders, 0), 4) AS tpo_vendor_raised,
+    ROUND(t.tickets_pre_trip        / NULLIF(o.total_orders, 0), 4) AS tpo_pre_trip,
+    ROUND(t.tickets_pre_trip_cust   / NULLIF(o.total_orders, 0), 4) AS tpo_pre_trip_customer,
+    ROUND(t.tickets_trip_shift      / NULLIF(o.total_orders, 0), 4) AS tpo_trip_shift,
+    ROUND(t.tickets_trip_shift_cust / NULLIF(o.total_orders, 0), 4) AS tpo_trip_shift_customer,
+    ROUND(t.tickets_pickup          / NULLIF(o.total_orders, 0), 4) AS tpo_pickup,
+    ROUND(t.tickets_pickup_cust     / NULLIF(o.total_orders, 0), 4) AS tpo_pickup_customer,
+    ROUND(t.tickets_completed       / NULLIF(o.total_orders, 0), 4) AS tpo_completed,
+    ROUND(t.tickets_completed_cust  / NULLIF(o.total_orders, 0), 4) AS tpo_completed_customer,
+    ROUND(t.tickets_cancelled       / NULLIF(o.total_orders, 0), 4) AS tpo_cancelled,
+    ROUND(t.tickets_cancelled_cust  / NULLIF(o.total_orders, 0), 4) AS tpo_cancelled_customer
+FROM orders o
+LEFT JOIN tickets t ON t.month = o.month
+ORDER BY o.month

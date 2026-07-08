@@ -70,7 +70,25 @@ ORDERS_SOURCE_DECISION = {
         "(B) Keep bug-for-bug on raw pnm_application tables — will not execute; only useful as a "
         "record of the original (broken) intent. (~15%)"
     ),
-    "status": "OPEN — owner decision required before any order-based section can be validated",
+    "status": "RESOLVED 2026-07-08 — owner chose (A); sqlgen.py now MIRRORS the owner's live-validated MBR automation.",
+    "resolution": (
+        "Owner approved (A) on 2026-07-08. Rather than hand-re-map the old raw-table staging, sqlgen.py now MIRRORS "
+        "the owner's live-validated automation at pnm/pnm_mbr_monthly_metrics/queries.py: leads/orders/derived follow "
+        "LEADS_CONVERSION_QUERY (validated 2026-07-08 vs PROD_ELDORIA.CORE.FACT_PNM_OPPORTUNITY / DIM_PNM_OPPORTUNITY / "
+        "FACT_PNM_ORDERS / DIM_PNM_ORDERS and PROD_ELDORIA.MART.PNM_CUSTOMERS); tpo follows TPO_TREND_QUERY / card #47576 "
+        "(validated 2026-07-07 vs PROD_CURATED.PNM_APPLICATION.ORDERS / ORDER_ALLOCATION_INFOS / SHIFTING_REQUIREMENTS and "
+        "PROD_CURATED.SFMS_PUBLIC.HS_TICKETS). Key semantics adopted from the validated queries: intra-city via "
+        "shifting_type='intra_city' (on the dims, nulls allowed on leads); user_flag ILIKE 'normal'; channel via a CASE on "
+        "dim_pnm_opportunity.source/source_details (App=1/2/3, Desktop/Mobile Website, Others=4, ELSE Mobile Website); "
+        "orders joined to mart.pnm_customers on customer_mobile with crn LIKE '%PNM%'; order dedup per ORDER_ID on the "
+        "opp-join fan-out; NO cancelled filter (all created orders count); TPO denominator = distinct PnM crns with an "
+        "active completed allocation (completed_ts +330m -> IST month), tickets bucketed by order_status_when_ticket_created. "
+        "NANO BUSINESS RULE (owner, 2026-07-08): nano = labour-only help (no vehicle), owned by LA (Labour Assist). It is "
+        "INCLUDED in leads (PnM demand) but EXCLUDED from orders (package_name NOT ILIKE 'Nano%') and TPO — those bookings "
+        "are LA's. So numbers reconcile against the MBR note / Notion Demand DB, NOT card #30311 (which strips nano from "
+        "the whole funnel). ADAPTATIONS (structure-only): single requested month instead of the automation's open-ended "
+        "start_date; this layer emits raw per-channel COUNTS and computes %s/conversion in Python (the automation emits %s)."
+    ),
 }
 
 SECTIONS = {
@@ -79,24 +97,22 @@ SECTIONS = {
         "readiness": "prototype_only",
         "month_basis": "calendar month of opp_created_ts (lead creation month)",
         "base_population": (
-            "intra-city, normal-user opportunities; Nano INCLUDED "
-            "(no is_nano filter in the pipeline's staging leads table)"
+            "intra-city (dim_pnm_opportunity.shifting_type='intra_city', nulls allowed), normal-user "
+            "(user_flag ILIKE 'normal') opportunities from PROD_ELDORIA.CORE.FACT_PNM_OPPORTUNITY + "
+            "DIM_PNM_OPPORTUNITY; Nano INCLUDED (nano demand stays with PnM through the funnel)"
         ),
-        "verify_flags": [
-            'config.py fact_opp: "PROD_CURATED.pnm_application.fact_pnm_opprotunity"  # note: typo in source table',
-        ],
+        "verify_flags": [],
         "quirks": [
-            "Population limited to leads created in the requested month + previous month "
-            "(pipeline staging-window semantics, replicated bug-for-bug).",
+            "Channel = CASE on dim_pnm_opportunity source/source_details: App=1/2/3, "
+            "'Desktop Website', 'Mobile Website', Others=4, ELSE 'Mobile Website' (verbatim from "
+            "the validated LEADS_CONVERSION_QUERY). Unknown/null source falls into Mobile Website.",
         ],
         "evidence": [
-            "Metabase card #30311 ('[DBT] Conversion %') counts opportunities from "
-            "prod_eldoria.core.fact_pnm_opportunity (correct spelling, different database/schema) "
-            "and EXCLUDES Nano via package_name NOT ILIKE '%nano%' — the script includes Nano. "
-            "Divergence unresolved; owner decision needed.",
-            "Data Catalog: PROD_ELDORIA.core.fact_pnm_opportunity and dim_pnm_opportunity exist "
-            "as dbt models owned by NI_PNM, with semantic models already generated — a governed "
-            "alternative source exists; re-pointing is a definition change (owner decision).",
+            "MIRRORS LEADS_CONVERSION_QUERY (owner's live-validated automation, verified 2026-07-08). "
+            "source & source_details come from DIM_PNM_OPPORTUNITY, which carries SOURCE, SOURCE_DETAILS "
+            "and USER_FLAG (confirmed via Data Catalog get_column_metadata).",
+            "Divergence from card #30311 is INTENTIONAL: #30311 excludes Nano from the funnel; PnM "
+            "keeps nano as demand in leads. Reconcile against the MBR note / Notion Demand DB.",
         ],
     },
     "orders": {
@@ -104,81 +120,79 @@ SECTIONS = {
         "readiness": "prototype_only",
         "month_basis": "calendar month of o_created_ts (order creation month)",
         "base_population": (
-            "intra-city, normal-user orders with a matching pnm_customers row, status != 4 "
-            "(status codes undocumented — inferred), first order per sr_id; Nano INCLUDED"
+            "intra-city (dim_pnm_orders.shifting_type='intra_city'), normal-user orders from "
+            "PROD_ELDORIA.CORE.FACT_PNM_ORDERS + DIM_PNM_ORDERS with a matching PROD_ELDORIA.MART.PNM_CUSTOMERS "
+            "row (customer_mobile) and crn LIKE '%PNM%'; NON-Nano (package_name NOT ILIKE 'Nano%'); "
+            "all statuses (no cancelled filter); deduped to one row per order_id"
         ),
         "verify_flags": [],
         "quirks": [
-            "Channel attribution works only when the originating lead was created in the "
-            "requested month + previous month; older-lead orders count in orders_overall "
-            "but in no channel split.",
-            "If one sr_id has multiple in-window leads, the surviving row's source channel "
-            "is nondeterministic (dedup runs after the lead join).",
+            "Channel is inherited from the order's originating lead (opportunity dim via sr_id); an order "
+            "with no matching opportunity falls into the CASE ELSE bucket ('Mobile Website').",
+            "Dedup is per ORDER_ID (the opp join can fan out); ORDER BY opp_id DESC NULLS LAST picks a "
+            "deterministic surviving row — matches the validated LEADS_CONVERSION_QUERY.",
+            "NANO ASYMMETRY: leads INCLUDE nano but orders EXCLUDE it (nano bookings are LA's). So "
+            "conversion = non-nano PnM orders / nano-inclusive PnM leads — by design.",
         ],
         "evidence": [
-            "Metabase card #30311 counts orders from prod_eldoria.core.fact_pnm_orders with "
-            "NO status filter, NO first-order-per-SR dedup, Nano EXCLUDED, intra-city via "
-            "service_type IN ('Default','Default_Short'), customers joined on customer_mobile. "
-            "All of these differ from the script. Divergence unresolved; owner decision needed.",
+            "MIRRORS LEADS_CONVERSION_QUERY's order_with_source (owner's live-validated automation, "
+            "2026-07-08): FACT_PNM_ORDERS INNER JOIN MART.PNM_CUSTOMERS (customer_mobile) LEFT JOIN "
+            "DIM_PNM_ORDERS + FACT/DIM_PNM_OPPORTUNITY (via sr_id). No cancelled filter, no first-order-"
+            "per-SR dedup (per-order_id instead), nano excluded — all straight from the validated query.",
         ],
     },
     "derived": {
         "built": True,
         "readiness": "prototype_only",
         "month_basis": "calendar month; ratio of same-month leads and orders aggregates",
-        "base_population": "inherits leads + orders populations (both Nano-inclusive)",
+        "base_population": (
+            "inherits the leads population (nano-INCLUDED) and the orders population (nano-EXCLUDED); "
+            "conversion is non-nano PnM orders over nano-inclusive PnM leads"
+        ),
         "verify_flags": [],
         "quirks": [
             "Period conversion, not lead-cohort conversion: orders created in month M ÷ leads "
             "created in month M.",
-            "Ratios are computed from raw counts fetched in the same query — never by "
+            "Ratios are computed in Python from the raw counts in one query — never by "
             "averaging stored ratios.",
-            "Per-channel conversion pairs a window-limited numerator (attributed orders only) "
-            "with a full channel-lead denominator.",
+            "Nano asymmetry (leads include nano, orders exclude it) slightly lowers conversion vs a "
+            "symmetric definition — intentional, matches the validated LEADS_CONVERSION_QUERY.",
         ],
         "evidence": [
-            "Metabase card #30311 computes ConversionPercentage as orders/opportunities with "
-            "Nano excluded from BOTH sides — the script includes Nano in both. Same-month "
-            "period ratio in both. Divergence unresolved; owner decision needed.",
+            "Inherits the mirrored leads + orders populations (owner decision A, 2026-07-08). "
+            "ConversionPercentage = orders/opportunities, same month, computed from raw counts. "
+            "Reconcile against the MBR note / Notion Demand DB, not card #30311.",
         ],
     },
     "tpo": {
         "built": True,
         "readiness": "prototype_only",
         "month_basis": (
-            "calendar month of ALLOCATION COMPLETION (order_allocation_infos.completed_ts) — "
-            "not order creation or completion month"
+            "calendar month of ALLOCATION COMPLETION (order_allocation_infos.completed_ts + 330m -> IST) "
+            "— not order creation month"
         ),
         "base_population": (
-            "distinct non-Nano intra-city orders (created in the requested month + previous "
-            "month — staging window) with a completed allocation in the month; tickets counted "
-            "only if created in that same calendar month; raised_by LIKE '%detractor%' excluded"
+            "distinct PnM crns (crn LIKE '%PNM%') with an ACTIVE completed allocation in the month, "
+            "NON-Nano (shifting_requirements.package_name NOT ILIKE '%Nano%'), intra-city "
+            "(shifting_type='intra_city'); tickets counted only if created in that same IST month, "
+            "non-detractor (raised_by != 'Detractor'), non-nano (hs_package). Nano EXCLUDED (attributed to LA)."
         ),
-        "verify_flags": [
-            'queries.py §7: "⚠ VERIFY: tickets table name, raised_by / order_status_at_creation column names."',
-            'config.py tickets: "PROD_CURATED.pnm_application.tickets"  # verify table name',
-        ],
+        "verify_flags": [],
         "quirks": [
             "Tickets raised in any month other than the allocation-completion month (earlier "
             "or later) are excluded entirely, attributed to no month.",
-            "If an order can have multiple completed allocation rows, ticket numerators "
-            "inflate quadratically while COUNT(DISTINCT) protects only the denominator — "
-            "unverified either way.",
-            "tpo_cancelled counts tickets whose order status AT TICKET CREATION was "
-            "'cancelled', over a base that excludes status-4 orders; if 4 = cancelled, this "
-            "metric is structurally near-zero.",
+            "Denominator counts DISTINCT crn; a crn with multiple active completed allocations is "
+            "still counted once. Ticket numerators are DISTINCT ticket_number.",
+            "tpo_cancelled counts tickets whose order status AT TICKET CREATION was 'cancelled' — "
+            "the ticket-stage bucket is independent of the order base's status (no cancelled filter there).",
         ],
         "evidence": [
-            "APPLIED (owner-approved 2026-07-07, ~90% confidence): ticket side re-pointed to "
-            "PROD_CURATED.sfms_public.hs_tickets, joined on crn, status column "
-            "order_status_when_ticket_created, count on ticket id. raised_by / created_at / "
-            "detractor filter unchanged. The original ⚠ VERIFY flag is kept verbatim above; it is "
-            "addressed-pending-execution, not yet validated against real numbers.",
-            "Data Catalog: pnm_application.order_allocation_infos exists as guessed — the "
-            "allocation side of TPO is confirmed.",
-            "STILL BLOCKED by ORDERS_SOURCE_DECISION: the order base (orders_base_raw) reads "
-            "columns that do not exist on the configured raw orders table, so this query is not "
-            "executable end-to-end until the orders source is decided.",
+            "MIRRORS TPO_TREND_QUERY (card #47576), owner's live-validated automation (verified 2026-07-07 "
+            "vs PROD_CURATED). Order base: ORDERS a JOIN ORDER_ALLOCATION_INFOS b (b.is_active=true) LEFT JOIN "
+            "SHIFTING_REQUIREMENTS c; month via DATEADD(minute,330,b.completed_ts). Tickets: SFMS_PUBLIC.HS_TICKETS "
+            "joined on crn, bucketed by order_status_when_ticket_created, vendor via raised_by ILIKE 'Vendor%'.",
+            "This supersedes the earlier eldoria fact_pnm_orders.o_completed_ts approximation and the guessed "
+            "pnm_application.tickets — both replaced by the validated PROD_CURATED sourcing.",
         ],
     },
     "ota": {
@@ -255,19 +269,19 @@ METRICS = {
 
     # ── orders ───────────────────────────────────────────────────────────────
     "orders_overall": {"section": "orders", "unit": "orders", "source": "sql",
-                       "definition": "Distinct booked orders created in the month (first order per service request; excludes status-4 orders).",
+                       "definition": "Distinct non-Nano PnM booked orders created in the month (deduped per order_id; all statuses).",
                        "aliases": ["orders", "total orders", "booked orders", "how many orders", "bookings"]},
     "orders_app":     {"section": "orders", "unit": "orders", "source": "sql",
-                       "definition": "Booked orders attributed to an app-originated lead (source IN (1,2,3)); lead must be in the query window.",
+                       "definition": "Booked orders whose originating lead was app (source IN (1,2,3)).",
                        "aliases": ["app orders", "orders from app", "orders from the app"]},
     "orders_desktop": {"section": "orders", "unit": "orders", "source": "sql",
-                       "definition": "Booked orders attributed to a desktop-website lead (window caveat applies).",
+                       "definition": "Booked orders whose originating lead was the desktop website.",
                        "aliases": ["desktop orders", "desktop website orders"]},
     "orders_mobile":  {"section": "orders", "unit": "orders", "source": "sql",
-                       "definition": "Booked orders attributed to a mobile-website lead (window caveat applies).",
+                       "definition": "Booked orders whose originating lead was the mobile website.",
                        "aliases": ["mobile orders", "mobile website orders", "mweb orders"]},
     "orders_others":  {"section": "orders", "unit": "orders", "source": "sql",
-                       "definition": "Booked orders attributed to an other-channel lead (source = 4) (window caveat applies).",
+                       "definition": "Booked orders whose originating lead was another channel (source = 4).",
                        "aliases": ["other orders", "orders from other channels"]},
 
     # ── derived (computed from the funnel query's raw counts) ────────────────
@@ -302,7 +316,7 @@ METRICS = {
 
     # ── tpo ──────────────────────────────────────────────────────────────────
     "orders_base": {"section": "tpo", "unit": "orders", "source": "sql",
-                    "definition": "Distinct non-Nano intra-city orders (created in the query window) whose allocation completed in the month (TPO denominator).",
+                    "definition": "Distinct non-Nano intra-city PnM crns whose allocation completed in the month (TPO denominator).",
                     "aliases": ["tpo base", "tpo order base", "tpo denominator", "orders in tpo base",
                                 "orders in the tpo base", "how many orders in the tpo base"]},
     "tpo_overall": {"section": "tpo", "unit": "tickets/order", "source": "sql",

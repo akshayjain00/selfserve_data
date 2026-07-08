@@ -1,4 +1,4 @@
-# Dry-run test report — 2026-07-07
+# Dry-run test report — 2026-07-08
 
 ## Answerable questions (resolution + SQL render)
 

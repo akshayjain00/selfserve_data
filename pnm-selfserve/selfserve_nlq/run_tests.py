@@ -25,13 +25,17 @@ import sqlgen
 OUT = Path(__file__).parent / "tests_output"
 
 EXPECTED_TABLES = {
-    "PROD_CURATED.pnm_application.fact_pnm_opprotunity",
-    "PROD_CURATED.pnm_application.dim_pnm_opportunity",
-    "PROD_CURATED.pnm_application.orders",
-    "PROD_CURATED.pnm_application.pnm_customers",
-    "PROD_CURATED.pnm_application.dim_pnm_orders",
-    "PROD_CURATED.pnm_application.order_allocation_infos",
-    "PROD_CURATED.sfms_public.hs_tickets",  # owner-approved ticket source (was guessed .tickets)
+    # leads/orders/derived mirror LEADS_CONVERSION_QUERY (PROD_ELDORIA core/mart)
+    "PROD_ELDORIA.CORE.FACT_PNM_OPPORTUNITY",
+    "PROD_ELDORIA.CORE.DIM_PNM_OPPORTUNITY",
+    "PROD_ELDORIA.CORE.FACT_PNM_ORDERS",
+    "PROD_ELDORIA.CORE.DIM_PNM_ORDERS",
+    "PROD_ELDORIA.MART.PNM_CUSTOMERS",
+    # tpo mirrors TPO_TREND_QUERY / card #47576 (PROD_CURATED raw)
+    "PROD_CURATED.PNM_APPLICATION.ORDERS",
+    "PROD_CURATED.PNM_APPLICATION.ORDER_ALLOCATION_INFOS",
+    "PROD_CURATED.PNM_APPLICATION.SHIFTING_REQUIREMENTS",
+    "PROD_CURATED.SFMS_PUBLIC.HS_TICKETS",
 }
 
 # (question, month, expected metric id)  — resolution + render must succeed
@@ -84,10 +88,10 @@ def check_sql(sql: str, month: str) -> list[str]:
         sqlgen.assert_read_only(sql)
     except ValueError as e:
         problems.append(f"read-only check failed: {e}")
-    ms, msp = sqlgen.month_bounds(month)
-    if f"'{ms}'" not in sql or f"'{msp}'" not in sql:
-        problems.append("window months not substituted")
-    tables = set(re.findall(r"PROD_CURATED\.[A-Za-z_]+\.[A-Za-z_]+", sql))
+    ms, _ = sqlgen.month_bounds(month)
+    if f"'{ms}'" not in sql:
+        problems.append("requested month not substituted")
+    tables = set(re.findall(r"PROD_(?:CURATED|ELDORIA)\.[A-Za-z_]+\.[A-Za-z_]+", sql))
     unexpected = tables - EXPECTED_TABLES
     if unexpected:
         problems.append(f"unexpected tables: {unexpected}")

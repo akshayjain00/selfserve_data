@@ -1,20 +1,34 @@
 """
 PnM Self-Serve NL Query Layer — Deterministic SQL generation (v0)
 =================================================================
-One read-only SELECT per section, with the pipeline's staging logic inlined as
-CTEs. The staging bodies are ADAPTED from queries.py, not copied:
+One read-only SELECT per section. As of 2026-07-08 the section SQL MIRRORS the
+owner's live-validated MBR automation (pnm/pnm_mbr_monthly_metrics/queries.py):
 
-  * the CREATE OR REPLACE wrapper is dropped (this layer never writes),
-  * the orders CTE's reference to the physical staging table
-    PROD_CURATED.NEW_INITIATIVE_ANALYTICS.pnm_mbr_leads is rewritten to the
-    inlined leads CTE (no cron dependence, no Monday-run race),
-  * the pipeline's named-colon binds (:month_start) — unsupported by the
-    Snowflake Python connector — are replaced by validated literal dates
-    substituted here, so the SQL you see is byte-for-byte the SQL that runs.
+  * leads / orders / derived  ->  LEADS_CONVERSION_QUERY (validated 2026-07-08
+    against PROD_ELDORIA.CORE.FACT_PNM_OPPORTUNITY / DIM_PNM_OPPORTUNITY /
+    FACT_PNM_ORDERS / DIM_PNM_ORDERS and PROD_ELDORIA.MART.PNM_CUSTOMERS)
+  * tpo                       ->  TPO_TREND_QUERY / card #47576 (validated
+    2026-07-07 against PROD_CURATED.PNM_APPLICATION.ORDERS / ORDER_ALLOCATION_INFOS
+    / SHIFTING_REQUIREMENTS and PROD_CURATED.SFMS_PUBLIC.HS_TICKETS)
 
-Everything else is bug-for-bug identical to queries.py, including the
-staging window (rows created in requested month + previous month), the
-status filters, the QUALIFY dedup, and TPO's same-month ticket join.
+This supersedes the earlier "bug-for-bug replicate the 5-file staging pipeline
+on raw pnm_application tables" approach (owner decision A, 2026-07-08 — see
+ORDERS_SOURCE_DECISION in metrics_registry): the configured raw tables never
+carried the needed columns, so we adopt the governed, already-validated queries.
+
+Adaptations vs. the automation's queries (deliberate, structure-only):
+  * the automation runs OPEN-ENDED from a start_date and returns every month;
+    this layer answers ONE month, so `DATE(...) >= start_date` becomes
+    `DATE_TRUNC('month', ...) = '{month_start}'` (single validated literal).
+  * the automation reports channel splits as PERCENTAGES; this layer emits the
+    raw per-channel COUNTS and lets the Python derived layer compute the %s and
+    conversion (ratios from raw counts, never averaged) — same numbers, and it
+    keeps the registry's count-metric ids (leads_app, orders_app, ...).
+
+Business rule baked in (owner, 2026-07-08): NANO = labour-only help (no vehicle),
+owned by LA. It is INCLUDED in leads (PnM demand) but EXCLUDED from orders and
+TPO (those bookings are attributed to LA, not PnM). Numbers therefore reconcile
+against the MBR note / Notion Demand DB, not Metabase card #30311.
 """
 
 import re
@@ -24,7 +38,11 @@ MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 
 
 def month_bounds(month: str) -> tuple[str, str]:
-    """'2026-05' -> ('2026-05-01', '2026-04-01') = (month_start, month_start_prev)."""
+    """'2026-05' -> ('2026-05-01', '2026-04-01') = (month_start, month_start_prev).
+
+    The section SQL only uses month_start (single-month answers); month_start_prev
+    is retained for API stability / callers that still reference it.
+    """
     if not MONTH_RE.match(month):
         raise ValueError(f"month must be YYYY-MM, got {month!r}")
     y, m = int(month[:4]), int(month[5:7])
@@ -42,191 +60,189 @@ def is_month_in_future(month: str, today: date | None = None) -> bool:
     return month > today.strftime("%Y-%m")
 
 
-# ── Inlined staging CTEs (adapted from CREATE_STG_LEADS / CREATE_STG_ORDERS) ──
+# Channel bucket, mirroring LEADS_CONVERSION_QUERY's CASE verbatim (App / Desktop
+# Website / Mobile Website / Others). `d` is the OPPORTUNITY dim alias on both the
+# leads side and the orders side (orders inherit channel from their lead via sr_id).
+def _channel_case(d: str) -> str:
+    return f"""CASE
+            WHEN {d}.source_details = 'Desktop Website' THEN 'Desktop Website'
+            WHEN {d}.source_details = 'Mobile Website'  THEN 'Mobile Website'
+            WHEN {d}.source IN (1, 2, 3)                 THEN 'App'
+            WHEN {d}.source = 4                           THEN 'Others'
+            ELSE 'Mobile Website'
+        END"""
 
+
+# ── Leads CTE (mirrors LEADS_CONVERSION_QUERY `leads`) ────────────────────────
+# Nano INCLUDED (no package filter). intra-city via shifting_type on the dim
+# (nulls allowed, per the validated query). Normal users only.
 CTE_LEADS = """\
 leads_base AS (
     SELECT
         f.opp_id,
-        f.opp_created_ts,
-        f.source,
-        f.source_details,
-        f.sr_id,
-        d.intra_city,
-        d.user_flag,
-        d.is_nano
-    FROM PROD_CURATED.pnm_application.fact_pnm_opprotunity f
-    JOIN PROD_CURATED.pnm_application.dim_pnm_opportunity  d USING (opp_id)
-    WHERE DATE_TRUNC('month', f.opp_created_ts) IN ('{month_start}', '{month_start_prev}')
-      AND d.intra_city = TRUE
-      AND d.user_flag  = 'normal'
+        {channel} AS channel
+    FROM PROD_ELDORIA.CORE.FACT_PNM_OPPORTUNITY f
+    LEFT JOIN PROD_ELDORIA.CORE.DIM_PNM_OPPORTUNITY d ON d.opp_id = f.opp_id
+    WHERE d.user_flag ILIKE 'normal'
+      AND DATE_TRUNC('month', f.opp_created_ts) = '{month_start}'
+      AND (d.shifting_type = 'intra_city' OR d.shifting_type IS NULL)
 )"""
 
+# ── Orders CTE (mirrors LEADS_CONVERSION_QUERY `order_with_source`) ───────────
+# Orders EXCLUDE nano (attributed to LA). Channel inherited from the order's lead
+# (opportunity dim via sr_id). Dedup is per ORDER_ID on the opp-join fan-out.
+# NO cancelled filter (counts all orders created in the month). crn must be PnM.
 CTE_ORDERS = """\
 orders_base_raw AS (
     SELECT
         o.order_id,
-        o.crn,
-        o.sr_id,
-        o.o_created_ts,
-        o.o_completed_ts,
-        o.status,
-        d.intra_city,
-        d.user_flag,
-        d.is_nano,
-        l.source,
-        l.source_details,
-        o.vendor_accepted_ts,
-        o.supervisor_assigned_ts,
-        o.supervisor_accepted_ts,
-        o.trip_started_ts,
-        o.shifting_started_ts,
-        o.pickup_completed_ts,
-        o.order_completed_ts
-    FROM PROD_CURATED.pnm_application.orders o
-    INNER JOIN PROD_CURATED.pnm_application.pnm_customers  c ON o.customer_id = c.customer_id
-    LEFT  JOIN PROD_CURATED.pnm_application.dim_pnm_orders d USING (order_id)
-    LEFT  JOIN leads_base                                  l ON o.sr_id = l.sr_id
-    WHERE DATE_TRUNC('month', o.o_created_ts) IN ('{month_start}', '{month_start_prev}')
-      AND d.intra_city = TRUE
-      AND d.user_flag  = 'normal'
-      AND o.status    != 4
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY o.sr_id ORDER BY o.o_created_ts) = 1
+        {channel} AS channel
+    FROM PROD_ELDORIA.CORE.FACT_PNM_ORDERS o
+    INNER JOIN PROD_ELDORIA.MART.PNM_CUSTOMERS       pc  ON pc.customer_mobile = o.customer_mobile
+    LEFT  JOIN PROD_ELDORIA.CORE.DIM_PNM_ORDERS      dord ON dord.order_id = o.order_id
+    LEFT  JOIN PROD_ELDORIA.CORE.FACT_PNM_OPPORTUNITY fpo ON fpo.sr_id = o.sr_id
+    LEFT  JOIN PROD_ELDORIA.CORE.DIM_PNM_OPPORTUNITY  d   ON d.opp_id = fpo.opp_id
+    WHERE dord.user_flag ILIKE 'normal'
+      AND DATE_TRUNC('month', o.o_created_ts) = '{month_start}'
+      AND dord.shifting_type = 'intra_city'
+      AND o.crn LIKE '%PNM%'
+      AND (dord.package_name NOT ILIKE 'Nano%' OR dord.package_name IS NULL)
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY o.order_id ORDER BY fpo.opp_id DESC NULLS LAST) = 1
 )"""
 
+# The `month` column (a validated literal, not GROUP BY) is emitted so ask.py can
+# match the single result row by month — uniform with the tpo section.
 AGG_LEADS = """\
 SELECT
-    DATE_TRUNC('month', opp_created_ts)                                          AS month,
-    COUNT(DISTINCT opp_id)                                                       AS leads_overall,
-    COUNT(DISTINCT CASE WHEN source IN (1,2,3)                  THEN opp_id END) AS leads_app,
-    COUNT(DISTINCT CASE WHEN source_details = 'Desktop Website' THEN opp_id END) AS leads_desktop,
-    COUNT(DISTINCT CASE WHEN source_details = 'Mobile Website'  THEN opp_id END) AS leads_mobile,
-    COUNT(DISTINCT CASE WHEN source = 4                         THEN opp_id END) AS leads_others
-FROM leads_base
-GROUP BY 1"""
+    DATE '{month_start}'                                                AS month,
+    COUNT(DISTINCT opp_id)                                              AS leads_overall,
+    COUNT(DISTINCT CASE WHEN channel = 'App'             THEN opp_id END) AS leads_app,
+    COUNT(DISTINCT CASE WHEN channel = 'Desktop Website' THEN opp_id END) AS leads_desktop,
+    COUNT(DISTINCT CASE WHEN channel = 'Mobile Website'  THEN opp_id END) AS leads_mobile,
+    COUNT(DISTINCT CASE WHEN channel = 'Others'          THEN opp_id END) AS leads_others
+FROM leads_base"""
 
 AGG_ORDERS = """\
 SELECT
-    DATE_TRUNC('month', o_created_ts)                                                AS month,
-    COUNT(DISTINCT order_id)                                                         AS orders_overall,
-    COUNT(DISTINCT CASE WHEN source IN (1,2,3)                  THEN order_id END)   AS orders_app,
-    COUNT(DISTINCT CASE WHEN source_details = 'Desktop Website' THEN order_id END)   AS orders_desktop,
-    COUNT(DISTINCT CASE WHEN source_details = 'Mobile Website'  THEN order_id END)   AS orders_mobile,
-    COUNT(DISTINCT CASE WHEN source = 4                         THEN order_id END)   AS orders_others
-FROM orders_base_raw
-GROUP BY 1"""
+    DATE '{month_start}'                                                    AS month,
+    COUNT(DISTINCT order_id)                                                AS orders_overall,
+    COUNT(DISTINCT CASE WHEN channel = 'App'             THEN order_id END) AS orders_app,
+    COUNT(DISTINCT CASE WHEN channel = 'Desktop Website' THEN order_id END) AS orders_desktop,
+    COUNT(DISTINCT CASE WHEN channel = 'Mobile Website'  THEN order_id END) AS orders_mobile,
+    COUNT(DISTINCT CASE WHEN channel = 'Others'          THEN order_id END) AS orders_others
+FROM orders_base_raw"""
 
 
 def leads_sql(month: str) -> str:
-    ms, msp = month_bounds(month)
-    cte = CTE_LEADS.format(month_start=ms, month_start_prev=msp)
-    return f"WITH {cte}\n{AGG_LEADS}\nORDER BY 1"
+    ms, _ = month_bounds(month)
+    cte = CTE_LEADS.format(channel=_channel_case("d"), month_start=ms)
+    return f"WITH {cte}\n{AGG_LEADS.format(month_start=ms)}"
 
 
 def orders_sql(month: str) -> str:
-    ms, msp = month_bounds(month)
-    ctes = (CTE_LEADS + ",\n" + CTE_ORDERS).format(month_start=ms, month_start_prev=msp)
-    return f"WITH {ctes}\n{AGG_ORDERS}\nORDER BY 1"
+    ms, _ = month_bounds(month)
+    cte = CTE_ORDERS.format(channel=_channel_case("d"), month_start=ms)
+    return f"WITH {cte}\n{AGG_ORDERS.format(month_start=ms)}"
 
 
 def funnel_sql(month: str) -> str:
-    """Leads + orders aggregates joined on month — the input for derived
-    metrics, matching runner.py's inner merge of the two DataFrames.
-    Ratios are computed in Python from these raw counts (never averaged)."""
-    ms, msp = month_bounds(month)
-    ctes = (CTE_LEADS + ",\n" + CTE_ORDERS).format(month_start=ms, month_start_prev=msp)
-    return f"""WITH {ctes},
+    """Leads + orders per-channel counts on one row — the input for the derived
+    metrics (conversion, order-mix), which runner/ask compute in Python from
+    these raw counts (never by averaging ratios). Mirrors LEADS_CONVERSION_QUERY
+    but emits counts, not the automation's percentages."""
+    ms, _ = month_bounds(month)
+    leads_cte = CTE_LEADS.format(channel=_channel_case("d"), month_start=ms)
+    orders_cte = CTE_ORDERS.format(channel=_channel_case("d"), month_start=ms)
+    return f"""WITH {leads_cte},
+{orders_cte},
 leads_monthly AS (
-{AGG_LEADS}
+{AGG_LEADS.format(month_start=ms)}
 ),
 orders_monthly AS (
-{AGG_ORDERS}
+{AGG_ORDERS.format(month_start=ms)}
 )
 SELECT
     l.month,
     l.leads_overall, l.leads_app, l.leads_desktop, l.leads_mobile, l.leads_others,
     o.orders_overall, o.orders_app, o.orders_desktop, o.orders_mobile, o.orders_others
-FROM leads_monthly  l
-JOIN orders_monthly o ON l.month = o.month
-ORDER BY 1"""
+FROM leads_monthly l
+CROSS JOIN orders_monthly o"""
 
 
 def tpo_sql(month: str) -> str:
-    ms, msp = month_bounds(month)
-    ctes = (CTE_LEADS + ",\n" + CTE_ORDERS).format(month_start=ms, month_start_prev=msp)
-    # TICKET-SIDE ADAPTATION (owner-approved 2026-07-07, ~90% confidence from Data
-    # Catalog evidence): the pipeline's guessed PROD_CURATED.pnm_application.tickets
-    # does not exist. The PnM tickets table is PROD_CURATED.sfms_public.hs_tickets;
-    # it has no order_id (join on crn / hs_order_id) and the status-at-creation
-    # column is named order_status_when_ticket_created (not order_status_at_creation).
-    # raised_by, created_at, and the detractor filter are unchanged (confirmed to exist).
-    # NOTE: the surrounding order base (orders_base_raw) still references columns that
-    # do not exist on the configured raw orders table — see ORDERS_SOURCE_DECISION in
-    # metrics_registry. This query is not executable end-to-end until that is resolved.
-    return f"""WITH {ctes},
-order_base AS (
+    ms, _ = month_bounds(month)
+    # Mirrors TPO_TREND_QUERY (card #47576), validated 2026-07-07 against PROD_CURATED.
+    # Denominator: distinct PnM crns with an active completed allocation in the month
+    # (completed_ts is UTC -> +330m for IST month). Nano EXCLUDED (LA). Tickets joined
+    # on crn, non-detractor, non-nano, intra-city; bucketed by order_status_when_ticket_created.
+    return f"""WITH orders AS (
     SELECT
-        o.order_id,
-        o.crn,
-        DATE_TRUNC('month', a.completed_ts) AS alloc_month
-    FROM orders_base_raw o
-    JOIN PROD_CURATED.pnm_application.order_allocation_infos a ON o.order_id = a.order_id
-    WHERE o.is_nano = FALSE
-      AND a.completed_ts IS NOT NULL
+        DATE_TRUNC('month', DATEADD(minute, 330, b.completed_ts)) AS month,
+        COUNT(DISTINCT a.crn) AS total_orders
+    FROM PROD_CURATED.PNM_APPLICATION.ORDERS a
+    JOIN PROD_CURATED.PNM_APPLICATION.ORDER_ALLOCATION_INFOS b ON a.id = b.order_id AND b.is_active = true
+    LEFT JOIN PROD_CURATED.PNM_APPLICATION.SHIFTING_REQUIREMENTS c ON a.sr_id = c.id
+    WHERE a.crn LIKE '%PNM%'
+      AND c.package_name NOT ILIKE '%Nano%'
+      AND c.shifting_type = 'intra_city'
+      AND DATE_TRUNC('month', DATEADD(minute, 330, b.completed_ts)) = '{ms}'
+    GROUP BY 1
 ),
-ticket_data AS (
-    SELECT t.id AS ticket_id, t.crn, t.created_at, t.raised_by, t.order_status_when_ticket_created
-    FROM PROD_CURATED.sfms_public.hs_tickets t
-    JOIN order_base b ON t.crn = b.crn
-    WHERE LOWER(t.raised_by) NOT LIKE '%detractor%'
-),
-monthly AS (
+tickets AS (
     SELECT
-        b.alloc_month                                                                   AS month,
-        COUNT(DISTINCT b.order_id)                                                      AS orders_base,
-        COUNT(t.ticket_id)                                                              AS tickets_overall,
-        COUNT(CASE WHEN t.raised_by IN ('Vendor-Owner','Vendor-Supervisor') THEN 1 END) AS tickets_vendor,
-        COUNT(CASE WHEN t.order_status_when_ticket_created IN
+        DATE_TRUNC('month', DATEADD(minute, 330, hst.created_at)) AS month,
+        COUNT(DISTINCT hst.ticket_number) AS tickets_overall,
+        COUNT(DISTINCT CASE WHEN hst.raised_by ILIKE 'Vendor%' THEN hst.ticket_number END) AS tickets_vendor,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created IN
                         ('open','supervisor_assigned','supervisor_accepted','vendor_accepted')
-                   THEN 1 END)                                                          AS tickets_pre_trip,
-        COUNT(CASE WHEN t.order_status_when_ticket_created IN
+                   THEN hst.ticket_number END) AS tickets_pre_trip,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created IN
                         ('open','supervisor_assigned','supervisor_accepted','vendor_accepted')
-                        AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_pre_trip_cust,
-        COUNT(CASE WHEN t.order_status_when_ticket_created IN ('trip_started','shifting_started')
-                   THEN 1 END)                                                          AS tickets_trip_shift,
-        COUNT(CASE WHEN t.order_status_when_ticket_created IN ('trip_started','shifting_started')
-                        AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_trip_shift_cust,
-        COUNT(CASE WHEN t.order_status_when_ticket_created = 'pickup_completed' THEN 1 END) AS tickets_pickup,
-        COUNT(CASE WHEN t.order_status_when_ticket_created = 'pickup_completed'
-                        AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_pickup_cust,
-        COUNT(CASE WHEN t.order_status_when_ticket_created = 'completed' THEN 1 END)     AS tickets_completed,
-        COUNT(CASE WHEN t.order_status_when_ticket_created = 'completed'
-                        AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_completed_cust,
-        COUNT(CASE WHEN t.order_status_when_ticket_created = 'cancelled' THEN 1 END)     AS tickets_cancelled,
-        COUNT(CASE WHEN t.order_status_when_ticket_created = 'cancelled'
-                        AND t.raised_by = 'Customer' THEN 1 END)                        AS tickets_cancelled_cust
-    FROM order_base b
-    LEFT JOIN ticket_data t ON b.crn = t.crn
-                             AND DATE_TRUNC('month', t.created_at) = b.alloc_month
+                        AND hst.raised_by = 'Customer' THEN hst.ticket_number END) AS tickets_pre_trip_cust,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created IN ('trip_started','shifting_started')
+                   THEN hst.ticket_number END) AS tickets_trip_shift,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created IN ('trip_started','shifting_started')
+                        AND hst.raised_by = 'Customer' THEN hst.ticket_number END) AS tickets_trip_shift_cust,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created = 'pickup_completed'
+                   THEN hst.ticket_number END) AS tickets_pickup,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created = 'pickup_completed'
+                        AND hst.raised_by = 'Customer' THEN hst.ticket_number END) AS tickets_pickup_cust,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created = 'completed'
+                   THEN hst.ticket_number END) AS tickets_completed,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created = 'completed'
+                        AND hst.raised_by = 'Customer' THEN hst.ticket_number END) AS tickets_completed_cust,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created = 'cancelled'
+                   THEN hst.ticket_number END) AS tickets_cancelled,
+        COUNT(DISTINCT CASE WHEN hst.order_status_when_ticket_created = 'cancelled'
+                        AND hst.raised_by = 'Customer' THEN hst.ticket_number END) AS tickets_cancelled_cust
+    FROM PROD_CURATED.SFMS_PUBLIC.HS_TICKETS hst
+    LEFT JOIN PROD_CURATED.PNM_APPLICATION.ORDERS a ON hst.crn = a.crn
+    LEFT JOIN PROD_CURATED.PNM_APPLICATION.SHIFTING_REQUIREMENTS c ON a.sr_id = c.id
+    WHERE hst.crn LIKE '%PNM%'
+      AND hst.hs_package NOT ILIKE '%Nano%'
+      AND COALESCE(hst.shifting_type, c.shifting_type) = 'intra_city'
+      AND COALESCE(hst.raised_by, '') != 'Detractor'
+      AND DATE_TRUNC('month', DATEADD(minute, 330, hst.created_at)) = '{ms}'
     GROUP BY 1
 )
 SELECT
-    month,
-    orders_base,
-    ROUND(tickets_overall        / NULLIF(orders_base,0), 4) AS tpo_overall,
-    ROUND(tickets_vendor         / NULLIF(orders_base,0), 4) AS tpo_vendor_raised,
-    ROUND(tickets_pre_trip       / NULLIF(orders_base,0), 4) AS tpo_pre_trip,
-    ROUND(tickets_pre_trip_cust  / NULLIF(orders_base,0), 4) AS tpo_pre_trip_customer,
-    ROUND(tickets_trip_shift     / NULLIF(orders_base,0), 4) AS tpo_trip_shift,
-    ROUND(tickets_trip_shift_cust/ NULLIF(orders_base,0), 4) AS tpo_trip_shift_customer,
-    ROUND(tickets_pickup         / NULLIF(orders_base,0), 4) AS tpo_pickup,
-    ROUND(tickets_pickup_cust    / NULLIF(orders_base,0), 4) AS tpo_pickup_customer,
-    ROUND(tickets_completed      / NULLIF(orders_base,0), 4) AS tpo_completed,
-    ROUND(tickets_completed_cust / NULLIF(orders_base,0), 4) AS tpo_completed_customer,
-    ROUND(tickets_cancelled      / NULLIF(orders_base,0), 4) AS tpo_cancelled,
-    ROUND(tickets_cancelled_cust / NULLIF(orders_base,0), 4) AS tpo_cancelled_customer
-FROM monthly
-ORDER BY 1"""
+    o.month,
+    o.total_orders                                                       AS orders_base,
+    ROUND(t.tickets_overall         / NULLIF(o.total_orders, 0), 4) AS tpo_overall,
+    ROUND(t.tickets_vendor          / NULLIF(o.total_orders, 0), 4) AS tpo_vendor_raised,
+    ROUND(t.tickets_pre_trip        / NULLIF(o.total_orders, 0), 4) AS tpo_pre_trip,
+    ROUND(t.tickets_pre_trip_cust   / NULLIF(o.total_orders, 0), 4) AS tpo_pre_trip_customer,
+    ROUND(t.tickets_trip_shift      / NULLIF(o.total_orders, 0), 4) AS tpo_trip_shift,
+    ROUND(t.tickets_trip_shift_cust / NULLIF(o.total_orders, 0), 4) AS tpo_trip_shift_customer,
+    ROUND(t.tickets_pickup          / NULLIF(o.total_orders, 0), 4) AS tpo_pickup,
+    ROUND(t.tickets_pickup_cust     / NULLIF(o.total_orders, 0), 4) AS tpo_pickup_customer,
+    ROUND(t.tickets_completed       / NULLIF(o.total_orders, 0), 4) AS tpo_completed,
+    ROUND(t.tickets_completed_cust  / NULLIF(o.total_orders, 0), 4) AS tpo_completed_customer,
+    ROUND(t.tickets_cancelled       / NULLIF(o.total_orders, 0), 4) AS tpo_cancelled,
+    ROUND(t.tickets_cancelled_cust  / NULLIF(o.total_orders, 0), 4) AS tpo_cancelled_customer
+FROM orders o
+LEFT JOIN tickets t ON t.month = o.month
+ORDER BY o.month"""
 
 
 # section -> SQL builder. "derived" resolves to the funnel query; the ratio is
