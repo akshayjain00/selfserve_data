@@ -1,0 +1,422 @@
+<title>PnM Self-Serve — how the AI leverage works</title>
+<style>
+  :root {
+    --bg: #eceff3; --surface: #ffffff; --surface-2: #f3f5f8;
+    --ink: #1a2028; --body: #3d4753; --muted: #6c7784; --line: #d8dee5;
+    --accent: #0f8a86; --accent-ink: #0b6f6b; --accent-soft: rgba(15,138,134,.10);
+    --ok: #2f8f5b; --ok-soft: rgba(47,143,91,.12);
+    --warn: #b07d1e; --warn-soft: rgba(176,125,30,.14);
+    --crit: #c14d3a; --crit-soft: rgba(193,77,58,.12);
+    --idle: #8a93a1; --idle-soft: rgba(138,147,161,.14);
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --maxw: 980px; --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f141a; --surface: #161d25; --surface-2: #1b232c;
+      --ink: #eef2f6; --body: #b6c0cb; --muted: #7f8b98; --line: #29323d;
+      --accent: #2dd4bf; --accent-ink: #5fe7d6; --accent-soft: rgba(45,212,191,.12);
+      --ok: #4bb07a; --ok-soft: rgba(75,176,122,.15);
+      --warn: #d6a23e; --warn-soft: rgba(214,162,62,.15);
+      --crit: #e0715c; --crit-soft: rgba(224,113,92,.15);
+      --idle: #7f8b98; --idle-soft: rgba(127,139,152,.16);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f141a; --surface: #161d25; --surface-2: #1b232c;
+    --ink: #eef2f6; --body: #b6c0cb; --muted: #7f8b98; --line: #29323d;
+    --accent: #2dd4bf; --accent-ink: #5fe7d6; --accent-soft: rgba(45,212,191,.12);
+    --ok: #4bb07a; --ok-soft: rgba(75,176,122,.15);
+    --warn: #d6a23e; --warn-soft: rgba(214,162,62,.15);
+    --crit: #e0715c; --crit-soft: rgba(224,113,92,.15);
+    --idle: #7f8b98; --idle-soft: rgba(127,139,152,.16);
+  }
+  :root[data-theme="light"] {
+    --bg: #eceff3; --surface: #ffffff; --surface-2: #f3f5f8;
+    --ink: #1a2028; --body: #3d4753; --muted: #6c7784; --line: #d8dee5;
+    --accent: #0f8a86; --accent-ink: #0b6f6b; --accent-soft: rgba(15,138,134,.10);
+    --ok: #2f8f5b; --ok-soft: rgba(47,143,91,.12);
+    --warn: #b07d1e; --warn-soft: rgba(176,125,30,.14);
+    --crit: #c14d3a; --crit-soft: rgba(193,77,58,.12);
+    --idle: #8a93a1; --idle-soft: rgba(138,147,161,.14);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .page {
+    background: var(--bg); color: var(--body);
+    font-family: var(--font-sans); line-height: 1.6;
+    font-size: 16px; -webkit-font-smoothing: antialiased;
+    padding: clamp(20px, 5vw, 56px) 20px 72px;
+  }
+  .wrap { max-width: var(--maxw); margin: 0 auto; }
+
+  h1, h2, h3 { color: var(--ink); text-wrap: balance; line-height: 1.2; margin: 0; }
+  h1 { font-size: clamp(1.7rem, 4.6vw, 2.6rem); letter-spacing: -.02em; font-weight: 680; }
+  h2 { font-size: clamp(1.25rem, 3vw, 1.6rem); letter-spacing: -.01em; font-weight: 640; }
+  h3 { font-size: 1.02rem; font-weight: 640; }
+  p { margin: 0; }
+  strong { color: var(--ink); font-weight: 620; }
+
+  .eyebrow {
+    font-family: var(--font-mono); font-size: .72rem; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--accent-ink); font-weight: 600;
+  }
+  .muted { color: var(--muted); }
+
+  section { margin-top: clamp(40px, 6vw, 68px); }
+  .lede { margin-top: 18px; font-size: clamp(1.02rem, 2.2vw, 1.18rem); max-width: 68ch; }
+
+  /* hero */
+  .hero-tag { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px;
+    font-family: var(--font-mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; background: var(--surface); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); display: inline-block; }
+
+  .thesis {
+    margin-top: 26px; background: var(--surface); border: 1px solid var(--line);
+    border-left: 3px solid var(--accent); border-radius: var(--radius);
+    padding: 20px 22px; font-size: 1.05rem;
+  }
+  .thesis strong { color: var(--accent-ink); }
+
+  /* generic card */
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; }
+
+  /* problem row */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  @media (max-width: 720px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+  .stat-k { font-family: var(--font-mono); color: var(--ink); font-weight: 640; font-size: 1.05rem; }
+
+  /* flow */
+  .flow { margin-top: 26px; position: relative; display: flex; flex-direction: column; gap: 0; }
+  .step { display: grid; grid-template-columns: 132px 1fr; gap: 18px; padding: 14px 0; position: relative; }
+  @media (max-width: 640px) { .step { grid-template-columns: 96px 1fr; gap: 12px; } }
+  .rail { position: relative; display: flex; align-items: flex-start; justify-content: flex-end; padding-top: 3px; }
+  .tag {
+    font-family: var(--font-mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase;
+    font-weight: 640; padding: 4px 9px; border-radius: 6px; white-space: nowrap; border: 1px solid transparent;
+  }
+  .tag.ai   { color: var(--accent-ink); background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 32%, transparent); }
+  .tag.eng  { color: var(--muted); background: var(--surface-2); border-color: var(--line); }
+  .tag.gate { color: var(--warn); background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 32%, transparent); }
+  .step-body { border-left: 2px solid var(--line); padding: 0 0 6px 20px; margin-left: -2px; position: relative; }
+  .step:last-child .step-body { border-left-color: transparent; }
+  .node-dot { position: absolute; left: -7px; top: 4px; width: 12px; height: 12px; border-radius: 50%;
+    background: var(--surface); border: 2px solid var(--muted); }
+  .step.ai .step-body { border-left-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+  .step.ai .node-dot { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .step.gate .node-dot { border-color: var(--warn); }
+  .step-body h3 { margin-bottom: 3px; }
+  .step-body .what { font-size: .95rem; }
+  .step-body code { font-family: var(--font-mono); font-size: .84em; background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; color: var(--ink); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-mono);
+    font-size: .74rem; letter-spacing: .04em; color: var(--muted); }
+  .sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  /* leverage cards */
+  .lev { position: relative; display: flex; flex-direction: column; gap: 8px; }
+  .lev .num { font-family: var(--font-mono); font-size: .74rem; color: var(--accent-ink); letter-spacing: .06em; }
+  .lev h3 { font-size: 1.06rem; }
+  .lev .impact { margin-top: auto; padding-top: 12px; border-top: 1px dashed var(--line);
+    font-size: .86rem; color: var(--muted); }
+  .lev .impact b { color: var(--ink); font-weight: 620; }
+  .chip-proven { align-self: flex-start; font-family: var(--font-mono); font-size: .64rem; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ok); background: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent);
+    padding: 3px 8px; border-radius: 999px; font-weight: 640; }
+
+  /* deterministic chips */
+  .det { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .det .d { flex: 1 1 210px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 13px 15px; }
+  .det .d .k { font-family: var(--font-mono); font-size: .8rem; color: var(--ink); font-weight: 640; }
+  .det .d .v { font-size: .86rem; color: var(--muted); margin-top: 3px; }
+
+  /* iterations */
+  .iters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px; }
+  @media (max-width: 720px) { .iters { grid-template-columns: 1fr; } }
+  .iter { position: relative; }
+  .iter .st { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .07em; text-transform: uppercase;
+    font-weight: 640; padding: 3px 9px; border-radius: 999px; display: inline-block; }
+  .st.done { color: var(--ok); background: var(--ok-soft); }
+  .st.next { color: var(--accent-ink); background: var(--accent-soft); }
+  .iter h3 { margin: 12px 0 6px; }
+  .iter p { font-size: .92rem; }
+
+  /* readiness table */
+  .tbl-wrap { overflow-x: auto; margin-top: 20px; border: 1px solid var(--line); border-radius: var(--radius); }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 520px; }
+  th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  th { font-family: var(--font-mono); font-size: .7rem; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; background: var(--surface-2); }
+  tr:last-child td { border-bottom: none; }
+  td.sec { font-family: var(--font-mono); color: var(--ink); font-weight: 600; }
+  .pill { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .05em; font-weight: 640;
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .pill.proto { color: var(--warn); background: var(--warn-soft); }
+  .pill.blocked { color: var(--crit); background: var(--crit-soft); }
+  .pill.notbuilt { color: var(--idle); background: var(--idle-soft); }
+
+  /* decision */
+  .decision { border-left: 3px solid var(--warn); }
+  .opt { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center;
+    padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .opt:last-child { border-bottom: none; }
+  .opt .lbl { font-family: var(--font-mono); font-weight: 680; color: var(--ink); font-size: 1.05rem; }
+  .conf { font-family: var(--font-mono); font-weight: 680; font-size: .9rem; text-align: right; white-space: nowrap; }
+  .conf.hi { color: var(--ok); } .conf.lo { color: var(--muted); }
+  .bar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-top: 6px; border: 1px solid var(--line); }
+  .bar > i { display: block; height: 100%; background: var(--accent); }
+
+  footer { margin-top: 60px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; }
+  footer code { font-family: var(--font-mono); color: var(--ink); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { opacity: 0; transform: translateY(10px); animation: rise .6s ease forwards; }
+    @keyframes rise { to { opacity: 1; transform: none; } }
+  }
+</style>
+
+<div class="page">
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero-tag reveal"><span class="dot"></span> PnM · MBR &amp; ProdOps automation · prototype</div>
+  <h1 class="reveal">Ask your MBR metrics in plain English — <br>without letting the AI guess the numbers.</h1>
+  <p class="lede reveal muted">A self-serve layer over the exact same Snowflake logic that already feeds Porter's PnM Monthly Business Review. The point isn't a chatbot that does math — it's a way to remove the analyst-in-the-loop for routine metric questions while keeping the numbers as trustworthy as the sheet.</p>
+
+  <div class="thesis reveal">
+    The counter-intuitive core: <strong>the AI is the translator and the investigator, not the calculator.</strong>
+    Numbers come from one reviewed, read-only SQL query per metric. The AI turns your question into a menu choice, gathers the evidence, and narrates the answer with its caveats — the part humans burn hours on. That division is exactly what makes it safe to point at leadership-facing numbers.
+  </div>
+
+  <!-- PROBLEM -->
+  <section class="reveal">
+    <div class="eyebrow">What it replaces</div>
+    <h2 style="margin-top:10px">The manual loop today</h2>
+    <div class="grid-3" style="margin-top:18px">
+      <div class="card">
+        <div class="stat-k">Analyst-in-the-loop</div>
+        <p class="muted" style="margin-top:6px;font-size:.92rem">Every "what was TPO in May?" is a ticket to someone who can write SQL, wait for a warehouse run, and paste it back.</p>
+      </div>
+      <div class="card">
+        <div class="stat-k">Weekly rebuild</div>
+        <p class="muted" style="margin-top:6px;font-size:.92rem">The MBR is reconciled by hand from brain files and pipeline output each cycle — caveats re-typed, not queried.</p>
+      </div>
+      <div class="card">
+        <div class="stat-k">Hidden data debt</div>
+        <p class="muted" style="margin-top:6px;font-size:.92rem">Definitions carry unverified table/column names. Nobody notices until a number looks wrong in a review.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLOW -->
+  <section class="reveal">
+    <div class="eyebrow">The core idea</div>
+    <h2 style="margin-top:10px">One question, traced through the system</h2>
+    <p class="lede muted" style="margin-top:12px">Follow "How many tickets per order did we get in May?" from the person to the answer. Notice how few steps are actually AI — and that none of them touch the arithmetic.</p>
+
+    <div class="legend">
+      <span><i class="sw" style="background:var(--accent)"></i> AI acts here</span>
+      <span><i class="sw" style="background:var(--muted)"></i> Deterministic engine</span>
+      <span><i class="sw" style="background:var(--warn)"></i> Human gate</span>
+    </div>
+
+    <div class="flow">
+      <div class="step ai">
+        <div class="rail"><span class="tag ai">AI</span></div>
+        <div class="step-body"><span class="node-dot"></span>
+          <h3>Understand the question</h3>
+          <p class="what">Maps free text → a catalogued metric id + month: <code>tpo_overall, 2026-05</code>. If it asks for something off-menu (a city, a week, a median), it <strong>refuses</strong> instead of improvising.</p>
+        </div>
+      </div>
+      <div class="step eng">
+        <div class="rail"><span class="tag eng">Engine</span></div>
+        <div class="step-body"><span class="node-dot"></span>
+          <h3>Look up &amp; gate</h3>
+          <p class="what">The registry is the single menu. Unknown metric, blocked section, or future month → hard stop. Closed-world by design.</p>
+        </div>
+      </div>
+      <div class="step eng">
+        <div class="rail"><span class="tag eng">Engine</span></div>
+        <div class="step-body"><span class="node-dot"></span>
+          <h3>Render one read-only SQL</h3>
+          <p class="what">The staging logic, inlined as CTEs — <strong>byte-for-byte what will run</strong>. A guard rejects anything that isn't a single <code>SELECT</code>.</p>
+        </div>
+      </div>
+      <div class="step gate">
+        <div class="rail"><span class="tag gate">Gate</span></div>
+        <div class="step-body"><span class="node-dot"></span>
+          <h3>Dry-run by default → you approve</h3>
+          <p class="what">It prints the SQL and stops. Production is touched only on an explicit <code>--execute</code>. No silent queries, ever.</p>
+        </div>
+      </div>
+      <div class="step eng">
+        <div class="rail"><span class="tag eng">Engine</span></div>
+        <div class="step-body"><span class="node-dot"></span>
+          <h3>Run the single SELECT</h3>
+          <p class="what">Read-only. Ratios rebuilt from raw numerator ÷ denominator — never averaged. Result logged to an audit trail.</p>
+        </div>
+      </div>
+      <div class="step ai">
+        <div class="rail"><span class="tag ai">AI</span></div>
+        <div class="step-body"><span class="node-dot"></span>
+          <h3>Narrate with a trust footer</h3>
+          <p class="what">Answer + <strong>provenance, month-basis, MTD-vs-locked, readiness, and every verify-flag verbatim</strong>. The caveat work the MBR does by hand — automatic.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHERE AI LEVERAGE LANDS -->
+  <section class="reveal">
+    <div class="eyebrow">The answer to your question</div>
+    <h2 style="margin-top:10px">Where the AI leverage actually kicks in</h2>
+    <p class="lede muted" style="margin-top:12px">Four places — and the biggest win so far isn't the chat interface, it's the investigation.</p>
+
+    <div class="grid-4" style="margin-top:20px">
+      <div class="card lev">
+        <span class="num">01 · self-serve</span>
+        <h3>English → governed metric</h3>
+        <p class="muted" style="font-size:.94rem">A stakeholder or analyst asks in their own words; the AI resolves it to a reviewed metric and month. No SQL, no waiting on a person.</p>
+        <div class="impact">Removes the analyst-in-the-loop for <b>routine ad-hoc pulls</b>.</div>
+      </div>
+
+      <div class="card lev">
+        <span class="chip-proven">Proven in iter 1–2</span>
+        <span class="num">02 · investigation</span>
+        <h3>Data archaeology &amp; audit</h3>
+        <p class="muted" style="font-size:.94rem">The AI cross-read the Data Catalog, Metabase card #30311 and dbt lineage and caught: a ticket table that doesn't exist, an orders table missing the columns the query needs, and a methodology drift — before a single number was quoted.</p>
+        <div class="impact"><b>Hours-to-days</b> of analyst forensics, done up front.</div>
+      </div>
+
+      <div class="card lev">
+        <span class="num">03 · governance</span>
+        <h3>Trust footer, automatically</h3>
+        <p class="muted" style="font-size:.94rem">Every answer ships with source, freshness, MTD labeling, readiness, and unresolved flags attached — the manual reconciliation and caveating MBR prep does today.</p>
+        <div class="impact">Turns caveats into <b>metadata, not memory</b>.</div>
+      </div>
+
+      <div class="card lev">
+        <span class="num">04 · endgame</span>
+        <h3>MBR becomes queries</h3>
+        <p class="muted" style="font-size:.94rem">Once sections are validated and governed, the monthly review is generated from queries instead of rebuilt from prose and brain files each cycle.</p>
+        <div class="impact">The review stops being a <b>rewrite</b>, starts being a <b>read</b>.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DETERMINISTIC GUARDRAILS -->
+  <section class="reveal">
+    <div class="eyebrow">Why it's trustworthy</div>
+    <h2 style="margin-top:10px">What stays deterministic — on purpose</h2>
+    <p class="lede muted" style="margin-top:12px">The AI is fenced out of anything that decides a number. These are not AI steps:</p>
+    <div class="det">
+      <div class="d"><div class="k">SQL generation</div><div class="v">One reviewed query per section. The AI never writes it.</div></div>
+      <div class="d"><div class="k">Read-only + dry-run</div><div class="v">No writes; nothing executes without your go-ahead.</div></div>
+      <div class="d"><div class="k">Closed-world refusal</div><div class="v">Off-menu questions are declined, not improvised.</div></div>
+      <div class="d"><div class="k">Readiness gating</div><div class="v">Only you promote a section to stakeholder-ready.</div></div>
+    </div>
+  </section>
+
+  <!-- PLAN -->
+  <section class="reveal">
+    <div class="eyebrow">The plan</div>
+    <h2 style="margin-top:10px">Three iterations, each gated by your review</h2>
+    <div class="iters">
+      <div class="card iter">
+        <span class="st done">✓ Done</span>
+        <h3>1 · Map</h3>
+        <p class="muted">Catalogue all 49 metrics with their definitions and verify-flags; propose the architecture. No code.</p>
+      </div>
+      <div class="card iter">
+        <span class="st done">✓ Done</span>
+        <h3>2 · Thin prototype</h3>
+        <p class="muted">Build leads, orders, conversion/mix and TPO; dry-run tested 31/31; first readiness ledger. Nothing opened to anyone.</p>
+      </div>
+      <div class="card iter">
+        <span class="st next">◷ Next</span>
+        <h3>3 · Refine &amp; extend</h3>
+        <p class="muted">Validate on real data, add the last sections, final ledger + which bundles are stakeholder-ready, and a verdict on formalizing as a skill.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- READINESS -->
+  <section class="reveal">
+    <div class="eyebrow">Where each section stands</div>
+    <h2 style="margin-top:10px">Readiness snapshot</h2>
+    <p class="lede muted" style="margin-top:12px">Nothing is stakeholder-ready yet — by rule, an open flag or an unvalidated number keeps a section at prototype-only.</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Section</th><th>State</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td class="sec">leads</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Built &amp; dry-run tested; awaits real-data validation + orders-source decision.</td></tr>
+          <tr><td class="sec">orders</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Same, plus undocumented status codes.</td></tr>
+          <tr><td class="sec">derived</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Conversion &amp; order-mix; inherits leads + orders.</td></tr>
+          <tr><td class="sec">tpo</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Ticket source adapted (approved); still waits on the orders-source decision.</td></tr>
+          <tr><td class="sec">ota</td><td><span class="pill blocked">blocked</span></td><td class="muted">Query needs columns that don't exist anywhere — needs a real data-source definition.</td></tr>
+          <tr><td class="sec">p80_durations</td><td><span class="pill notbuilt">not built</span></td><td class="muted">Iteration 3 — cleanest remaining; has a baseline CSV to validate against.</td></tr>
+          <tr><td class="sec">order_edits</td><td><span class="pill notbuilt">not built</span></td><td class="muted">Iteration 3 — pending a ruling on its source table.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- DECISION -->
+  <section class="reveal">
+    <div class="eyebrow">The one gate for iteration 3</div>
+    <h2 style="margin-top:10px">Open decision: which orders source?</h2>
+    <div class="card decision" style="margin-top:18px">
+      <p style="font-size:.96rem">The pipeline reads order columns from a raw table that doesn't have them; the real, assembled source is the governed dbt model. Everything in iteration 3 keys off this — presented with confidence, per your standing rule.</p>
+      <div style="margin-top:16px">
+        <div class="opt">
+          <span class="lbl">A</span>
+          <div>
+            <strong>Re-point to the eldoria dbt models.</strong>
+            <p class="muted" style="font-size:.9rem">Makes the numbers real, matches card #30311, and unblocks Argus eligibility. A definition change — remap column names + status semantics, then validate.</p>
+            <div class="bar"><i style="width:85%"></i></div>
+          </div>
+          <span class="conf hi">~85%</span>
+        </div>
+        <div class="opt">
+          <span class="lbl">B</span>
+          <div>
+            <strong>Stay bug-for-bug on the raw tables.</strong>
+            <p class="muted" style="font-size:.9rem">Faithful to the original intent, but won't execute — only a record of a pipeline that almost certainly never ran.</p>
+            <div class="bar"><i style="width:15%;background:var(--idle)"></i></div>
+          </div>
+          <span class="conf lo">~15%</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARGUS TIE-IN -->
+  <section class="reveal">
+    <div class="eyebrow">How it plugs into Project Argus</div>
+    <h2 style="margin-top:10px">This is the query-metrics skill, minus the packaging</h2>
+    <div class="grid-2" style="margin-top:18px">
+      <div class="card">
+        <h3>Same shape as the governed vision</h3>
+        <p class="muted" style="margin-top:8px;font-size:.94rem">English question → governed SQL → numeric answer with a trust footer. The registry is deliberately built like a pre-YAML metric definition, so exporting to the metric store later is mechanical, not a rebuild.</p>
+      </div>
+      <div class="card">
+        <h3>The blocker doubles as the unlock</h3>
+        <p class="muted" style="margin-top:8px;font-size:.94rem">Option A above re-points to dbt models that are already governed with semantic models — the same move that makes the numbers real also makes this domain eligible for Argus. Formalizing as a skill stays your call, after checkpoint 3.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="reveal">
+    Prototype on branch <code>claude/pnm-metrics-catalog-map-vg251i</code> · sections built: leads, orders, derived, tpo · dry-run only, no production data touched, no stakeholder access opened. Full detail in <code>HANDOFF.md</code> and the iteration ledgers.
+  </footer>
+
+</div>
+</div>
