@@ -183,3 +183,72 @@ governance-vs-value blocks presented as explicit follow-vs-break choices.
 
 **What iteration 2 will NOT do:** touch production data (Path A only, exact SQL shown first);
 open access; formalize a skill; build non-Snowflake source connectors; generalize across verticals.
+
+---
+
+## F. Maker–Checker addendum (2026-07-09)
+
+*Added after a manager-orchestrated Maker–Checker pass. The maker = iteration-1 above. A Checker
+critiqued it; two subagents were dispatched to research existing implementation + industry
+practice (the existing-impl agent was blocked by a macOS file-access sandbox on `~/Desktop` and
+its role was absorbed by the manager from prior deep-reads; the research agent completed). Still
+iteration-1 map scope — no code, no new deps, no new files.*
+
+### F.1 Checker findings (ranked; most severe first)
+| # | Sev | Flaw | Fix |
+|---|---|---|---|
+| C1 | **Critical** | "confirmed-via-metadata" reads as "green" but only confirms card existence + lineage, not that any number is right. | Rename to **`lineage-traced (unvalidated)`**; reserve "confirmed" for post-reconciliation numbers. |
+| C2 | **Critical** | Reconcile-first sequencing risks paralysis; the real critical path is other teams' roadmaps (CATEGORY_ANALYTICS / Finance / Core Platforms). | **Decouple**: ship an *exposing* prototype (emits both offline/online bases & both cancellation defs side-by-side) **in parallel** with reconciliation. The demo value is exposing conflicts, not hiding them. |
+| C3 | **High** | Multi-source is an architecture risk, not a coverage footnote: ~45/85 metrics (incl. NPS, GM%, on-time, batching) can't be SQL-served. "Register but refuse" is a hollow menu. | Add a **`passthrough/attest`** source type — surface last-known manual value + provenance + staleness, not a refusal. |
+| C4 | **High** | The seed Google Sheet is itself unversioned, column-shifted (8 rows), single-owner. Mirroring it inherits its fragility. | The **git-versioned registry replaces the sheet as source of truth**; the sheet is a one-time input. |
+| C5 | **High** | "Fork, don't generalize" invites N rotting registries; shared guardrails won't get bugfixes. | **Shared engine core (imported) + per-vertical registries (forked)** — factor guardrails/CLI/SQL-safety/harness into a shared module now; only metric *data* is per-vertical. |
+| C6 | **Med** | Consumption model never established (generated Notion doc? live queries? cadence? audience?). Could re-order the whole journey. | New **Owner Q0** (§F.5). |
+| C7 | **Med** | `orders.state` enum (3=completed/4=cancelled) assumed across all FF/CBDF/CADF but only flagged, not prioritized — and it's the cheapest thing to confirm. | Make confirming the enum the **#1 pre-work item**. |
+| C8 | **Med** | 62/85 unverified with no per-source verification *plan*; manual-sheet metrics are unverifiable by metadata at all. | Add a per-source verification plan; state manual metrics need *process*, not queries. |
+| C9 | **Low** | Some % confidences are decorative. | Attach an evidence basis to each %, or drop it. |
+
+**Single most important change:** reframe from *"query CLI"* → *"governed metric register that
+exposes conflicts, serves the Snowflake subset read-only, and attests the manual rest"* — and
+**ship it exposing conflicts rather than gating delivery on resolving them** (fixes C1+C2+C3).
+
+### F.2 Reuse verdict (from deep-read of `selfserve_nlq/`)
+- **Fork verbatim:** `assert_read_only`, dry-run-default CLI, trust footer, section `readiness`
+  model, resolver refusal logic, `funnel_sql`'s derive-ratios-in-Python-from-raw-counts.
+- **Breaks for PTL:** single-source assumption; leads/orders/derived/tpo section shape; eldoria
+  re-point; single-month window (PTL needs the 7-month trend).
+- **Verdict:** registry = fork-with-changes (add `source` + MetricFlow schema + governance
+  fields); SQL engine = **extract shared core** + PTL templates (the C5 fix); harness =
+  fork-with-changes (add metamorphic + reconciliation + golden).
+
+### F.3 Research-backed recommendations (adopt into the spec; sources cited)
+The locked architecture matches where the field landed in 2024–2026. Prioritized:
+1. **[adopt-now]** Shape each metric like **dbt MetricFlow** (`type/agg/numerator/denominator/agg_time_dimension`) → aggregate-then-ratio becomes structural; export later is mechanical. *(docs.getdbt.com/docs/build/metrics-overview)*
+2. **[adopt-now]** LLM contract = **resolve→gate→refuse**, never a text-to-SQL fallback (grounding ~40%→~83%, 100% in-scope; fallback reintroduces silent drift). *(dbt SL-vs-text-to-SQL 2026; omni.co/blog/why-text-to-sql-fails)*
+3. **[adopt-now]** Add **sqlglot AST validation** (single-statement + root-is-SELECT + table allow-list) beside the regex; parse-failure ⇒ refuse. *(github.com/tobymao/sqlglot)*
+4. **[adopt-now]** Enforce a **read-only Snowflake role** — the boundary a bypassed string check can't defeat.
+5. **[adopt-now]** Formalize **maker–checker**: engine renders → owner approves → ship (Airbnb Midas-style certification).
+6. **[adopt-iteration-2]** Unit fixtures + **metamorphic invariants** in the harness.
+7. **[adopt-iteration-2]** **Reconciliation harness** (engine vs trusted card) + **golden frozen month**.
+8. **[consider-later]** Governance fields (`certification`, `owner`, `version`, `deprecated_on`) surfaced in every answer. *(ODCS v3.1.0; dbt model versions)*
+
+### F.4 Verification strategy (six-layer ladder; no production queries)
+- **L0 Triangulation (map):** sheet-def vs card-SQL vs warehouse-schema vs review's published number must agree. First move: **confirm `orders.state` enum**.
+- **L1 Logic:** hand-computed unit fixtures per ratio; property tests (`ff∈[0,1]`, `co≤demand`, ÷0→null); fuzz the read-only guard.
+- **L2 Metamorphic (no oracle):** `CBDF+CADF ≤ total cancellations`; weekly sums→monthly; partitions reconstruct total; aggregate-then-ratio invariance.
+- **L3 Differential:** normalize engine SQL **and** source card SQL to sqlglot ASTs and diff (fidelity before any run); then diff results (owner-run) vs the card per cut.
+- **L4 Back-test against the review's own 7-month history (free oracle):** the engine must reproduce Oct-25→Apr-26 published values per v1 metric. **A metric that can't reproduce its own review history is not stakeholder-ready.** This is the acceptance test.
+- **L5 Adversarial NL eval:** golden question set (15–25); each resolves to the right `metric_id` **or refuses**; track resolution accuracy *and* false-answer rate.
+- **Conflict-exposure test (novel):** for any unresolved-conflict metric, assert the engine emits **both variants side-by-side with the flag** until the owner rules — an automated proof we never silently pick. All under maker-checker.
+
+### F.5 Re-evaluated way forward + new owner question
+**Reframed product (80%):** a git-versioned governed metric register that (a) exposes conflicts,
+(b) serves the Snowflake subset read-only (dry-run + sqlglot + role guard), (c) attests the
+manual/Amplitude/DataDog/Finance rest with provenance + staleness, (d) is back-tested against the
+review's own history, (e) ultimately generates the monthly review — under a maker-checker gate.
+**Re-sequenced:** pre-work (confirm state enum; extract shared engine core; add `source` +
+MetricFlow schema) → **Track A reconciliation** and **Track B exposing-prototype in parallel**
+(Track B ships without waiting on Finance/CATEGORY_ANALYTICS) → verification L0–L4 wired in, L4 =
+promotion gate → iteration 3 generates the doc + governed-layer / non-SQL-source decisions.
+
+- **Q0 (new, prepend to §A) — Consumption model & cadence:** generated monthly review doc
+  (Notion), live ad-hoc queries, or both? May re-order the entire journey. *(Only you can answer.)*
