@@ -245,13 +245,81 @@ LEFT JOIN tickets t ON t.month = o.month
 ORDER BY o.month"""
 
 
+def p80_sql(month: str) -> str:
+    """Mirrors TRIP_DURATION_PERCENTILE_QUERY (owner's live-validated automation),
+    single-month. Percentiles of per-order stage durations (minutes) over completed,
+    non-Nano, intra-city orders. Month grain = SHIFTING_TS_IST. Both SUPERVISOR_ACCEPTED
+    and SUPERVISOR_ASSIGNED columns exist in the mart; the automation deliberately reads
+    ACCEPTED for the "supervisor assigned" stages (replicated bug-for-bug). The open-ended
+    `>= start_date` becomes a prunable single-month range on the NTZ SHIFTING_TS_IST."""
+    ms, _ = month_bounds(month)
+    return f"""SELECT
+    DATE '{ms}' AS month,
+    ROUND(PERCENTILE_CONT(0.8) WITHIN GROUP (ORDER BY DATEDIFF('minute', VENDOR_OWNER_ACCEPTED_TS_IST, SUPERVISOR_ACCEPTED_TS_IST)), 1) AS p80_vendor_accepted_to_sup_assigned,
+    ROUND(PERCENTILE_CONT(0.8) WITHIN GROUP (ORDER BY DATEDIFF('minute', SUPERVISOR_ACCEPTED_TS_IST, TRIP_STARTED_TS_IST)), 1)           AS p80_sup_assigned_to_trip_started,
+    ROUND(PERCENTILE_CONT(0.8) WITHIN GROUP (ORDER BY DATEDIFF('minute', TRIP_STARTED_TS_IST, SHIFTING_STARTED_TS_IST)), 1)              AS p80_trip_started_to_shifting_started,
+    ROUND(PERCENTILE_CONT(0.8) WITHIN GROUP (ORDER BY DATEDIFF('minute', SHIFTING_STARTED_TS_IST, PICKUP_COMPLETED_TS_IST)), 1)          AS p80_shifting_started_to_pickup_complete,
+    ROUND(PERCENTILE_CONT(0.8) WITHIN GROUP (ORDER BY DATEDIFF('minute', PICKUP_COMPLETED_TS_IST, ORDER_COMPLETED_TS_IST)), 1)           AS p80_pickup_complete_to_order_complete,
+    ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY DATEDIFF('minute', SHIFTING_STARTED_TS_IST, ORDER_COMPLETED_TS_IST)), 1)           AS p50_trip_duration,
+    ROUND(PERCENTILE_CONT(0.8) WITHIN GROUP (ORDER BY DATEDIFF('minute', SHIFTING_STARTED_TS_IST, ORDER_COMPLETED_TS_IST)), 1)           AS p80_trip_duration
+FROM PROD_ELDORIA.MART.PNM_EXPERIENCE
+WHERE SHIFTING_TS_IST >= '{ms}'
+  AND SHIFTING_TS_IST <  DATEADD('month', 1, DATE '{ms}')
+  AND ORDER_STATUS = 'completed'
+  AND PACKAGE_NAME NOT ILIKE 'Nano%'
+  AND SHIFTING_TYPE = 'intra_city'"""
+
+
+def order_edits_sql(month: str) -> str:
+    """Mirrors EDIT_ADOPTION_QUERY (owner's live-validated automation), single-month.
+    Edit-adoption rates over completed, non-Nano, intra-city orders. Month grain =
+    ORDER_CREATED_TS_IST. All %s are computed IN SQL (unlike leads/orders which emit
+    counts and derive %s in Python) — so every metric here is source:"sql". #10
+    (pct_edits_after_shifting_started) divides by NO_OF_SUCCESSFUL_EDITS; all other %s
+    by total_orders. location adoption is emitted under two ids by design."""
+    ms, _ = month_bounds(month)
+    return f"""WITH base AS (
+    SELECT
+        COUNT(DISTINCT pe.ORDER_ID)                                                    AS total_orders,
+        COUNT(DISTINCT CASE WHEN pe.IS_MODIFICATION_DONE = 'Yes' THEN pe.ORDER_ID END) AS orders_with_mods,
+        SUM(pe.NO_OF_SUCCESSFUL_EDITS)                                                 AS no_of_successful_edits,
+        SUM(pe.EDITS_AFTER_SHIFTING)                                                   AS edits_after_shifting,
+        COUNT(DISTINCT CASE WHEN pe.HAS_SUPPORT_EDIT  = 1 THEN pe.ORDER_ID END)        AS support_edited_orders,
+        COUNT(DISTINCT CASE WHEN pe.HAS_LOCATION_EDIT = 1 THEN pe.ORDER_ID END)        AS location_edited_orders,
+        COUNT(DISTINCT CASE WHEN pe.HAS_ITEMS_EDIT    = 1 THEN pe.ORDER_ID END)        AS items_edited_orders,
+        COUNT(DISTINCT CASE WHEN pe.HAS_ADDONS_EDIT   = 1 THEN pe.ORDER_ID END)        AS addons_edited_orders,
+        COUNT(DISTINCT CASE WHEN pe.HAS_SLOT_EDIT     = 1 THEN pe.ORDER_ID END)        AS slot_edited_orders
+    FROM PROD_ELDORIA.MART.PNM_EXPERIENCE pe
+    WHERE pe.ORDER_CREATED_TS_IST >= '{ms}'
+      AND pe.ORDER_CREATED_TS_IST <  DATEADD('month', 1, DATE '{ms}')
+      AND pe.ORDER_STATUS = 'completed'
+      AND pe.SHIFTING_TYPE = 'intra_city'
+      AND pe.PACKAGE_NAME NOT ILIKE 'Nano%'
+)
+SELECT
+    DATE '{ms}' AS month,
+    ROUND(100.0 * orders_with_mods       / NULLIF(total_orders, 0), 2)           AS pct_orders_edited,
+    no_of_successful_edits,
+    ROUND(100.0 * support_edited_orders  / NULLIF(total_orders, 0), 2)           AS pct_support_edited_orders,
+    ROUND(100.0 * location_edited_orders / NULLIF(total_orders, 0), 2)           AS location_adoption_pct,
+    ROUND(100.0 * location_edited_orders / NULLIF(total_orders, 0), 2)           AS pct_orders_location_modified,
+    ROUND(100.0 * items_edited_orders    / NULLIF(total_orders, 0), 2)           AS items_adoption_pct,
+    ROUND(100.0 * addons_edited_orders   / NULLIF(total_orders, 0), 2)           AS addons_adoption_pct,
+    ROUND(100.0 * slot_edited_orders     / NULLIF(total_orders, 0), 2)           AS slot_adoption_pct,
+    ROUND(no_of_successful_edits * 1.0   / NULLIF(total_orders, 0), 2)           AS edits_per_order,
+    ROUND(100.0 * edits_after_shifting   / NULLIF(no_of_successful_edits, 0), 2) AS pct_edits_after_shifting_started
+FROM base"""
+
+
 # section -> SQL builder. "derived" resolves to the funnel query; the ratio is
 # computed in Python from its raw counts.
 SECTION_SQL = {
-    "leads":   leads_sql,
-    "orders":  orders_sql,
-    "derived": funnel_sql,
-    "tpo":     tpo_sql,
+    "leads":         leads_sql,
+    "orders":        orders_sql,
+    "derived":       funnel_sql,
+    "tpo":           tpo_sql,
+    "p80_durations": p80_sql,
+    "order_edits":   order_edits_sql,
 }
 
 

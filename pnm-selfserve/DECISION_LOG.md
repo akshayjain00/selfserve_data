@@ -48,6 +48,22 @@ Owner: akshay.jain@theporter.in · Repo: `akshayjain00/selfserve_data` @ `claude
 - (b) This layer emits raw per-channel **counts**; %s and conversion are computed in Python from those counts (never averaged) — the automation emits %s directly. Same underlying numbers, preserves the registry's count-metric ids.
 - (c) A validated-literal `month` column is emitted on every section so `ask.py` can match the single result row uniformly.
 
+### D8 — `p80_durations` + `order_edits` source = **`PROD_ELDORIA.MART.PNM_EXPERIENCE`**
+- **Date:** 2026-07-12 (owner) · built 2026-07-19 · **Status:** DONE · **Confidence:** ~95% (schema verified live)
+- Both sections mirror the automation's `TRIP_DURATION_PERCENTILE_QUERY` / `EDIT_ADOPTION_QUERY` over the single governed mart `PNM_EXPERIENCE` (via `config.EXPERIENCE_SOURCE_TABLE`). The p80 baseline CSV **is** this automation's output.
+- **Pre-flight (2026-07-19, live `INFORMATION_SCHEMA`):** all 20 required columns exist; `SHIFTING_TS_IST` and `ORDER_CREATED_TS_IST` are `TIMESTAMP_NTZ` (so naive-literal month bounds don't shift — no cast needed). Types: `IS_MODIFICATION_DONE` TEXT (`='Yes'`), `HAS_*_EDIT` NUMBER (`=1`).
+- **Supersedes** the old `order_edits` stub that sourced from `PROD_CURATED.pnm_application.sr_modifications` / `order_modifications`; those `verify_flags`+`evidence` were **replaced, not appended**. (Board B-8: the spec's claim to also supersede a p80→`FACT_PNM_ORDERS` note was an overstatement — no such p80 note existed; only the stub's generic `o_completed_ts` month_basis needed correcting, now `SHIFTING_TS_IST`.)
+
+### D9 — Metric ids = the automation's exact output-column names, lowercase
+- **Date:** 2026-07-12 · **Status:** DONE
+- `resolve()` lowercases the question and `execute()` lowercases every result column (`[d[0].lower() …]`), and `compute_value` does `row.get(metric_id)` — so ids MUST be lowercase to match. Verified end-to-end by the board. All 17 new metrics are `source:"sql"` (order_edits emits final %s in SQL, unlike leads/orders which emit counts and derive in Python).
+
+### D10 — `p50_trip_duration` and `p80_vendor_accepted_to_sup_assigned` are emitted + reconciled but NOT NL-exposed
+- **Date:** 2026-07-12 · **Status:** DONE · **⚠ one leg rests on a corrected premise — owner input wanted (see below)**
+- Both are reachable only via `ask.py --metric`; both are emitted and reconciled (the p80 baseline needs p50). Mechanism: `p50` is blocked by the pre-existing `p50`/`median` guard; the vendor-stage metric is given **no aliases** and `resolve()` now skips zero-alias metrics entirely (so not even the id-form resolves).
+- **CORRECTION (board A-1/B-1, blocker):** the spec's stated reason for hiding the vendor metric — *"its name contains 'vendor' → hits `UNSUPPORTED_TERMS`"* — is **false**. Bare `"vendor"` is not in the guard list (only `by vendor`/`per vendor`/`vendor wise`/`vendorwise`), the guard runs on the question not the metric name, and adding bare `"vendor"` would break the existing `tpo_vendor_raised` NL metric. Exclusion is therefore done by no-aliases, not the guard.
+- **OWNER DECISION PENDING (~55% keep hidden):** `p80_vendor_accepted_to_sup_assigned` is a legitimate stage-duration metric (vendor-owner accept → supervisor assigned), published in the baseline like its NL-exposed siblings. Its original "hide it" call rested on the false guard premise. **Do you want it NL-exposed** (give it an alias + an ANSWERABLE case) like the other p80 stages, or kept `--metric`-only? Default shipped = hidden.
+
 ---
 
 ## 2. Verification log
@@ -76,6 +92,16 @@ Owner: akshay.jain@theporter.in · Repo: `akshayjain00/selfserve_data` @ `claude
 
 - **Verdict:** the selfserve NL layer reproduces the owner's live-validated pipeline numbers EXACTLY for 2026-05. Leads/orders/derived and TPO all tie out. Optional owner cross-check: Notion Demand DB published values.
 
+### V4 — Build + reconcile `p80_durations` + `order_edits` (iteration 3) — **PASS**
+- **Date:** 2026-07-19 · Branch `claude/pnm-p80-orderedits` (off `112c992`). Method: board A/B spec re-review → live schema pre-flight (hard gate) → TDD (red harness first) → mirror implementation → live differential reconciliation → blind checker.
+- **Board (A coverage + B coherence), re-run now that files are unlocked:** found + fixed 2 real spec defects before build — (1) the vendor-guard exclusion mechanism does not exist (D10 correction), (2) `ask.py` footer's `Source`/`Computed` lines were hard-coded and would misattribute the new sections → made per-section via `source_desc`/`computed_desc` with the old strings as defaults (4 existing sections unchanged). Also folded: section-scoped `AS month` assertion (a global one would red derived/tpo), repurposed the obsolete `metric_not_built` test to `metric_unknown`, and replaced (not appended) the stale `order_edits` provenance.
+- **Harness:** `python3.12 run_tests.py` → **54 passed, 0 failed** (15 new answerable, 4 new guard refusals, 2 structural render checks, 2 `--metric`-only checks incl. NL-unreachability).
+- **Live reconciliation (read-only, `tests_output/reconciliation_2026-07-19.md`):**
+  - **p80** vs the baseline CSV (8 months): **bit-exact** on the 3 settled months (2025-10/11/12); ≤0.84% on recent months (max: p80_trip 2026-05 597→602), all well under the README ±2.5% rule, drift concentrated in the newest months = mart-still-building backfill, **not** a logic bug. Single-month rendered SQL == grouped/automation row for 2026-05 (structure-only adaptation adds no divergence). `p50 ≤ p80_trip` every month.
+  - **order_edits** (no baseline CSV): byte-identical mirror of `EDIT_ADOPTION_QUERY`; all properties pass — `location_adoption_pct == pct_orders_location_modified` (15.85), all 8 %s in [0,100], `edits_per_order` positive ratio, cross-month (Mar/Apr/May) stable, single-month == grouped. Zero-edit/zero-order NULLIF path correct-by-construction, not live-exercised (documented).
+- **Blind checker (maker-checker gate):** **PASS-WITH-NITS** — no silent mirror-divergence, no wiring bug, no regressions; SQL character-exact incl. both quirks. Sole nit (vendor metric NL-reachable via verbatim id-form) **closed** by skipping zero-alias metrics in `resolve()`.
+- **Readiness:** both sections `built:True`, `readiness:prototype_only`. **No stakeholder promotion — owner's call.**
+
 ---
 
 ## 3. Known non-conflicts (intentional, do not "fix")
@@ -87,6 +113,6 @@ Owner: akshay.jain@theporter.in · Repo: `akshayjain00/selfserve_data` @ `claude
 ## 4. Open items / execution round (owner-run, per D1)
 1. ~~Run the 4 rendered SQLs for 2026-05 and reconcile vs the automation.~~ **DONE 2026-07-08 — see V3, exact match.** Remaining (optional): owner cross-check vs the Notion Demand DB; extend to more months.
 2. Update the readiness ledger; owner decides any promotion (still all `prototype_only`).
-3. **Not built (by design this iteration):** `p80_durations` (not_built), `ota` (blocked — no data source), `order_edits` (not_built). Their `month_basis` still references legacy `o_completed_ts` and will need an eldoria/mart mapping when built (the automation already has `TRIP_DURATION_PERCENTILE_QUERY` and `EDIT_ADOPTION_QUERY` to mirror).
+3. **Section status:** `p80_durations` + `order_edits` **now BUILT** (`prototype_only`) via D8–D10 / V4 (2026-07-19). `ota` stays **blocked** (no clean data source — needs an owner definition decision; note `PNM_EXPERIENCE` now exposes `OTA_FLAG` / `OTA_BREACH_TAT_MINUTES`, a candidate source to evaluate later).
 4. **Housekeeping (owner call):** stale flattened copies exist in the parent working folder `selfserve/pnm/` (`dry_run_report.md`, `rendered_tpo_202605.sql`, old `config/queries/...py`) — these predate the clone and are NOT the deliverable; left untouched (pre-existing, not created by this work).
 5. **DONE 2026-07-09:** committed + pushed to `claude/pnm-metrics-catalog-map-vg251i`; `HANDOFF.md` §4/§6 updated to RESOLVED.

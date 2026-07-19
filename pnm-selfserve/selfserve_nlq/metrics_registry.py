@@ -219,29 +219,84 @@ SECTIONS = {
         ],
     },
     "p80_durations": {
-        "built": False,
-        "readiness": "not_built",
-        "month_basis": "calendar month of o_completed_ts",
-        "base_population": "completed non-Nano intra-city orders",
-        "verify_flags": [],
-        "quirks": [],
-        "evidence": [],
+        "built": True,
+        "readiness": "prototype_only",
+        # [board-fix] corrected from the stale stub value "o_completed_ts".
+        "month_basis": "calendar month of SHIFTING_TS_IST (shifting/execution month)",
+        "base_population": (
+            "completed (ORDER_STATUS='completed'), intra-city (SHIFTING_TYPE='intra_city'), NON-Nano "
+            "(PACKAGE_NAME NOT ILIKE 'Nano%') orders from PROD_ELDORIA.MART.PNM_EXPERIENCE, filtered to "
+            "the requested SHIFTING_TS_IST month; percentiles taken over per-order stage durations (minutes)"
+        ),
+        "source_desc": (
+            "PnM MBR catalog §p80_durations — mirrors the owner's live-validated MBR automation "
+            "(TRIP_DURATION_PERCENTILE_QUERY) over PROD_ELDORIA.MART.PNM_EXPERIENCE"
+        ),
+        "computed_desc": (
+            "live at query time from the governed mart PROD_ELDORIA.MART.PNM_EXPERIENCE "
+            "(PERCENTILE_CONT over stage durations); reconcile against the p80 baseline CSV / MBR note"
+        ),
+        "verify_flags": [
+            "PNM_EXPERIENCE is flagged in-source as 'still under active construction'; all 20 required "
+            "columns + NTZ types on SHIFTING_TS_IST were verified live 2026-07-19 — re-verify before each run.",
+            "p80_vendor_accepted_to_sup_assigned and p50_trip_duration are emitted + reconciled but NOT "
+            "NL-exposed (ask.py --metric only); p50 is additionally blocked by the p50/median guard (D10).",
+        ],
+        "quirks": [
+            "'Supervisor Assigned' reads SUPERVISOR_ACCEPTED_TS_IST (NOT SUPERVISOR_ASSIGNED_TS_IST, which "
+            "also exists in the mart) — replicated bug-for-bug from the automation; affects the "
+            "vendor→sup-assigned and sup-assigned→trip-started stages.",
+            "The pickup→order-complete stage is labelled '…→ Shifting Complete' in the automation; the "
+            "metric measures PICKUP_COMPLETED_TS_IST → ORDER_COMPLETED_TS_IST.",
+            "Stage durations use DATEDIFF('minute', ...); an order with a NULL endpoint drops out of that "
+            "stage's percentile, and an empty partition yields NULL (not 0).",
+        ],
+        "evidence": [
+            "MIRRORS TRIP_DURATION_PERCENTILE_QUERY (owner's live-validated automation). The baseline "
+            "reference/p80_durations_baseline_2025-10_to_2026-05.csv IS this automation's output; its 7 "
+            "non-MONTH columns map 1:1 to the 7 metric ids. Source = PROD_ELDORIA.MART.PNM_EXPERIENCE (D8); "
+            "the earlier stub's month_basis (o_completed_ts) is corrected to SHIFTING_TS_IST.",
+        ],
     },
     "order_edits": {
-        "built": False,
-        "readiness": "not_built",
-        "month_basis": "calendar month of o_created_ts",
-        "base_population": "completed non-Nano intra-city orders",
+        "built": True,
+        "readiness": "prototype_only",
+        # [board-fix] corrected from the stale stub value "o_created_ts"; stale
+        # sr_modifications / order_modifications verify_flags + evidence REPLACED (not appended).
+        "month_basis": "calendar month of ORDER_CREATED_TS_IST (order creation month)",
+        "base_population": (
+            "completed (ORDER_STATUS='completed'), intra-city (SHIFTING_TYPE='intra_city'), NON-Nano "
+            "(PACKAGE_NAME NOT ILIKE 'Nano%') orders from PROD_ELDORIA.MART.PNM_EXPERIENCE, filtered to "
+            "the requested ORDER_CREATED_TS_IST month"
+        ),
+        "source_desc": (
+            "PnM MBR catalog §order_edits — mirrors the owner's live-validated MBR automation "
+            "(EDIT_ADOPTION_QUERY) over PROD_ELDORIA.MART.PNM_EXPERIENCE"
+        ),
+        "computed_desc": (
+            "live at query time from the governed mart PROD_ELDORIA.MART.PNM_EXPERIENCE "
+            "(edit-flag adoption rates); reconcile against the MBR note"
+        ),
         "verify_flags": [
-            'queries.py §8: "⚠ VERIFY: order_modifications table name; category / source / order_phase columns."',
-            'config.py order_mods: "PROD_CURATED.pnm_application.order_modifications"  # verify table name',
+            "PNM_EXPERIENCE is flagged in-source as 'still under active construction'; all required "
+            "columns + NTZ types on ORDER_CREATED_TS_IST were verified live 2026-07-19 — re-verify before each run.",
         ],
-        "quirks": [],
+        "quirks": [
+            "location adoption is emitted under TWO ids with the identical expression "
+            "(location_adoption_pct == pct_orders_location_modified) — duplicated bug-for-bug from the "
+            "automation; distinct aliases keep the resolver from tying.",
+            "pct_edits_after_shifting_started divides by NO_OF_SUCCESSFUL_EDITS (not total_orders); every "
+            "other % divides by total_orders. It can exceed 100% if edits_after_shifting > successful_edits.",
+            "No sample-size / denominator column is emitted (owner: exact mirror, no companion) — so a % is "
+            "shown without a visible denominator, unlike tpo's orders_base.",
+            "IS_MODIFICATION_DONE is compared to the string 'Yes'; the HAS_*_EDIT flags to the number 1 "
+            "(column types verified live 2026-07-19).",
+        ],
         "evidence": [
-            "Data Catalog shows pnm_application.sr_modifications ('modifications made to "
-            "shifting requirements... items, shifting time, add-on services, locations'), "
-            "which matches the four flagged categories but is keyed on SR, not order. "
-            "Whether order_modifications exists is unconfirmed. Owner decision needed.",
+            "MIRRORS EDIT_ADOPTION_QUERY (owner's live-validated automation) over "
+            "PROD_ELDORIA.MART.PNM_EXPERIENCE (D8) — SUPERSEDES the earlier stub that sourced this section "
+            "from PROD_CURATED.pnm_application.sr_modifications / order_modifications; those flags and "
+            "evidence are REMOVED (not appended) so the footer no longer discloses the wrong tables.",
         ],
     },
 }
@@ -355,6 +410,75 @@ METRICS = {
     "tpo_cancelled_customer": {"section": "tpo", "unit": "tickets/order", "source": "sql",
                                "definition": "Customer-raised subset of cancelled-status tickets, per order.",
                                "aliases": ["customer cancelled tpo"]},
+
+    # ── p80_durations (p80 of per-order stage durations, minutes) ─────────────
+    # Ids = the automation's exact output-column names, lowercase (D9). The vendor
+    # and p50 stages carry NO NL aliases (reachable only via --metric): the earlier
+    # "vendor guard excludes it" rationale was FALSE (bare 'vendor' is not in
+    # UNSUPPORTED_TERMS and adding it would break tpo_vendor_raised) — so exclusion
+    # is done by giving no alias, not by the guard. p50 is also guard-blocked (D10).
+    "p80_vendor_accepted_to_sup_assigned": {"section": "p80_durations", "unit": "minutes", "source": "sql",
+        "definition": "p80 minutes from vendor-owner acceptance to supervisor assignment (reads SUPERVISOR_ACCEPTED_TS_IST). --metric only.",
+        "aliases": []},
+    "p80_sup_assigned_to_trip_started": {"section": "p80_durations", "unit": "minutes", "source": "sql",
+        "definition": "p80 minutes from supervisor assignment (SUPERVISOR_ACCEPTED_TS_IST) to trip start.",
+        "aliases": ["p80 supervisor assigned to trip started", "p80 sup assigned to trip started",
+                    "supervisor assigned to trip started duration"]},
+    "p80_trip_started_to_shifting_started": {"section": "p80_durations", "unit": "minutes", "source": "sql",
+        "definition": "p80 minutes from trip start to shifting start.",
+        "aliases": ["p80 trip started to shifting started", "trip started to shifting started duration"]},
+    "p80_shifting_started_to_pickup_complete": {"section": "p80_durations", "unit": "minutes", "source": "sql",
+        "definition": "p80 minutes from shifting start to pickup completion.",
+        "aliases": ["p80 shifting started to pickup complete", "p80 shifting started to pickup completed",
+                    "shifting started to pickup complete duration"]},
+    "p80_pickup_complete_to_order_complete": {"section": "p80_durations", "unit": "minutes", "source": "sql",
+        "definition": "p80 minutes from pickup completion to order completion (labelled '…→ Shifting Complete' in the automation).",
+        "aliases": ["p80 pickup complete to order complete", "p80 pickup complete to shifting complete",
+                    "pickup complete to order complete duration"]},
+    "p50_trip_duration": {"section": "p80_durations", "unit": "minutes", "source": "sql",
+        "definition": "p50 (median) minutes from shifting start to order completion. Emitted + reconciled but NOT NL-exposed (D10 p50/median guard); --metric only.",
+        "aliases": []},
+    "p80_trip_duration": {"section": "p80_durations", "unit": "minutes", "source": "sql",
+        "definition": "p80 minutes from shifting start to order completion (overall trip duration).",
+        "aliases": ["p80 trip duration", "p80 total trip duration", "80th percentile trip duration", "p80 trip time"]},
+
+    # ── order_edits (edit adoption; % unless noted) ───────────────────────────
+    # Every metric is source:"sql" — the automation emits the final %s (unlike
+    # leads/orders which emit counts and derive %s in Python). location adoption is
+    # duplicated under two ids by design; the two get disjoint aliases so resolve()
+    # never ties. Ids = automation output columns, lowercase (D9).
+    "pct_orders_edited": {"section": "order_edits", "unit": "%", "source": "sql",
+        "definition": "% of orders with at least one modification (IS_MODIFICATION_DONE='Yes').",
+        "aliases": ["percent orders edited", "orders edited", "share of orders edited", "order edit rate",
+                    "overall edit adoption", "edit adoption rate"]},
+    "no_of_successful_edits": {"section": "order_edits", "unit": "edits", "source": "sql",
+        "definition": "Total successful edits across all orders in the month (a count, not a %).",
+        "aliases": ["number of successful edits", "total successful edits", "successful edits", "total edits"]},
+    "pct_support_edited_orders": {"section": "order_edits", "unit": "%", "source": "sql",
+        "definition": "% of orders that had a support-driven edit (HAS_SUPPORT_EDIT=1).",
+        "aliases": ["percent support edited orders", "support edited orders", "support edit adoption"]},
+    "location_adoption_pct": {"section": "order_edits", "unit": "%", "source": "sql",
+        "definition": "% of orders with a location edit (HAS_LOCATION_EDIT=1). Identical value to pct_orders_location_modified.",
+        "aliases": ["location edit adoption", "location adoption", "location adoption rate"]},
+    "pct_orders_location_modified": {"section": "order_edits", "unit": "%", "source": "sql",
+        "definition": "% of orders with a location modification — identical value to location_adoption_pct (duplicated by the automation).",
+        "aliases": ["percent orders location modified", "orders location modified", "percent of orders with a location change"]},
+    "items_adoption_pct": {"section": "order_edits", "unit": "%", "source": "sql",
+        "definition": "% of orders with an items edit (HAS_ITEMS_EDIT=1).",
+        "aliases": ["items edit adoption", "items adoption", "item edit adoption"]},
+    "addons_adoption_pct": {"section": "order_edits", "unit": "%", "source": "sql",
+        "definition": "% of orders with an add-ons edit (HAS_ADDONS_EDIT=1).",
+        "aliases": ["addons edit adoption", "addons adoption", "add-ons adoption", "addon adoption"]},
+    "slot_adoption_pct": {"section": "order_edits", "unit": "%", "source": "sql",
+        "definition": "% of orders with a slot/time edit (HAS_SLOT_EDIT=1).",
+        "aliases": ["slot edit adoption", "slot adoption", "slot change adoption"]},
+    "edits_per_order": {"section": "order_edits", "unit": "edits/order", "source": "sql",
+        "definition": "Average successful edits per order (no_of_successful_edits ÷ total_orders).",
+        "aliases": ["edits per order", "average edits per order", "number of edits per order"]},
+    "pct_edits_after_shifting_started": {"section": "order_edits", "unit": "%", "source": "sql",
+        "definition": "% of successful edits that occurred after shifting started (÷ no_of_successful_edits, not total_orders).",
+        "aliases": ["percent edits after shifting started", "edits after shifting started",
+                    "share of edits after shifting"]},
 }
 
 
@@ -391,6 +515,11 @@ def resolve(question: str):
                           "no medians/percentiles for these sections)")
     hits = []
     for mid, spec in METRICS.items():
+        # A metric with no aliases is intentionally NOT NL-exposed (reachable only via
+        # ask.py --metric). Skip it entirely so it can't be matched even by its id-form
+        # (e.g. p80_vendor_accepted_to_sup_assigned, p50_trip_duration).
+        if not spec["aliases"]:
+            continue
         keys = [mid.replace("_", " ")] + spec["aliases"]
         best = max((len(k) for k in keys if k in q), default=0)
         if best:

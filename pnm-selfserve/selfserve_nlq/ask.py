@@ -39,13 +39,20 @@ def refuse(msg: str, code: int = 2):
 def footer(section_name: str, month: str, executed: bool) -> str:
     s = SECTIONS[section_name]
     lines = []
-    lines.append(f"Source: PnM MBR catalog §{section_name} — mirrors the owner's live-validated MBR "
-                 f"automation (leads/orders/derived → LEADS_CONVERSION_QUERY; tpo → TPO_TREND_QUERY / card #47576)")
+    # Source/Computed provenance is per-section (a section may set source_desc /
+    # computed_desc); the defaults describe the original leads/orders/derived/tpo
+    # mirrors, so those four are unchanged. New sections (p80_durations, order_edits)
+    # read PROD_ELDORIA.MART.PNM_EXPERIENCE and MUST override, else the footer would
+    # misattribute their source (board finding B-2).
+    default_source = (f"PnM MBR catalog §{section_name} — mirrors the owner's live-validated MBR "
+                      f"automation (leads/orders/derived → LEADS_CONVERSION_QUERY; tpo → TPO_TREND_QUERY / card #47576)")
+    lines.append("Source: " + s.get("source_desc", default_source))
     lines.append(f"Month basis: {s['month_basis']}")
     lines.append(f"Base population: {s['base_population']}")
     if executed:
-        lines.append("Computed: live at query time from the governed sources — PROD_ELDORIA core/mart "
-                     "(leads/orders/derived) and PROD_CURATED raw (tpo); reconcile against the MBR note / Notion Demand DB")
+        default_computed = ("live at query time from the governed sources — PROD_ELDORIA core/mart "
+                            "(leads/orders/derived) and PROD_CURATED raw (tpo); reconcile against the MBR note / Notion Demand DB")
+        lines.append("Computed: " + s.get("computed_desc", default_computed))
     if sqlgen.is_month_in_progress(month):
         lines.append(f"⚠ MONTH IN PROGRESS: this is an MTD value as of {date.today().isoformat()} — "
                      "not a final monthly number")

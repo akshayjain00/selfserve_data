@@ -1,4 +1,4 @@
-# Dry-run test report — 2026-07-08
+# Dry-run test report — 2026-07-19
 
 ## Answerable questions (resolution + SQL render)
 
@@ -26,6 +26,21 @@
 - **PASS** `tpo_pre_trip` 2026-04 — "Pre-trip TPO in April 2026?"
 - **PASS** `orders_base` 2026-05 — "How many orders in the TPO base in May 2026?"
 - **PASS** `tpo_cancelled` 2026-05 — "TPO for cancelled orders in May 2026?"
+- **PASS** `p80_sup_assigned_to_trip_started` 2026-05 — "p80 supervisor assigned to trip started in May 2026?"
+- **PASS** `p80_trip_started_to_shifting_started` 2026-05 — "p80 trip started to shifting started in May 2026?"
+- **PASS** `p80_shifting_started_to_pickup_complete` 2026-05 — "p80 shifting started to pickup complete in May 2026?"
+- **PASS** `p80_pickup_complete_to_order_complete` 2026-05 — "p80 pickup complete to order complete in May 2026?"
+- **PASS** `p80_trip_duration` 2026-05 — "What was the p80 trip duration in May 2026?"
+- **PASS** `pct_orders_edited` 2026-05 — "percent orders edited in May 2026?"
+- **PASS** `no_of_successful_edits` 2026-05 — "number of successful edits in May 2026?"
+- **PASS** `pct_support_edited_orders` 2026-05 — "percent support edited orders in May 2026?"
+- **PASS** `location_adoption_pct` 2026-05 — "location edit adoption in May 2026?"
+- **PASS** `pct_orders_location_modified` 2026-05 — "percent orders location modified in May 2026?"
+- **PASS** `items_adoption_pct` 2026-05 — "items edit adoption in May 2026?"
+- **PASS** `addons_adoption_pct` 2026-05 — "addons edit adoption in May 2026?"
+- **PASS** `slot_adoption_pct` 2026-05 — "slot edit adoption in May 2026?"
+- **PASS** `edits_per_order` 2026-05 — "edits per order in May 2026?"
+- **PASS** `pct_edits_after_shifting_started` 2026-05 — "percent edits after shifting started in May 2026?"
 
 ## Refusal cases (must NOT answer)
 
@@ -33,8 +48,22 @@
 - **PASS** [question] "Weekly orders trend for May 2026?" (2026-05) — resolver said: "question mentions 'weekly' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
 - **PASS** [question] "median tickets per order in May 2026?" (2026-05) — resolver said: "question mentions 'median' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
 - **PASS** [question] "Vendor wise TPO in May 2026?" (2026-05) — resolver said: "question mentions 'vendor wise' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
+- **PASS** [question] "median trip duration in May 2026?" (2026-05) — resolver said: "question mentions 'median' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
+- **PASS** [question] "p50 trip duration in May 2026?" (2026-05) — resolver said: "question mentions 'p50' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
+- **PASS** [question] "p90 trip duration in May 2026?" (2026-05) — resolver said: "question mentions 'p90' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
+- **PASS** [question] "trip duration by vendor in May 2026?" (2026-05) — resolver said: "question mentions 'by vendor' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
 - **PASS** [metric_blocked] "ota_pct" (2026-05) — ota readiness=blocked, built=False
-- **PASS** [metric_not_built] "p80_trip_duration_mins" (2026-05) — p80 metric ids not present in v0 registry; section marked not_built
+- **PASS** [metric_unknown] "totally_made_up_metric" (2026-05) — 'totally_made_up_metric' correctly absent from the catalog — gate() would refuse (this tool never improvises metrics)
 - **PASS** [future_month] "tpo_overall" (2027-01) — 2027-01 correctly detected as future
 
-## Summary: 31 passed, 0 failed
+## New-section structural checks (p80_durations, order_edits)
+
+- **PASS** p80_durations render — AS month present, read-only, allow-listed tables
+- **PASS** order_edits render — AS month present, read-only, allow-listed tables
+
+## `--metric`-only metrics (no NL alias)
+
+- **PASS** p50_trip_duration — in catalog, produced as a column, no NL alias
+- **PASS** p80_vendor_accepted_to_sup_assigned — in catalog, produced as a column, no NL alias
+
+## Summary: 54 passed, 0 failed
