@@ -39,11 +39,15 @@ Owner: akshay.jain@theporter.in · Repo: `akshayjain00/selfserve_data` @ `claude
 - CBDF/CADF follow the "PTL Cancellations" dashboard 4793 (carries the <60s-cancellation exclusion the review reports).
 - **Gate:** before CBDF/CADF ship, confirm standalone card 49366's simpler logic (`order_vehicles.vehicle_name IS NULL/NOT NULL`) **reconciles** to 4793 (owner-run). If it diverges materially, revisit.
 
-### D6 — v1 bundle = 11 card-verified Snowflake metrics  *(was Q5)*
+### D6 — v1 bundle = 11 Snowflake metrics (8 lineage-traced + 3 to firm up)  *(was Q5)*
 - **Status:** ACTIVE · **Confidence:** 70%
 - In v1: **NSM (Monthly Transacting Business Customers), Completed Orders (business), Total Fulfilment %, Effective Fulfilment %, CBDF %, CADF %, Avg Orders per Trip (clubbing), AOV, Business Session Conversion, New Business Users, M1 Business Retention.**
 - **Deferred:** Time-to-Allocate P50 → iteration 2.5 (source is a manual sheet, no verified card — would drag v1 trust down).
-- **Consequence:** all 11 are in the review ∩ Snowflake-sourced ∩ card-verified (catalog §5).
+- **CORRECTION (verification pass 2026-07-23):** the earlier wording "11 card-verified" drifted from the catalog evidence. Accurate status of the 11:
+  - **8 confirmed-via-metadata** (card exists + tables traced): Completed Orders #19, Total FF #26, Effective FF #38, Avg Orders/Trip #46, AOV #55, Session Conversion #14, New Business Users #12, M1 Retention #39.
+  - **NSM #2 has NO card** (source = "Raw Data/production"). Its definition must be **authored** (distinct business customers with ≥1 completed order/month), not mirrored — and it inherits the customer-classification drift (§3.5). It is the metric D4 anchors on, so it must be right.
+  - **CBDF #28 / CADF #30 are the conflicted pair** (catalog ⚠️). D5 makes dashboard 4793 canonical; they promote **only after** the 4793↔49366 reconciliation gate.
+- **v1 build note:** the D3 "both-bases" rule applies to order-count ratios (FF, Eff FF, AOV, Avg Orders/Trip, Completed Orders). It does **not** apply to **Business Session Conversion #14** — offline orders have no session, so they are naturally outside the funnel denominator; do not add an offline variant there.
 
 ### D7 — Architecture: shared CORE ENGINE only; per-vertical registries; forward-migrate  *(shared-engine question)*
 - **Status:** ACTIVE · **Confidence:** 75%
@@ -76,4 +80,16 @@ Dry-run default; **no production query without showing exact SQL + explicit owne
 
 ## 5. Next: Track B (read-only prototype) — scope, not yet built
 
-Per D1/D2/D6: a dry-run engine over the 11-metric v1 bundle on raw `partload_application`, emitting the offline/online both-bases view (D3), on the shared core (D7). No production data touched without a go-ahead. Awaiting owner "go" to begin (it is code — a step change from map).
+Per D1/D2/D6: a dry-run engine over the 11-metric v1 bundle on raw `partload_application`, emitting the offline/online both-bases view (D3), on the shared core (D7). No production data touched without a go-ahead. **Owner said GO 2026-07-23 — build in progress** (`selfserve_nlq/`).
+
+---
+
+## 6. Verification pass — 2026-07-23
+
+A scripted pass (`scratchpad/verify_pass.py`) parsed the committed artifacts and cross-checked
+decisions against catalog evidence. Findings, all now folded in:
+- **Coverage PASS:** all 85 catalog rows present & statused; all 18 flags F1–F18 present; D1–D7 + pre-work + open items all present; my commits touched only `ptl-selfserve/`, zero code, zero production queries.
+- **Drift 1 (fixed in D6 above):** "11 card-verified" → really 8 confirmed-via-metadata + NSM (no card, authored) + CBDF/CADF (conflicted, pending 4793↔49366).
+- **Drift 2 (fixed):** headline status tally is **15 confirmed / 6 contradicted / 64 unverified**, not 17/6/62 (catalog §5 corrected). "7 source-of-truth conflicts + 1 data-entry flag" (the column-shift is flag F18, not a conflict).
+- **Gap (captured in D6 build note):** the D3 both-bases rule does not apply to session-funnel metric #14.
+- The `verify_pass.py` script is retained as a **docs regression gate** — re-run after any edit.

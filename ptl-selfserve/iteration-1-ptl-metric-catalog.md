@@ -291,11 +291,14 @@ where Final was blank/shifted). Source = sheet `Source for the Metric Calculatio
 | 85 | Quote Generation API Error Rate | L2 | % API errors | DataDog; Core Platforms | — | ◻️ unverified (sheet-only) |
 | 86 | Booking Creation API Error Rate | L2 | % API errors | DataDog; Core Platforms | — | ◻️ unverified (sheet-only) |
 
-**Coverage check:** all 85 tab rows (#2–#86) are present. Tally — ✅ confirmed-via-metadata: **17**
-(#12,14,15,19,26,38,39,40,41,46,47,55,56,70,71 + dashboards feeding 26/28/30/39); ⚠️
-contradicted—conflict: **6** (#27,28,29,30,31,37); ◻️ unverified: **62**. (Rows #28/#30 appear
-under both ✅-lineage and ⚠️-conflict — I classified them ⚠️ because the *definition* conflict
-dominates the *lineage* confirmation.)
+**Coverage check** *(corrected in the 2026-07-23 verification pass — was mis-stated as 17/6/62)*:
+all 85 tab rows (#2–#86) are present. Tally — ✅ confirmed-via-metadata: **15**
+(#12,14,15,19,26,38,39,40,41,46,47,55,56,70,71); ⚠️ contradicted—conflict: **6**
+(#27,28,29,30,31,37); ◻️ unverified: **64** (15 + 6 + 64 = 85). Seven of the 64 unverified rows
+also carry a ⚠️ flag annotation (e.g. #2 NSM naming, and the column-shift rows) — the flag is an
+annotation on top of the base status, not a separate class. Note also: §3 lists 8 numbered items,
+but item 8 (column-shifted source rows) is a **data-entry flag (F18)**, not a source-of-truth
+conflict — so the headline count is **7 conflicts + 1 data-entry flag**.
 
 ---
 
