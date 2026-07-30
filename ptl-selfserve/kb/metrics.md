@@ -50,10 +50,10 @@ and denominator at the cut you need, *then* divide. Never average daily ratios.
 - **source_ref:** `repo@7a43470:ptl-selfserve/selfserve_nlq/metrics_registry.py#L59` · catalog #19 ·
   `metabase:card/33462` (the card named by **both** the catalog and the registry)
 - **confidence: `verified`**
-- ⚠️ **Lineage divergence — do not collapse it.** Dashboard 4198 also carries `metabase:card/33483`
-  ("Total Orders", `COUNT(DISTINCT external_id)`, online+offline union), which computes the same
-  shape but is **not** the card the catalog or registry cites. Which is canonical is unresolved
-  → `G-118`.
+- ✅ **Lineage divergence RESOLVED 2026-07-30 (`G-118` closed).** Dashboard 4198 also carries
+  `metabase:card/33483` ("Total Orders"), which looks like a competing source — but its SQL has
+  **no `state` predicate anywhere**, so it is architecturally incapable of producing a
+  *completed*-orders figure under any parameterisation. `33462` is canonical beyond doubt.
 - **note:** offline-union base per ruling D3 — must be shown **both** incl. and excl. offline (`T-071`).
 - **Reported values:** see the snapshot in [business.md](./business.md).
 
@@ -165,7 +165,103 @@ and denominator at the cut you need, *then* divide. Never average daily ratios.
 
 ---
 
-## 2. Index-only — the remaining 74 catalog metrics
+## 1b. Promoted beyond the original v1 set
+
+Not part of ruling D6's 11, but closed for free 2026-07-30 by re-reading Phase-3 extracts already
+in hand — no new tool call needed. Recorded here rather than left index-only once the evidence was
+already sitting in `extracts/p3b-dashboard-4569.md`.
+
+### M-012 — Avg Transactions per Business Customer per Month ✅ `verified` / ⚠️ filter defect
+- **Formula:** `COUNT(orders WHERE category='Business', state=3) / COUNT(DISTINCT customer_mobile)`.
+- **source_ref:** `metabase:card/44080` ("Business User - Order Per Customer") · catalog #42
+- **confidence: `verified`** — aggregate-then-ratio, `NULLIF(...,0)` divide-by-zero protection.
+- ⚠️ **Card 44080 hardcodes `category = 'Business'` with NO template tag** — the dashboard's shared
+  Customer Category filter has **zero effect** on it, unlike sibling cards in the same family
+  (44086, 44088, 38287, 39107). Toggling the filter silently does nothing here. → `G-025`
+
+### M-013 — Share of Business Users on Overall Transacting Users ✅ `verified`
+- **Formula:** `COUNT(DISTINCT customer WHERE category='Business') / COUNT(DISTINCT customer)`, per period.
+- **source_ref:** `metabase:card/39149` ("Business v/s Personal Customer Split") · catalog #45
+- **confidence: `verified`** — same business-customer rule as `T-020`, aggregate-then-ratio.
+- **note:** 39149 uses `c.frequency` unconditionally in the SELECT rather than gating rows by a
+  category filter tag — it always shows both segments side by side, a third distinct filter
+  behavior from its siblings (see `dashboards.md`).
+
+---
+
+## 1c. Promoted 2026-07-30, batch 2 — Metabase re-auth + Sheets-bucket search
+
+Owner authorized card execution for validation; Metabase auth was confirmed working after an
+earlier session outage. 7 more promoted; 3 more found to be **genuinely wrong or mislabeled** in
+the source catalogue (kept `unverified`, but for a specific, evidenced reason — see 1d).
+
+### M-014 — VSS→Quote Conversion, New Business Users ⚠️ `verified` / no divide-by-zero guard
+- **Formula:** `quote_sessions / vss_sessions` (session-level, `app_session_id`), gated `order_type='completed'` only when explicitly passed (no default).
+- **source_ref:** `metabase:card/44469` · catalog #11 · executed 2026-07-30: **23.2%** (Jun-26, Business, completed)
+- **confidence: `verified`** — but ⚠️ **this ratio has no `NULLIF` guard**, unlike its siblings (`M-010`, `M-016`) — a zero-session month would raise a divide-by-zero rather than return null, breaking house rule `B-032`. → new gap, see below.
+- **note:** "New" in the catalogue title is an **output row**, not a filter — the card exposes new/repeat as a dimension; picking the right row is a manual step.
+
+### M-015 — Average Sessions Before First PTL Order, Business Users ✅ `verified`
+- **Formula:** average count of VSS-view sessions preceding a customer's first **completed** PTL order.
+- **source_ref:** `metabase:card/48922` · catalog #13 · executed 2026-07-30: **4.51 avg sessions** (1,329 users, Jun-26, Business)
+- **confidence: `verified`** — business filter matches `T-020`.
+
+### M-016 — Reactivation % (60+ Day Inactive Business Users) ✅ `verified`
+- **Formula:** reactivated-within-period / eligible-inactive, `NULLIF`-protected.
+- **source_ref:** `metabase:card/48919` · catalog #43 · executed 2026-07-30: **3.93%–5.06%** across 6 monthly rows, Jan–Jun 2026
+- **confidence: `verified`** — correct table, correct business filter.
+
+### M-017 — Perfect Order Experience % ✅ `verified`
+- **Formula:** `ontime_pickup_flag = 1 AND ontime_delivery_flag = 1` (both required).
+- **source_ref:** `metabase:card/34052` (+ trend card `34364`) · catalog #32
+- **confidence: `verified`** — direct SQL match to the catalogue's stated definition.
+
+### M-018 — On-Time Pickup % / On-Time Delivery % ✅ `verified`
+- **Formula:** Pickup: `onTime / total_pickup`. Delivery: `count(delayed_by <= 0) / count(*)`.
+- **source_ref:** Pickup `metabase:card/33784`/`33823`; Delivery `metabase:card/33785`/`33824` · catalog #33, #34, #35
+- **confidence: `verified`** — shown as a companion pair, not a blended ratio, matching the catalogue's framing.
+
+### M-019 — Time to Allocate — P50 ✅ `verified` — deferral note lifted
+- **Formula:** `PERCENTILE_CONT(0.5)` of minutes from order-created to first vehicle-assigned.
+- **source_ref:** `metabase:card/42081` "Completed orders - P50 Allocation Time" (+ cancelled-orders companion `42080`) · catalog #51
+- **confidence: `verified`**. ⚠️ **Ruling D6 deferred this metric to "iteration 2.5"** on the assumption
+  no card existed for it — one does, and it's straightforward. Worth flagging back to the metric
+  owner that the deferral's premise may no longer hold. → `G-081` updated, not silently promoted past a ruling.
+
+### M-020 — GM% per PTL Order ✅ `verified` — canonical card corrected
+- **Formula:** `(total_revenue − total_cost) / total_revenue`, aggregate-then-ratio.
+- **source_ref:** `metabase:card/37416` ("Gross Margin") · catalog #54
+- **confidence: `verified`**. ⚠️ Card **37413** ("Total Revenue", already cited elsewhere in this KB
+  for `M-008`/AOV) carries the *same* `gm` column as a secondary field — but **37416 is the correct
+  canonical citation** for this metric, not 37413. Don't conflate the two cards' shared column.
+
+---
+
+## 1d. Checked and found genuinely wrong — not silently corrected
+
+These three are the highest-value finding of this batch: the *catalogue itself* has errors, not
+just gaps. Confidence stays `unverified` because nothing here should be quoted yet — but these are
+qualitatively different from "never looked at."
+
+- **#16/#17 (`metabase:card/48984`, shared) — business-customer source diverges from this KB's
+  canonical rule.** The filter is sourced from `prod_eldoria.core.dim_customers`, not
+  `oms_public.customers` (`T-020`). This is the *same* dashboard-level split already flagged at
+  `G-005` (4198 uses `dim_customers`, 4569 uses `oms_public.customers`) — now confirmed at the
+  individual-card level too. **#17 specifically is likely mislabeled**: its "order placed" numerator
+  is a raw `booknow_clicked` event with **no join to order completion at all**, contradicting sibling
+  card #11 (`M-014`) which correctly gates on `orders.state = 3`. #17 executed at 56.4% (Jun-26) —
+  that number is a **click-through rate**, not an order-placement rate. → `G-148`
+- **#44 (`metabase:card/49311`) — the catalogue's card assignment appears to be simply wrong.**
+  Catalogue definition: "Median Days Between Orders — Repeat Business Users." Card 49311 actually
+  computes **median VSS-view→booknow-click latency in minutes** — a session-funnel timing metric,
+  not an inter-order interval. Executed: **0.8 minutes** median (Jun-26) — a value and unit that
+  cannot be "days between orders" under any reading. This card almost certainly answers a *different*
+  catalogue row (something booking-time-related, plausibly overlapping #18's Amplitude gap) and was
+  mismapped when the catalogue was built. → `G-149`
+
+---
+
+## 2. Index-only — the remaining 65 catalog metrics
 
 Not covered in depth this pass — ruling **D6** bounds v1 to 11 metrics, and the owner ratified
 index-only treatment for the rest at the build's checkpoint 2. Each has a `G-###` row in
@@ -182,13 +278,13 @@ index-only treatment for the rest at the build's checkpoint 2. Each has a `G-###
 | 7 | PTL Selection Rate vs FTL (L1) | unverified |
 | 8 | Outstation Search Rate (Business Users) (L1) | unverified |
 | 9 | PTL Activation Rate — Business (First Order ≤7d of Card View) (L0) | unverified |
-| 10 | VSS→Quote Check Conversion — New Business Users (L1) | unverified |
-| 11 | Quote Check→Order Placed Conversion — New Business Users (L1) | unverified |
-| 13 | Average Sessions Before First PTL Order — Business (L1) | unverified |
+| ~~10~~ | ~~VSS→Quote Check Conversion — New Business Users (L1)~~ | **promoted → `M-014`** (shares card w/ #11) |
+| ~~11~~ | ~~Quote Check→Order Placed Conversion — New Business Users (L1)~~ | **promoted → `M-014`** |
+| ~~13~~ | ~~Average Sessions Before First PTL Order — Business (L1)~~ | **promoted → `M-015`** |
 | 15 | Overall Session Conversion Rate (Session→Order) (L1) | confirmed-via-metadata |
-| 16 | VSS→Quote Check Conversion — All Business Users (L1) | unverified |
-| 17 | Quote Check→Order Placed Conversion — All Business Users (L1) | unverified |
-| 18 | Median Time to Book (VSS→Order Placed) (L1) | unverified |
+| 16 | VSS→Quote Check Conversion — All Business Users (L1) | **checked, found wrong business-customer source** → `G-148` |
+| 17 | Quote Check→Order Placed Conversion — All Business Users (L1) | **checked, likely mislabeled — click-rate not order-rate** → `G-148` |
+| 18 | Median Time to Book (VSS→Order Placed) (L1) | checked in Amplitude; candidate chart ends at "book now clicked", not order placed → `G-147` |
 | 20 | Customer Rating / NPS — Business Users (L0) | unverified · flag §5 |
 | 21 | Support Tickets per Order (L0) | unverified |
 | 22 | Support Ticket % (L1) | unverified |
@@ -198,46 +294,46 @@ index-only treatment for the rest at the build's checkpoint 2. Each has a `G-###
 | 27 | Cancellation Attribution % — Customer/Porter/Partner (L1) | **contradicted—conflict** (no card + column-shift) |
 | 29 | Customer/Porter Attributed CBDF % (L2) | **contradicted—conflict** |
 | 31 | Customer/Porter/Partner Attributed CADF % (L2) | **contradicted—conflict** |
-| 32 | Perfect Order Experience % (L0) | unverified · column-shift |
-| 33 | On-Time Pickup % + On-Time Delivery % (L1) | unverified (review: Apr corrupted) |
-| 34 | On-Time Pickup % (L2) | unverified |
-| 35 | On-Time Delivery % (L2) | unverified |
-| 36 | Damage % (L1) | unverified |
+| ~~32~~ | ~~Perfect Order Experience % (L0)~~ | **promoted → `M-017`** |
+| ~~33~~ | ~~On-Time Pickup % + On-Time Delivery % (L1)~~ | **promoted → `M-018`** |
+| ~~34~~ | ~~On-Time Pickup % (L2)~~ | **promoted → `M-018`** |
+| ~~35~~ | ~~On-Time Delivery % (L2)~~ | **promoted → `M-018`** |
+| 36 | Damage % (L1) | **searched 2026-07-30 — genuinely not found.** Only PnM-vertical damage dashboards exist; nothing PTL-specific → `G-150` |
 | 37 | Orders with Weight Discrepancy % (L1) | **contradicted—conflict** (missing `route_name`) |
 | 40 | Repeat Rate (Business, ≥2 Lifetime PTL Orders) (L1) | confirmed · offline-union; column-shift |
 | 41 | Share of Monthly Business Orders from Repeat Users (L2) | confirmed · base differs from #40 |
-| 42 | Avg Transactions per Business Customer per Month (L1) | unverified |
-| 43 | Reactivation % (60+ Day Inactive Business Users) (L1) | unverified (review: low base) |
-| 44 | Median Days Between Orders — Repeat Business Users (L1) | unverified |
-| 45 | Share of Business Users on Overall Transacting Users (L1) | unverified |
+| ~~42~~ | ~~Avg Transactions per Business Customer per Month (L1)~~ | **promoted → `M-012`** |
+| ~~43~~ | ~~Reactivation % (60+ Day Inactive Business Users) (L1)~~ | **promoted → `M-016`** |
+| 44 | Median Days Between Orders — Repeat Business Users (L1) | **checked, catalogue's card assignment is wrong** — see §1d → `G-149` |
+| ~~45~~ | ~~Share of Business Users on Overall Transacting Users (L1)~~ | **promoted → `M-013`** |
 | 47 | Vehicle Space Utilization % (Clubbing Trips) (L1) | confirmed · hardcoded `created_at > '2025-07-11'` |
-| 48 | Batch Acceptance % by Partners (L1) | unverified (review: NA) |
-| 49 | Pickup/Delivery SLA Breach % due to Batching (L1) | unverified · column-shift |
-| 50 | Allocation Acceptance Rate — Batches Accepted by Owners (L0) | unverified (review: NA) |
-| 51 | Time to Allocate — P50 (minutes) (L1) | unverified — **deferred to iteration 2.5** |
-| 52 | % Organic Allocation (No Manual Ops Intervention) (L1) | unverified (review: NA, engine Q3) |
-| 53 | Reallocation Rate (L1) | unverified (review: NA) |
-| 54 | GM% per PTL Order (L0) | unverified · Finance cross-thread; column-shift |
+| 48 | Batch Acceptance % by Partners (L1) | **searched — a similarly-named CGE-wide tool exists (card 38353) but wrong grain (all vehicle categories, not PTL) — rejected, not a match** → `G-150` |
+| 49 | Pickup/Delivery SLA Breach % due to Batching (L1) | **searched, zero hits.** Closest lead is the complement (on-time %), not a labeled breach/guardrail metric → `G-150` |
+| 50 | Allocation Acceptance Rate — Batches Accepted by Owners (L0) | **searched, zero hits.** Closest lead (card 42317) is an "orders allocated" rate — a different concept from partner acceptance-of-offer → `G-150` |
+| ~~51~~ | ~~Time to Allocate — P50 (minutes) (L1)~~ | **promoted → `M-019`.** ⚠️ A card exists; the D6 deferral to "iteration 2.5" assumed otherwise — flagged back to the ruling, not silently overridden |
+| 52 | % Organic Allocation (No Manual Ops Intervention) (L1) | **searched, zero hits anywhere in Metabase** → `G-150` |
+| 53 | Reallocation Rate (L1) | **searched, zero hits.** Loose unverified lead: card 48535 "Vehicle Change %" — not confirmed → `G-150` |
+| ~~54~~ | ~~GM% per PTL Order (L0)~~ | **promoted → `M-020`** (canonical card corrected: 37416, not 37413) |
 | 56 | Return Trip % (Bidirectional Routes) (L1) | confirmed-via-metadata |
-| 57 | Monthly Active Owners (MAO) (L0) | unverified |
-| 58 | New Owners Onboarded per Month (L1) | unverified |
-| 59 | Monthly Active Vehicles (MAV) (L0) | unverified |
-| 60 | New Vehicles Onboarded per Month (L1) | unverified |
-| 61 | Owner Onboarding Activation Rate (1st Trip ≤30d) (L1) | unverified |
-| 62 | Median Days Owner Onboarding→First Trip (L1) | unverified (review: NA) |
-| 63 | M1 Owner Retention % (L0) | unverified |
-| 64 | % Trips with On-Time Pickup (Supply View) (L1) | unverified |
-| 65 | % Trips with On-Time Delivery (Supply View) (L1) | unverified |
-| 66 | Owner Batch Acceptance Rate (Pings→Acceptance %) (L0) | unverified |
-| 67 | Owner Batch Completion Rate (Accepted→Completed %) (L0) | unverified |
-| 68 | SLA Adherence % — On-Time Pickup + Delivery by Owner (L0) | unverified |
-| 69 | Partner Attributed Damage % (L0) | unverified |
+| 57 | Monthly Active Owners (MAO) (L0) | **structural gap, see G-151** |
+| 58 | New Owners Onboarded per Month (L1) | **structural gap, see G-151** |
+| 59 | Monthly Active Vehicles (MAV) (L0) | **structural gap, see G-151** |
+| 60 | New Vehicles Onboarded per Month (L1) | **structural gap, see G-151** |
+| 61 | Owner Onboarding Activation Rate (1st Trip ≤30d) (L1) | **structural gap, see G-151** |
+| 62 | Median Days Owner Onboarding→First Trip (L1) | **structural gap, see G-151** |
+| 63 | M1 Owner Retention % (L0) | **structural gap, see G-151** |
+| 64 | % Trips with On-Time Pickup (Supply View) (L1) | overall exists (`M-018`); no owner-level split found → `G-151` |
+| 65 | % Trips with On-Time Delivery (Supply View) (L1) | overall exists (`M-018`); no owner-level split found → `G-151` |
+| 66 | Owner Batch Acceptance Rate (Pings→Acceptance %) (L0) | **structural gap, see G-151** |
+| 67 | Owner Batch Completion Rate (Accepted→Completed %) (L0) | **structural gap, see G-151** |
+| 68 | SLA Adherence % — On-Time Pickup + Delivery by Owner (L0) | **structural gap, see G-151** |
+| 69 | Partner Attributed Damage % (L0) | **structural gap, see G-151** |
 | 70 | Owner Earnings per Trip (L0) | confirmed · `status=3` filter **commented out** |
 | 71 | Trips per Monthly Active Vehicle (L1) | confirmed · joins `customer_uuid=customer_id` (key drift) |
 | 72 | Partner NPS (L0) | unverified (review: NA, no instrumentation) |
 | 73 | Partner Support Tickets per Trip % (L0) | unverified · column-shift |
 | 74 | AppSheet Adoption amongst Owners and Partners (L0) | unverified |
-| 75 | Owner Earnings per Monthly Active Vehicle (L0) | unverified · blank definition in source |
+| 75 | Owner Earnings per Monthly Active Vehicle (L0) | **structural gap, see G-151** |
 | 76 | Uptime % — PartLoad-Ktor & PartLoad-Job Servers (L0) | unverified · flag §5 |
 | 77 | Latency P95 — PartLoad-Ktor & PartLoad-Job (L1) | unverified |
 | 78 | Booking Details Page Load Latency P95 (L2) | unverified (sheet-only) |
@@ -251,7 +347,11 @@ index-only treatment for the rest at the build's checkpoint 2. Each has a `G-###
 | 86 | Booking Creation API Error Rate (L2) | unverified (sheet-only) |
 
 **Catalog totals** (per `DECISION_LOG` §Drift 2, verified by parsing all 85 rows):
-85 rows (#2–#86) = **15 `confirmed-via-metadata` + 6 `contradicted—conflict` + 64 `unverified`.**
-Note the risk ordering: the **6 contradicted rows are the highest-risk bucket**, not a middle tier —
-they are metrics whose sources actively disagree. **70 of 85 are not confirmed.**
-11 are covered in full above; **74 are index-only here.**
+85 rows (#2–#86) = **15 `confirmed-via-metadata` + 6 `contradicted—conflict` + 64 `unverified`** at
+audit time. That audit is frozen/historical; **this KB's own coverage has since moved past it** —
+20 metrics now fully written up: 11 v1 (§1) + 9 promoted 2026-07-30 (§1b/§1c, `M-012`–`M-020`).
+Of the 64 originally `unverified`: **9 promoted to `verified`**, **3 found to be actively wrong or
+mislabeled in the catalogue itself** (§1d — a different, more valuable finding than "unverified"),
+**12 hit a structural gap** (`G-151` — the data may not exist at owner/vehicle grain at all),
+**~7 confirmed genuinely absent** after a real search, **7 blocked on a Metabase reconnect that has
+since been resolved**, **~24 still untouched.** **65 metrics remain index-only** (§2).

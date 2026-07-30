@@ -92,7 +92,7 @@ to execute.
 | G-115 | Unverified-row count: the journey doc says "~62 unverified rows"; the catalog's corrected tally is **64**. The journey text was never updated after the correction | **OPEN** |
 | ~~**G-116**~~ | ~~Staleness fingerprints missing for ~20 cards~~ | **CLOSED 2026-07-30.** All **29 cards** this KB relies on now carry a `source_updated_at`, tabulated in [dashboards.md](./dashboards.md). The staleness check is live across every surface. **Spin-off finding → `G-136`:** the sweep revealed `database_id` is not uniform (metric cards are db73; card 33519 is db83) | Re-run the sweep whenever a topic file adds a new card dependency | **CLOSED** |
 | **G-117** | **Arithmetic discrepancy in the source review.** It states CADF moved "+1.2pp" but its own figures give 13.81% − 12.99% = **0.82pp**. One of the three numbers is wrong. Per `B-033` this is exactly the kind of figure that reaches a leadership note. **Next action:** re-read the Notion review's CADF row and establish which value is authoritative | **OPEN — high** |
-| **G-118** | **M-002 lineage divergence.** Catalog #19 and `metrics_registry.py:59` both name `card/33462`; dashboard 4198 also carries `card/33483` ("Total Orders") computing the same shape. Which is canonical for Completed Orders is unresolved — recorded rather than picked, per the precedence rule. **Next action:** compare 33462 and 33483 SQL; confirm with the metric owner | **OPEN** |
+| ~~**G-118**~~ | ~~M-002 lineage divergence~~ | **CLOSED 2026-07-30.** Card 33483 ("Total Orders") has **no `state` predicate anywhere in its SQL** — architecturally incapable of a completed-orders figure under any parameterisation. `33462` (named by both the catalog and the registry) is canonical beyond doubt | **CLOSED** → `M-002` |
 | **G-119** | **Do not "fix" Business Session Conversion's single base.** `both_bases = False` on M-009 is *correct* — D6's build note explicitly exempts #14 from the dual-base requirement. This row exists so a future session reading D3 does not treat correct code as a bug | **OPEN — informational** |
 
 ---
@@ -105,50 +105,72 @@ to execute.
 | **G-133** | **No metric in this KB has a named owner** | Argus requires a named owner + reviewer sign-off for every admitted metric. `metrics.md` records formulas and sources but no owner for any of the 11 | Assign an owner per v1 metric and add an `owner` column to `metrics.md`. Cannot be inferred — must be supplied | **BLOCKED** — owner |
 | **G-134** | **Argus's trust-footer requirement is only partly met** | Argus mandates every served value carry **value + freshness + lineage + confidence**. This KB supplies lineage (`source_ref`) and confidence, and freshness *where* `source_updated_at` exists — but `G-116` shows freshness is missing for ~20 cards, and the KB serves definitions rather than values | Close `G-116` first; then decide whether the self-serve engine's output must render a trust footer | **OPEN** |
 
-## G. Coverage — the 74 catalog metrics not covered in depth
+## F3. Tooling blockers hit while validating the 64 `unverified` catalogue rows (2026-07-30)
+
+| id | gap | detail | next_action | status |
+|---|---|---|---|---|
+| ~~G-144~~ | ~~Metabase domestic connector auth expired mid-session~~ | **RESOLVED same session 2026-07-30** — connector reconnected without owner action needed; all 7 blocked metrics re-attempted and closed (5 promoted `M-014`/`M-015`/`M-016`, 2 found mislabeled — see `G-148`/`G-149`) | — | **CLOSED** |
+| G-145 | Two Amplitude chart ids (#5 card `42065`, #6 card `49312`) don't resolve post-migration | Org migrated Mixpanel→Amplitude 2026-01-01; these numeric ids are likely stale Mixpanel references never carried forward | Ask the metric owner for the current Amplitude chart backing #5/#6, or confirm neither was ever rebuilt | **BLOCKED** — owner |
+| G-146 | Catalogue #3 (PTL Awareness Rate) has no chart anywhere in Amplitude | 100-result name search returned nothing; not substituted | Confirm with the metric owner whether this metric is tracked anywhere at all | **OPEN** |
+| G-147 | Catalogue #18's only Amplitude candidate (`9soyf565`) ends at "book now clicked", not "order placed" | The definition and the candidate chart measure different funnel endpoints | Either find a chart ending at order-placed, or narrow #18's definition to match what's actually tracked | **OPEN** |
+
+## F4. Catalogue errors and structural gaps found while validating (2026-07-30, batch 2)
+
+| id | gap | detail | next_action | status |
+|---|---|---|---|---|
+| **G-148** | **Card 48984 (#16/#17) diverges from the KB's canonical business-customer rule, and #17 is likely mislabeled** | Filter sourced from `prod_eldoria.core.dim_customers`, not `oms_public.customers` (`T-020`) — the same 4198-vs-4569 split already flagged at `G-005`, now confirmed at individual-card level. Separately: #17's "order placed" numerator is a raw `booknow_clicked` **click event with no join to order completion**, contradicting sibling card #11 (`M-014`) which correctly gates on `state=3`. Executed value 56.4% (Jun-26) is a click-through rate, not an order-placement rate | Ask the metric owner which customer-source table is canonical for this card family, and whether #17 should be redefined or rebuilt against actual order completion | **BLOCKED** — owner |
+| **G-149** | **Catalogue's card assignment for #44 appears to be simply wrong** | Catalogue: "Median Days Between Orders — Repeat Business Users." Card `49311` actually computes median VSS-view→booknow-click latency **in minutes** — a session-funnel timing metric. Executed: 0.8 min median (Jun-26) — a value/unit that cannot be "days between orders" under any reading. Likely mismapped when the catalogue was built; may actually answer a *different* row (possibly overlapping #18) | Find the correct card for #44's actual definition (inter-order interval, in days); separately confirm whether 49311 belongs to a different catalogue row entirely | **OPEN** |
+| **G-150** | **6 metrics confirmed genuinely absent from Metabase after a real search** (#36 Damage%, #48 Batch Acceptance%, #49 SLA Breach%, #50 Allocation Acceptance Rate, #52 % Organic Allocation, #53 Reallocation Rate) | Not a "didn't look" gap — each was searched by name and concept; #48 turned up a wrong-grain CGE-wide tool (rejected), #50 turned up a different-concept "orders allocated" rate (rejected), #53 has one unconfirmed loose lead (card 48535 "Vehicle Change %") | Confirm with the metric owner whether these are tracked anywhere at all (a sheet? not yet built?) before spending more search effort | **BLOCKED** — owner |
+| **G-152** | 9 batch-2 cards (34052, 34364, 33784, 33823, 33785, 33824, 42081, 42080, 37416) have no staleness fingerprint yet | Found by a metadata-search worker scoped to definitions, not fingerprinting | One `get_card` per card, record `updated_at` — see `dashboards.md` | **OPEN — low, mechanical** |
+| **G-151** | **Owner/vehicle-grain supply metrics may not exist in current PTL tooling at all** — 12 metrics (#57,58,59,60,61,62,63,66,67,68,69,75) plus 2 partial (#64,#65 — overall exists via `M-018`, no owner-split found) | All 5 cards on the Supply tab operate at **vendor** (transport-company) grain via `vendor_name`, not individual owner/vehicle grain the catalogue assumes. This is an entity-model mismatch, not a missing-card problem — the underlying data may need new instrumentation, not just a new query | This is a **planning question for the metric owner**, not a KB task: confirm whether owner/vehicle-level supply data exists anywhere (even unbuilt), or whether these 12 metrics should be redefined at vendor grain to match what's actually trackable | **BLOCKED** — owner, **structural** |
+
+## G. Coverage — originally 74 catalog metrics, 65 remain not covered in depth
 
 Ruling **D6** bounds v1 to 11 metrics; the owner ratified index-only treatment for the rest at the
-build's checkpoint 2. Each metric below has an index row
-in [metrics.md](./metrics.md) §2 with the catalog's verbatim status. **`next_action` for all:**
-locate the backing card/source, read its SQL, and promote to a full `M-###` row.
+build's checkpoint 2. **9 were promoted 2026-07-30** (struck through below, → `M-012`–`M-020`);
+2 more were checked and found to be catalogue errors rather than simple gaps (`G-148`, `G-149`).
+Each remaining metric below has an index row in [metrics.md](./metrics.md) §2 with the catalog's
+verbatim status. **`next_action` for most:** locate the backing card/source, read its SQL, and
+promote to a full `M-###` row — except rows marked `structural gap` (`G-151`), which need an owner
+decision on data availability before any SQL work is possible.
 
 | id | catalog # | metric | id | catalog # | metric |
 |---|---|---|---|---|---|
-| G-040 | 3 | PTL Awareness Rate | G-077 | 47 | Vehicle Space Utilization % |
-| G-041 | 4 | VSS TOF — Serviceable Sessions | G-078 | 48 | Batch Acceptance % by Partners |
-| G-042 | 5 | PTL Serviceable VSS % of Sessions | G-079 | 49 | Pickup/Delivery SLA Breach % |
-| G-043 | 6 | PTL Card Tap Rate | G-080 | 50 | Allocation Acceptance Rate |
-| G-044 | 7 | PTL Selection Rate vs FTL | G-081 | 51 | Time to Allocate P50 *(deferred it 2.5)* |
-| G-045 | 8 | Outstation Search Rate | G-082 | 52 | % Organic Allocation |
-| G-046 | 9 | PTL Activation Rate | G-083 | 53 | Reallocation Rate |
-| G-047 | 10 | VSS→Quote Conv (New Business) | G-084 | 54 | GM% per PTL Order |
-| G-048 | 11 | Quote→Order Conv (New Business) | G-085 | 56 | Return Trip % |
-| G-049 | 13 | Avg Sessions Before First Order | G-086 | 57 | Monthly Active Owners (MAO) |
-| G-050 | 15 | Overall Session Conversion | G-087 | 58 | New Owners Onboarded |
-| G-051 | 16 | VSS→Quote Conv (All Business) | G-088 | 59 | Monthly Active Vehicles (MAV) |
-| G-052 | 17 | Quote→Order Conv (All Business) | G-089 | 60 | New Vehicles Onboarded |
-| G-053 | 18 | Median Time to Book | G-090 | 61 | Owner Onboarding Activation Rate |
-| G-054 | 20 | Customer Rating / NPS | G-091 | 62 | Median Days Onboarding→First Trip |
-| G-055 | 21 | Support Tickets per Order | G-092 | 63 | M1 Owner Retention % |
-| G-056 | 22 | Support Ticket % | G-093 | 64 | % Trips On-Time Pickup (Supply) |
-| G-057 | 23 | First Contact Resolution % | G-094 | 65 | % Trips On-Time Delivery (Supply) |
-| G-058 | 24 | Escalation % | G-095 | 66 | Owner Batch Acceptance Rate |
-| G-059 | 25 | L4 Tickets | G-096 | 67 | Owner Batch Completion Rate |
-| G-060 | 27 | Cancellation Attribution % ⚠ | G-097 | 68 | SLA Adherence % by Owner |
-| G-061 | 29 | Customer/Porter Attributed CBDF % ⚠ | G-098 | 69 | Partner Attributed Damage % |
+| G-040 | 3 | PTL Awareness Rate — **CHECKED 2026-07-30: no matching chart in 100 Amplitude search results. Not substituted.** Genuinely no known source | G-077 | 47 | Vehicle Space Utilization % |
+| G-041 | 4 | VSS TOF — **CHECKED: chart `3jh9upju` "TOF (PTL Shown on VSS)" matches** — but counts unique *users*, not *sessions* as catalogue/title claim → confidence `verified` for the chart, `unverified` for the sessions-vs-users framing | G-078 | 48 | Batch Acceptance % — **searched, wrong-grain CGE tool found, rejected** → `G-150` |
+| G-042 | 5 | PTL Serviceable VSS % of Sessions — **CHECKED: numeric id `42065` does not resolve post-migration** — likely a stale Mixpanel-era ID (org migrated to Amplitude 2026-01-01). Next: ask the metric owner for the current chart | G-079 | 49 | Pickup/Delivery SLA Breach % — **searched, zero hits** → `G-150` |
+| G-043 | 6 | PTL Card Tap Rate — **CHECKED: numeric id `49312` does not resolve**, same stale-Mixpanel-ID pattern as #5 | G-080 | 50 | Allocation Acceptance Rate — **searched, zero hits, wrong-concept lead found** → `G-150` |
+| G-044 | 7 | PTL Selection Rate vs FTL — **CHECKED: chart `gjvatdh3` matches**, `verified`. "FTL" is not a literal taxonomy term — see `B-053b` | ~~G-081~~ | 51 | ~~Time to Allocate P50~~ **promoted → `M-019`**; the "deferred to 2.5" premise (no card exists) turned out false — card 42081 is straightforward. Flagged back to the ruling owner, not silently overridden |
+| G-045 | 8 | Outstation Search Rate — **CHECKED: chart `l9brfm70` matches cleanly, `verified`** | G-082 | 52 | % Organic Allocation — **searched, zero hits anywhere** → `G-150` |
+| G-046 | 9 | PTL Activation Rate | G-083 | 53 | Reallocation Rate — **searched, zero hits; loose unconfirmed lead card 48535** → `G-150` |
+| ~~G-047~~ | 10 | ~~VSS→Quote Conv (New Business)~~ **promoted → `M-014`** (card 48923) | ~~G-084~~ | 54 | ~~GM% per PTL Order~~ **promoted → `M-020`** |
+| ~~G-048~~ | 11 | ~~Quote→Order Conv (New Business)~~ **promoted → `M-014`** (card 44469) | G-085 | 56 | Return Trip % |
+| ~~G-049~~ | 13 | ~~Avg Sessions Before First Order~~ **promoted → `M-015`** (card 48922) | **G-151** | 57 | Monthly Active Owners (MAO) — **structural gap**, see full note below §G |
+| G-050 | 15 | Overall Session Conversion | **G-151** | 58 | New Owners Onboarded — **structural gap** |
+| G-051 | 16 | VSS→Quote Conv (All Business) — **checked, card 48984 uses `prod_eldoria.core.dim_customers` not the canonical `oms_public.customers` (see `T-020`, `G-005`)** — see `G-148` | **G-151** | 59 | Monthly Active Vehicles (MAV) — **structural gap** |
+| G-052 | 17 | Quote→Order Conv (All Business) — **checked, likely mislabeled: numerator is a raw click event with no order-completion join** — see `G-148` | **G-151** | 60 | New Vehicles Onboarded — **structural gap** |
+| G-053 | 18 | Median Time to Book — **CHECKED 2026-07-30: candidate chart `9soyf565` "Median Booking Time" found, but its terminal event is `ptlbookingdetailspage_booknow_clicked` ("book now clicked"), not "order placed" as the catalogue states** — real gap between candidate and definition, NOT confirmed as a match | **G-151** | 61 | Owner Onboarding Activation Rate — **structural gap** |
+| G-054 | 20 | Customer Rating / NPS | **G-151** | 62 | Median Days Onboarding→First Trip — **structural gap** |
+| G-055 | 21 | Support Tickets per Order | **G-151** | 63 | M1 Owner Retention % — **structural gap** |
+| G-056 | 22 | Support Ticket % | G-093 | 64 | % Trips On-Time Pickup (Supply) — overall exists (`M-018`), no owner-split found → `G-151` |
+| G-057 | 23 | First Contact Resolution % | G-094 | 65 | % Trips On-Time Delivery (Supply) — overall exists (`M-018`), no owner-split found → `G-151` |
+| G-058 | 24 | Escalation % | **G-151** | 66 | Owner Batch Acceptance Rate — **structural gap** |
+| G-059 | 25 | L4 Tickets | **G-151** | 67 | Owner Batch Completion Rate — **structural gap** |
+| G-060 | 27 | Cancellation Attribution % ⚠ | **G-151** | 68 | SLA Adherence % by Owner — **structural gap** |
+| G-061 | 29 | Customer/Porter Attributed CBDF % ⚠ | **G-151** | 69 | Partner Attributed Damage % — **structural gap** |
 | G-062 | 31 | Cust/Porter/Partner Attributed CADF % ⚠ | G-099 | 70 | Owner Earnings per Trip |
-| G-063 | 32 | Perfect Order Experience % | G-100 | 71 | Trips per MAV |
-| G-064 | 33 | On-Time Pickup % + Delivery % | G-101 | 72 | Partner NPS |
-| G-065 | 34 | On-Time Pickup % | G-102 | 73 | Partner Support Tickets per Trip % |
-| G-066 | 35 | On-Time Delivery % | G-103 | 74 | AppSheet Adoption |
-| G-067 | 36 | Damage % | G-104 | 75 | Owner Earnings per MAV |
+| ~~G-063~~ | 32 | ~~Perfect Order Experience %~~ **promoted → `M-017`** | G-100 | 71 | Trips per MAV |
+| ~~G-064~~ | 33 | ~~On-Time Pickup % + Delivery %~~ **promoted → `M-018`** | G-101 | 72 | Partner NPS |
+| ~~G-065~~ | 34 | ~~On-Time Pickup %~~ **promoted → `M-018`** | G-102 | 73 | Partner Support Tickets per Trip % |
+| ~~G-066~~ | 35 | ~~On-Time Delivery %~~ **promoted → `M-018`** | G-103 | 74 | AppSheet Adoption |
+| G-067 | 36 | Damage % — **searched, genuinely not found (PnM-only dashboards exist)** → `G-150` | **G-151** | 75 | Owner Earnings per MAV — **structural gap** |
 | G-068 | 37 | Weight Discrepancy % ⚠ | G-105 | 76 | Uptime % |
 | G-069 | 40 | Repeat Rate (≥2 lifetime) | G-106 | 77 | Latency P95 |
 | G-070 | 41 | Share of Orders from Repeat Users | G-107 | 78 | Booking Details Page Latency P95 |
-| G-071 | 42 | Avg Txns per Business Customer | G-108 | 79 | Check Serviceability API Latency P95 |
-| G-072 | 43 | Reactivation % | G-109 | 80 | Quote Generation API Latency P95 |
-| G-073 | 44 | Median Days Between Orders | G-110 | 81 | Booking Creation API Latency P95 |
-| G-074 | 45 | Share of Business Users | G-111 | 82 | Error Rate — Ktor & Job |
+| ~~G-071~~ | 42 | ~~Avg Txns per Business Customer~~ **CLOSED → `M-012`** | G-108 | 79 | Check Serviceability API Latency P95 |
+| ~~G-072~~ | 43 | ~~Reactivation %~~ **promoted → `M-016`** (card 48919) | G-109 | 80 | Quote Generation API Latency P95 |
+| G-073 | 44 | Median Days Between Orders — **checked, catalogue's card assignment is wrong** (card 49311 measures booking-time-latency in minutes, not inter-order days) — see `G-149` | G-110 | 81 | Booking Creation API Latency P95 |
+| ~~G-074~~ | 45 | ~~Share of Business Users~~ **CLOSED → `M-013`** | G-111 | 82 | Error Rate — Ktor & Job |
 | — | — | — | G-112 | 83 | Booking Details Page Error Rate |
 | — | — | — | G-113 | 84–86 | Serviceability / Quote / Booking API Error Rates *(3 metrics)* |
 
