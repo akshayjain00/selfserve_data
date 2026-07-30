@@ -52,11 +52,12 @@ reading its gap row first.
 | M-010 | New Business Users (monthly) | first-order count in month | ⚠️ `unverified` — not implemented (`G-010`) |
 | M-011 | M1 Business Retention % | `100 × m0_retained / m0_business_users` | `verified`, ⚠️ base gap (`G-010`) |
 
-**65 further catalog metrics remain index-only** ([metrics.md](./metrics.md) §2). **20 of 85 are now
-fully written up** (11 v1 + 9 promoted 2026-07-30: `M-012`–`M-020`), up from 11. The original catalog
-audit (frozen) = **85 rows**: 15 `confirmed`, 6 `contradicted`, 64 `unverified` → 70 not confirmed
-*at audit time* — 2 of those 64 turned out to be **catalogue mapping errors** (`G-148`, `G-149`).
-See [GAPS.md](./GAPS.md) §F3/§F4, incl. 12 owner/vehicle-supply metrics possibly untrackable (`G-151`).
+**23 of 85 catalogue rows now have a full `M-###` entry** (via **20 M-numbers** — 2 of them each
+close more than one row, so the two counts legitimately differ). **62 rows remain index-only**
+([metrics.md](./metrics.md) §2) — 23+62=85. The original catalog audit (frozen) = **85 rows**: 15
+`confirmed`, 6 `contradicted`, 64 `unverified` → 70 not confirmed *at audit time* — 3 of those 64
+turned out to be **catalogue mapping errors** (`G-148`, `G-149`). See [GAPS.md](./GAPS.md) §F3/§F4,
+incl. 14 owner/vehicle-supply rows possibly untrackable (`G-151`).
 
 ### Three facts that prevent most errors
 - **`orders.state`**: `3=Completed, 4=Cancelled` — `T-001`, verified on db73. The `0/1/2` labels are db83-only (`T-001a`).

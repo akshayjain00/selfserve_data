@@ -261,7 +261,7 @@ qualitatively different from "never looked at."
 
 ---
 
-## 2. Index-only — the remaining 65 catalog metrics
+## 2. Index-only — the remaining 62 catalog metrics
 
 Not covered in depth this pass — ruling **D6** bounds v1 to 11 metrics, and the owner ratified
 index-only treatment for the rest at the build's checkpoint 2. Each has a `G-###` row in
@@ -272,11 +272,11 @@ index-only treatment for the rest at the build's checkpoint 2. Each has a `G-###
 | # | metric | catalog status (verbatim) |
 |---|---|---|
 | 3 | PTL Awareness Rate amongst Porter Business MAU (L0) | unverified |
-| 4 | VSS Top-of-Funnel — PTL Serviceable Sessions (L1) | unverified |
-| 5 | PTL Serviceable VSS as % of Overall Porter Sessions on VSS (L1) | unverified |
-| 6 | PTL Card Tap Rate in Serviceable Sessions (Business) (L1) | unverified |
-| 7 | PTL Selection Rate vs FTL (L1) | unverified |
-| 8 | Outstation Search Rate (Business Users) (L1) | unverified |
+| 4 | VSS Top-of-Funnel — PTL Serviceable Sessions (L1) | **checked, chart `3jh9upju` matches** — counts unique *users* not *sessions* as titled → `G-041`, not yet given a full `M-###` row → `G-153` |
+| 5 | PTL Serviceable VSS as % of Overall Porter Sessions on VSS (L1) | **checked, chart id `42065` does not resolve** — likely stale pre-migration reference → `G-145` |
+| 6 | PTL Card Tap Rate in Serviceable Sessions (Business) (L1) | **checked, chart id `49312` does not resolve** — same pattern as #5 → `G-145` |
+| 7 | PTL Selection Rate vs FTL (L1) | **checked, chart `gjvatdh3` matches, verified** → `G-044`, not yet given a full `M-###` row → `G-153` |
+| 8 | Outstation Search Rate (Business Users) (L1) | **checked, chart `l9brfm70` matches cleanly, verified** → `G-045`, not yet given a full `M-###` row → `G-153` |
 | 9 | PTL Activation Rate — Business (First Order ≤7d of Card View) (L0) | unverified |
 | ~~10~~ | ~~VSS→Quote Check Conversion — New Business Users (L1)~~ | **promoted → `M-014`** (shares card w/ #11) |
 | ~~11~~ | ~~Quote Check→Order Placed Conversion — New Business Users (L1)~~ | **promoted → `M-014`** |
@@ -348,10 +348,25 @@ index-only treatment for the rest at the build's checkpoint 2. Each has a `G-###
 
 **Catalog totals** (per `DECISION_LOG` §Drift 2, verified by parsing all 85 rows):
 85 rows (#2–#86) = **15 `confirmed-via-metadata` + 6 `contradicted—conflict` + 64 `unverified`** at
-audit time. That audit is frozen/historical; **this KB's own coverage has since moved past it** —
-20 metrics now fully written up: 11 v1 (§1) + 9 promoted 2026-07-30 (§1b/§1c, `M-012`–`M-020`).
-Of the 64 originally `unverified`: **9 promoted to `verified`**, **3 found to be actively wrong or
-mislabeled in the catalogue itself** (§1d — a different, more valuable finding than "unverified"),
-**12 hit a structural gap** (`G-151` — the data may not exist at owner/vehicle grain at all),
-**~7 confirmed genuinely absent** after a real search, **7 blocked on a Metabase reconnect that has
-since been resolved**, **~24 still untouched.** **65 metrics remain index-only** (§2).
+audit time. That audit is frozen/historical; **this KB's own coverage has since moved past it.**
+
+Every count below is in **catalogue rows** (not M-numbers — one M-### can close more than one row,
+e.g. `M-014` closes both #10 and #11, `M-018` closes #33/#34/#35; that mismatch is what produced a
+wrong "65 remaining" figure earlier the same day, corrected here to the real number, 62):
+
+- **12 rows promoted** to a full, verified `M-###` entry (via 9 distinct M-numbers) — §1b/§1c.
+- **3 rows found to be catalogue errors** (#16, #17, #44) — wrong card or wrong table, not just
+  unchecked (§1d, a more valuable finding than plain "unverified").
+- **3 rows verified from an Amplitude chart definition** (#4, #7, #8) but not yet promoted to a full
+  `M-###` row — a real asymmetry versus the Metabase-sourced promotions, tracked as `G-153` rather
+  than left silently inconsistent.
+- **2 rows have a known-but-unresolvable reference** (#5, #6 — chart ids that predate the Jan-2026
+  Mixpanel→Amplitude migration and no longer resolve).
+- **1 row has a candidate that measures the wrong thing** (#18 — ends at "book now clicked", not
+  "order placed").
+- **7 rows confirmed genuinely absent** after a real search (#3, #36, #48, #49, #50, #52, #53).
+- **14 rows hit a structural gap** (`G-151` — 12 full + 2 partial, #64/#65) — the underlying data may
+  not exist at the grain the catalogue assumes.
+- **32 rows remain genuinely untouched** — no investigation attempted yet.
+
+12 + 3 + 3 + 2 + 1 + 7 + 14 + 32 = 74, minus the 12 promoted = **62 metrics remain index-only** (§2).
