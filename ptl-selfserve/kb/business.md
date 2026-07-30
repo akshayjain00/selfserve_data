@@ -63,9 +63,10 @@ All rows `last_verified: 2026-07-29`.
 | B-048 | **AOV** | Average Order Value = revenue / completed orders | `DECISION_LOG:D6` | **verified** |
 | B-049 | **MAV** | Monthly Active Vehicles | `notion:3449c6eaaa6d8036bb51d679b6182767` | unverified |
 | B-050 | **MAO** | Monthly Active Owners | `notion:3449c6eaaa6d8036bb51d679b6182767` | unverified |
-| B-051 | **VSS** | a top-of-funnel session surface; **expansion never stated in any source read** | `notion:3449c6eaaa6d8036bb51d679b6182767` | unverified → `G-016` |
+| B-051 | **VSS** | **Vehicle Selection Screen.** Confirmed from literal Amplitude event names (`vehicleselectionscreen_vehicles_loaded`, `ce:OS Vehicle Loaded - VSS`) | `amplitude:773228/chart/3jh9upju` | **verified** (2026-07-30) |
 | B-052 | **TOF** | Top of Funnel | `notion:3449c6eaaa6d8036bb51d679b6182767` | assumption → `G-016` |
-| B-053 | **OS** | Outstation (an acquisition thread alongside PTL/PnM/Courier) | `metabase:card/41124` | assumption → `G-016` |
+| B-053 | **OS** | Outstation (an acquisition thread alongside PTL/PnM/Courier). Consistent with Amplitude event `ce:OS Vehicle Loaded - VSS` | `metabase:card/41124`, `amplitude:773228/chart/l9brfm70` | assumption → `G-016` |
+| B-053b | **FTL** *(as used in Amplitude event taxonomy)* | **Not a literal taxonomy term.** Chart `gjvatdh3` implements it as an enumerated list of non-PTL `vehicle_id` codes (100,101,102,103,104,105,106,107,108,111,112,114,1141,1150,1151,1152,132), contrasted against PTL's own `vehicle_id 1159`. The acronym is a human title label over that list, not a property value | `amplitude:773228/chart/gjvatdh3` | **verified** (2026-07-30) |
 | B-054 | **OLC** | used in the review; **expansion never stated** | `notion:3449c6eaaa6d8036bb51d679b6182767` | unverified → `G-016` |
 | B-055 | **WD** | Weight Discrepancy (revenue from weight revision) | `metabase:card/34284` | unverified → `G-016` — expansion inferred from the card *title*, and a card title is never evidence (§4) |
 | B-056 | **FF** | Fulfilment (`ff = co / demand`) | `local:…/prod_ops_metric_assistant_updated_master_instruction.md` | unverified |

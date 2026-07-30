@@ -26,7 +26,13 @@ built on it is **STALE**. Re-extract before trusting it. See CONTRIBUTING §5.
 | 33460 | 2026-06-01T07:38:50Z | 73 | **42683** | 2025-11-18T10:09:14Z | 73 |
 | 47540 | 2026-04-06T11:49:21Z | 73 | **49366** | 2026-05-14T10:39:36Z | 73 |
 | 48449 | 2026-04-06T11:53:10Z | 73 | 49365 | 2026-05-05T06:25:06Z | 73 |
-| 33461 | 2026-02-09T10:07:25Z | 73 | | | |
+| 33461 | 2026-02-09T10:07:25Z | 73 | 44469 | 2026-07-14T12:18:05Z | 73 |
+| 48922 | 2026-04-16T18:52:37Z | 73 | 48984 | 2026-05-06T12:12:04Z | 73 |
+| 48919 | 2026-04-16T17:23:19Z | 73 | 49311 | 2026-05-05T16:00:39Z | 73 |
+
+> ⚠️ **9 cards added 2026-07-30 (batch 2: 34052, 34364, 33784, 33823, 33785, 33824, 42081, 42080,
+> 37416) have NO fingerprint yet.** The worker that found them was scoped to metadata search, not
+> fingerprint capture — recorded here rather than guessed. → `G-152`
 
 ### The three Metabase database connections
 | id | name | role here |
