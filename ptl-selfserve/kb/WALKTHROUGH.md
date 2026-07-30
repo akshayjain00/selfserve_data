@@ -44,7 +44,9 @@ statuses**:
 | Cut | What it measures | Breakdown |
 |---|---|---|
 | **The catalogue's audit** (done before this KB) | did anyone ever check this against SQL? | 15 confirmed · 6 contradicted · 64 unverified |
-| **This KB's coverage** (what we've written up) | has this KB documented it in depth? | **11 in full** · 74 index-only |
+| **This KB's coverage** (what we've written up) | has this KB documented it in depth? | **20 in full** · 65 index-only |
+
+That second row moves — it's a live number, not a historical one. See §8 for what's changed and why.
 
 They are **orthogonal**, not two versions of the same number. The 11 we wrote up in full are the
 metrics leadership steers by; they are not the same set as the 15 the catalogue happened to confirm.
@@ -149,7 +151,7 @@ observed card SQL  >  owner rulings (D1–D7)  >  metric catalogue  >  proposal 
 is canonical for cancellations, and what the North Star actually is. They live in
 `repo@7a43470:ptl-selfserve/DECISION_LOG.md`.
 
-*(This is not a contradiction with `G-133` in §8, which says no metric has a named owner. One person
+*(This is not a contradiction with `G-133` in §9, which says no metric has a named owner. One person
 made these seven programme-level rulings. What's missing is **per-metric ownership** — a named
 person accountable for each individual metric definition, which the Metric Store programme requires.
 Rung 2 exists; it just doesn't scale to all 85 metrics.)*
@@ -264,7 +266,7 @@ next action specific enough to execute. Three ways to add value:
 6 rows the catalogue marked `contradicted` are the highest-value targets — those are metrics whose
 sources actively disagree, so someone may be reading a wrong number today.
 
-**Widen coverage.** 11 metrics have full treatment; **74 are index-only** — a name and a pointer,
+**Widen coverage.** 20 metrics have full treatment; **65 are index-only** — a name and a pointer,
 nothing verified here. Each has a gap row waiting. Pick one, trace it to its card, write it up.
 
 **Close the structural gaps.** These are grind, not judgment — nobody needs to decide anything, they
@@ -296,7 +298,39 @@ settled one. Worth knowing before you invest heavily in extending it.
 
 ---
 
-## 8. Where we want your input
+## 8. Current status & roadmap
+
+**Foundational — not stakeholder-ready** (as of 2026-07-30). A low number in any of the four areas
+below is the KB doing its job, not failing at it.
+
+| Area | Current | Roadmap |
+|---|---|---|
+| **Coverage** | 20 of 85 metrics fully written up (was 11 this morning). 29+ of 122 known cards read in depth | Promote index-only rows one at a time; work through the remaining unopened cards, surface by surface |
+| **Verification** | 8 of 11 v1 metrics verified from SQL; 15 of 85 confirmed catalogue-wide; 1 metric execution-validated against live data | The 6 `contradicted` rows first — sources actively disagree today — then the rest |
+| **Freshness** | 29 cards fingerprinted; 9 more found today still need one | Script the fingerprint comparison; stop relying on someone remembering to check |
+| **Governance** | 7 programme-level rulings exist (D1–D7); 0 of 85 metrics have a named per-metric owner | Assign an owner per metric — unblocks most of §9 below |
+
+**How we got here:**
+
+| Phase | Status | What happened |
+|---|---|---|
+| 1 — Research | ✅ Complete | Surveyed AI-consumable KB patterns; picked the addressable-row shape |
+| 2 — Inventory | ✅ Complete | Read every named source across both clones, Notion, and reference material |
+| 3 — Ground in SQL | ✅ Complete | Traced every v1 metric to card SQL, not titles, across four dashboard surfaces |
+| 4 — Enhance & resolve | 🟡 In progress | Promote index-only rows, close blocked gaps, assign owners — you're joining here |
+
+**What today's validation push actually found**, beyond the raw count:
+
+- **The catalogue itself has errors, not just gaps.** Two rows (#16/#17, #44) turned out to point at the wrong card, or a card that answers a different question than the one asked (`G-148`, `G-149`). Grounding in SQL doesn't just fill in blanks — it catches mistakes that have been sitting there since the catalogue was built.
+- **12 metrics may be structurally untrackable right now**, not just unwritten. Every card covering owner/vehicle-level supply health (monthly active owners, owner retention, earnings per vehicle) actually operates at *vendor* grain — a different entity than the catalogue assumes. No amount of searching Metabase fixes that; it's a data-model question for the metric owner (`G-151`).
+- **6 metrics are confirmed genuinely absent** after a real search, with the negative evidence kept rather than a bare "unverified" (`G-150`).
+- Coverage and confidence keep moving independently of each other, exactly as §1 warned — writing up more metrics didn't make the harder ones any less broken.
+
+**Right now:** next priority is `G-141` (fix the North Star's offline-leg filter). Risk is **high** for any number quoted externally before reconciliation, **low** for the KB's own process — it's been blind-reviewed once and stranger-audited twice. No committed timeline — that's honest, not an oversight; see `G-133` for what's actually blocking one.
+
+---
+
+## 9. Where we want your input
 
 Most of these need a decision or an owner, not more analysis:
 
@@ -306,9 +340,12 @@ Most of these need a decision or an owner, not more analysis:
 | `G-002` | Two live definitions of "excluding 60-second cancellations". Which is canonical? | a decision |
 | `G-004` / `G-135` | Three competing revenue bases for AOV (**Average Order Value** = revenue ÷ completed orders), crossed with two date bases | a decision |
 | `G-137` | The inert date filters — fix the cards, or leave them and rely on the KB warning? | a decision *(already raised with card owners)* |
-| `G-016` | `VSS`, `TOF`, `OS`, `OLC` are used throughout the review and defined nowhere — including here, because nobody has told us | a lookup: someone who knows |
+| `G-016` | `TOF`, `OS`, `OLC` are used throughout the review and defined nowhere *(`VSS` resolved 2026-07-30 — see glossary)* | a lookup: someone who knows |
 | `G-132` | Do we target Argus eligibility? | a roadmap decision |
 | `G-133` | No metric has a named owner. Argus requires one | assignment |
+| `G-148` | Two cards use different customer-source tables, and one of them (#17) may be measuring clicks, not order placements | a decision on which table is canonical, and whether #17 needs rebuilding |
+| `G-150` | 6 metrics (damage %, batch acceptance, allocation rate, reallocation rate...) have no card anywhere after a real search | confirm whether these are tracked at all, anywhere |
+| `G-151` | 12 owner/vehicle-level supply metrics may not be buildable — the data that exists is at vendor grain, not owner/vehicle grain | a data-model decision, not more searching |
 
 > Note the circularity worth naming: `G-141`, `G-002` and `G-004` all need an owner to decide, and
 > `G-133` says no metric has a **per-metric** owner. (The programme-level owner who wrote D1–D7
@@ -317,7 +354,7 @@ Most of these need a decision or an owner, not more analysis:
 
 ---
 
-## 9. Glossary
+## 10. Glossary
 
 | Term | Meaning |
 |---|---|
@@ -326,6 +363,7 @@ Most of these need a decision or an owner, not more analysis:
 | **pre-PMF** | before product–market fit; the product is still changing shape |
 | **NSM** | North Star Metric — monthly transacting business customers. ⚠️ *computed as distinct mobile numbers, a proxy for customers; see §5* |
 | **CBDF / CADF** | Cancelled Before / After Driver Found |
+| **VSS** | Vehicle Selection Screen — confirmed from literal Amplitude event names, closing a gap that had sat open since Phase 2. A good example of the method in §5 working on jargon, not just numbers |
 | **AOV** | Average Order Value = revenue ÷ completed orders — ⚠️ *three competing revenue bases are live; see `G-004`* |
 | **Fulfilment (ff)** | completed orders ÷ orders placed — ⚠️ *an "excluding-60s" variant exists in two incompatible forms; see `G-002`* |
 | **excl-60s** | excludes cancellations within 60 seconds of booking — ⚠️ *contested: numerator-only vs denominator; see `G-002`* |
@@ -353,8 +391,9 @@ ptl-selfserve/kb/          ← the KB (this file included)
 
 Dashboards referenced throughout live at **`metabase.prod-internal.porter.in`**.
 
-Published at commit `5fddacb` on `claude/ptl-metric-catalog-map`, and cherry-picked to
-`claude/pnm-metrics-catalog-map-vg251i` as `49d1d85`. *(Two branches because the KB was written on
+First published at commit `5fddacb` on `claude/ptl-metric-catalog-map` (cherry-picked to
+`claude/pnm-metrics-catalog-map-vg251i` as `49d1d85`), updated since as coverage grew — check
+`git log -- ptl-selfserve/kb/` for the latest. *(Two branches because the KB was written on
 the PTL branch but also needed to be visible from the PnM-named branch the team was already using;
 the content is identical, and every link inside `kb/` is relative so it works from either. The
 sibling assets — `DECISION_LOG.md`, the catalogue, `selfserve_nlq/` — exist only on the PTL branch.)*
