@@ -44,9 +44,9 @@ statuses**:
 | Cut | What it measures | Breakdown |
 |---|---|---|
 | **The catalogue's audit** (done before this KB) | did anyone ever check this against SQL? | 15 confirmed · 6 contradicted · 64 unverified |
-| **This KB's coverage** (what we've written up) | has this KB documented it in depth? | **20 in full** · 65 index-only |
+| **This KB's coverage** (what we've written up) | has this KB documented it in depth? | **23 rows in full** (20 M-numbers — 2 close more than one row) · 62 index-only |
 
-That second row moves — it's a live number, not a historical one. See §8 for what's changed and why.
+That second row moves — it's a live number, not a historical one. 23+62=85; see §8 for what's changed and why.
 
 They are **orthogonal**, not two versions of the same number. The 11 we wrote up in full are the
 metrics leadership steers by; they are not the same set as the 15 the catalogue happened to confirm.
@@ -266,7 +266,8 @@ next action specific enough to execute. Three ways to add value:
 6 rows the catalogue marked `contradicted` are the highest-value targets — those are metrics whose
 sources actively disagree, so someone may be reading a wrong number today.
 
-**Widen coverage.** 20 metrics have full treatment; **65 are index-only** — a name and a pointer,
+**Widen coverage.** 23 catalogue rows have full treatment (20 `M-###` entries — two close more than
+one row each); **62 are index-only** — a name and a pointer,
 nothing verified here. Each has a gap row waiting. Pick one, trace it to its card, write it up.
 
 **Close the structural gaps.** These are grind, not judgment — nobody needs to decide anything, they
@@ -305,7 +306,7 @@ below is the KB doing its job, not failing at it.
 
 | Area | Current | Roadmap |
 |---|---|---|
-| **Coverage** | 20 of 85 metrics fully written up (was 11 this morning). 29+ of 122 known cards read in depth | Promote index-only rows one at a time; work through the remaining unopened cards, surface by surface |
+| **Coverage** | 23 of 85 catalogue rows fully written up, via 20 `M-###` entries (was 11 rows this morning). 29+ of 122 known cards read in depth | Promote index-only rows one at a time; work through the remaining unopened cards, surface by surface |
 | **Verification** | 8 of 11 v1 metrics verified from SQL; 15 of 85 confirmed catalogue-wide; 1 metric execution-validated against live data | The 6 `contradicted` rows first — sources actively disagree today — then the rest |
 | **Freshness** | 29 cards fingerprinted; 9 more found today still need one | Script the fingerprint comparison; stop relying on someone remembering to check |
 | **Governance** | 7 programme-level rulings exist (D1–D7); 0 of 85 metrics have a named per-metric owner | Assign an owner per metric — unblocks most of §9 below |
@@ -322,7 +323,7 @@ below is the KB doing its job, not failing at it.
 **What today's validation push actually found**, beyond the raw count:
 
 - **The catalogue itself has errors, not just gaps.** Two rows (#16/#17, #44) turned out to point at the wrong card, or a card that answers a different question than the one asked (`G-148`, `G-149`). Grounding in SQL doesn't just fill in blanks — it catches mistakes that have been sitting there since the catalogue was built.
-- **12 metrics may be structurally untrackable right now**, not just unwritten. Every card covering owner/vehicle-level supply health (monthly active owners, owner retention, earnings per vehicle) actually operates at *vendor* grain — a different entity than the catalogue assumes. No amount of searching Metabase fixes that; it's a data-model question for the metric owner (`G-151`).
+- **14 metrics may be structurally untrackable right now** (12 fully, 2 partially), not just unwritten. Every card covering owner/vehicle-level supply health (monthly active owners, owner retention, earnings per vehicle) actually operates at *vendor* grain — a different entity than the catalogue assumes. No amount of searching Metabase fixes that; it's a data-model question for the metric owner (`G-151`).
 - **6 metrics are confirmed genuinely absent** after a real search, with the negative evidence kept rather than a bare "unverified" (`G-150`).
 - Coverage and confidence keep moving independently of each other, exactly as §1 warned — writing up more metrics didn't make the harder ones any less broken.
 
@@ -345,7 +346,7 @@ Most of these need a decision or an owner, not more analysis:
 | `G-133` | No metric has a named owner. Argus requires one | assignment |
 | `G-148` | Two cards use different customer-source tables, and one of them (#17) may be measuring clicks, not order placements | a decision on which table is canonical, and whether #17 needs rebuilding |
 | `G-150` | 6 metrics (damage %, batch acceptance, allocation rate, reallocation rate...) have no card anywhere after a real search | confirm whether these are tracked at all, anywhere |
-| `G-151` | 12 owner/vehicle-level supply metrics may not be buildable — the data that exists is at vendor grain, not owner/vehicle grain | a data-model decision, not more searching |
+| `G-151` | 14 owner/vehicle-level supply metrics may not be buildable (12 fully, 2 partially) — the data that exists is at vendor grain, not owner/vehicle grain | a data-model decision, not more searching |
 
 > Note the circularity worth naming: `G-141`, `G-002` and `G-004` all need an owner to decide, and
 > `G-133` says no metric has a **per-metric** owner. (The programme-level owner who wrote D1–D7
