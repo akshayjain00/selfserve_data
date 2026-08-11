@@ -63,7 +63,7 @@ with a question, and the front desk sends you to the right shelf.
 ```
                     ┌──────────────────────────┐
    your question →  │      CONTEXT.md          │   the front desk
-                    │  "what do you need?"     │   (~150 lines, always read this first)
+                    │  "what do you need?"     │   (~175 lines, always read this first)
                     └────────────┬─────────────┘
                                  │ routes you to the shelf you need
      ┌───────────┬───────────┬───┴───────┬────────────┬──────────────┐
@@ -75,7 +75,7 @@ with a question, and the front desk sends you to the right shelf.
 
 Two design choices make it work, and both are worth understanding:
 
-**One — the front desk stays small.** `CONTEXT.md` is capped at 150 lines, deliberately. It holds
+**One — the front desk stays small.** `CONTEXT.md` is capped at 175 lines, deliberately. It holds
 the index, the routing table, and the handful of facts that prevent most errors. Everything else
 loads only when needed. This isn't tidiness: when an instruction file grows too long, readers —
 human or AI — start losing the rules inside it. A small entry point is a *functional* requirement.

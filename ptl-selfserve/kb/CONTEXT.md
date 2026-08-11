@@ -158,8 +158,10 @@ imported 2026-08-11. Import spec and rationale:
   mismatch, not a D3 breach; Business Session Conversion's is **correct** — D6 exempts it (`G-119`).
 - ⚠️ **Strategic:** Project Argus (the cross-vertical Metric Store) **rejected** the hand-rolled,
   no-semantic-layer shape ruling D2 builds on. Treat raw-table self-serve as provisional (`G-132`).
-- **66 substantive gaps** + 74 uncovered metrics + 93 unopened cards **+ one entire unopened
+- **66 substantive gaps** + **62** uncovered metrics + 93 unopened cards **+ one entire unopened
   dashboard (4632)** → [GAPS.md](./GAPS.md). **BLOCKED** gaps need an owner decision, not more analysis.
+  *(62 is the reconciled figure — 74 was the pre-promotion count and is superseded; see §"11 core
+  metrics" above and [GAPS.md](./GAPS.md) §G.)*
 - **Weekly-report playbook imported 2026-08-11** (`G-154`–`G-171`). It opened **13 conflicts** with
   this KB and recorded **12 self-contradictions** inside itself (`G-168`). Two rows were **corrected**
   under tier 3 — `T-033` (date basis) and `M-008` (revenue base). Five new gaps are **owner-blocked**:
