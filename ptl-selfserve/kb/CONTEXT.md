@@ -13,6 +13,7 @@
 | "Which table/column holds X?" | [data-model.md](./data-model.md) |
 | "Where does this number come from?" | [dashboards.md](./dashboards.md) |
 | "Is this fact still true?" | [CONTRIBUTING.md](./CONTRIBUTING.md) §5 (staleness check) |
+| **"How do I actually write this query?" / "why did my query return zero rows?"** | [query-rules.md](./query-rules.md) — ⚠️ observed practice, **tier 5**, never a definition |
 | "What's unresolved?" | [GAPS.md](./GAPS.md) |
 | About to edit this KB | [CONTRIBUTING.md](./CONTRIBUTING.md) — **required** |
 
@@ -62,17 +63,28 @@ incl. 14 owner/vehicle-supply rows possibly untrackable (`G-151`).
 ### Three facts that prevent most errors
 - **`orders.state`**: `3=Completed, 4=Cancelled` — `T-001`, verified on db73. The `0/1/2` labels are db83-only (`T-001a`).
 - **Business customer** = `customers.frequency IN (1,2,3,4)` on `oms_public.customers`, joined by
-  mobile; unmatched customers silently fall to *Personal* (`T-020`, `T-021`).
+  mobile; unmatched customers silently fall to *Personal* (`T-020`, `T-021`). ⚠️ **The TABLE is
+  contested** — production reporting applies the same predicate to `prod_eldoria.core.dim_customers`
+  instead (`G-163`, `G-005`, `G-012`). The predicate is stable; which master it runs against is not.
 - **Units**: fares are **paise** `/100` (`T-010`/`T-011`, verified). Weights grams `/1000` is ⚠️ db83-only (`T-012`).
 
 ---
 
 ## Precedence ladder — when sources disagree
 
-**1.** observed card SQL *(strongest)* → **2.** `DECISION_LOG` D1–D7 *(owner rulings)* → **3.** iteration-1
-catalog → **4.** journey/proposal docs → **5.** Notion Product Ops Review *(weakest for definitions)*
+**1.** observed card SQL *(strongest)* → **2.** `DECISION_LOG` D1–D7 *(owner rulings)* →
+**3.** **reconciled operational SQL** → **4.** iteration-1 catalog → **5.** journey/proposal docs ·
+*un*reconciled operational SQL → **6.** Notion Product Ops Review *(weakest for definitions)*
 
-**Absolute exception:** when observed SQL contradicts an owner ruling, **do not resolve it.** Record
+**Tier 3** (added 2026-08-11) = analyst SQL **executed against production** *and* **reconciled against
+a named Metabase surface**. **Assign it per claim, never per document** — one source holds tier-3 and
+tier-5 claims side by side. Naming a surface is necessary, not sufficient: if the KB's own reading of
+that surface contradicts the claim, the reconciliation did not happen and the claim is **tier 5**.
+Where tier 3 outranks a row, that row is **corrected**, superseded wording kept in its `note`.
+Full rules: [CONTRIBUTING.md](./CONTRIBUTING.md) §6.
+
+**Absolute exception (levels 1 vs 2 only — it does not extend to tier 3):** when observed SQL
+contradicts an owner ruling, **do not resolve it.** Record
 both sides, set `confidence: unverified`, open a `G-###`. Silently picking a side converts a known
 unknown into an invisible error — it is the worst thing you can do to this KB.
 
@@ -100,37 +112,39 @@ is one metadata call (`get_card`), **not** a query. See [CONTRIBUTING.md](./CONT
 2. **Never put credentials, tokens, or personal data in this KB.** Column *names* are schema facts
    (`customer_mobile` ✓); values, phone numbers, emails, names, addresses are not.
 3. **Aggregate-then-ratio** for every derived ratio. Never average daily ratios (`B-030`).
-4. **Week = Saturday→Friday**, completed weeks only, latest leftmost (`B-031`).
+4. **Week — CONTESTED, ask before running.** Two conventions are live and unreconciled: **Sat→Fri**
+   (`B-031`) and **Sun→Sat** (production weekly reporting). **Any weekly cut must ask the requester
+   which convention they mean before running** — neither side outranks the other (`G-154`).
+   Completed weeks only, latest leftmost.
 5. Divide-by-zero → **null** (`B-032`). Percentage movements in **"pp"** (`B-033`).
 6. **Never inline a metric value into a definition.** Values are point-in-time; they live only in
    `business.md`'s labelled snapshot section, tagged by **data period** (Apr-26), not review name.
-7. Timestamps are **UTC**; convert with `+330 min` / `CONVERT_TIMEZONE`. Never wrap a timestamp column
-   in an expression inside `WHERE` — it kills partition pruning (`T-030`, `T-031`).
+7. Timestamps are **UTC**; convert with `+330 min` / `CONVERT_TIMEZONE` — ⚠️ production disputes that
+   these are interchangeable at **slot boundaries**, treated as a source defect (`G-168`, `B-034`).
+   Never wrap a timestamp column in an expression inside `WHERE` — it kills partition pruning
+   (`T-030`, `T-031`). ⚠️ Production reporting **prescribes** the wrapped form; `Q-004` carries the
+   pruning-safe rewrite alongside it (`G-166`, `G-018`).
 
 ---
 
 ## Source locations
 
-Repo `github.com/akshayjain00/selfserve_data`. **`kb/` is published on two branches and is
-self-contained — every link inside it is relative, so it works from either.** Its sibling assets are
-**only** on `claude/ptl-metric-catalog-map`:
-```
-ptl-selfserve/kb/               ← you are here (on BOTH branches)
-─── the following exist ONLY on claude/ptl-metric-catalog-map ───
-ptl-selfserve/DECISION_LOG.md         ← owner rulings D1–D7 (domain authority)
-ptl-selfserve/iteration-1-ptl-*.md    ← the 85-row catalog + ranked open questions
-ptl-selfserve/selfserve_nlq/          ← prototype (metrics_registry, sqlgen, ask.py)
-```
-If you are on `claude/pnm-metrics-catalog-map-vg251i` those four are absent — switch branches or
-use the pinned SHA below to read them.
-**Provenance format:** `repo@<commit-sha>:<path>#L<n>` — never a bare path or branch name. Two
-clones of this repo exist on **diverged branches**; PTL work is on `claude/ptl-metric-catalog-map`
-(pinned `7a43470`), PnM reference material on `claude/pnm-p80-orderedits` (pinned `851886f`).
-Neither branch holds both. Commit SHAs are the only stable citation.
+Repo `github.com/akshayjain00/selfserve_data`. **`kb/` is on two branches and is self-contained** —
+all links relative. Siblings (`DECISION_LOG.md` D1–D7 · `iteration-1-ptl-*.md`, the 85-row catalog ·
+`selfserve_nlq/`, the prototype) exist **only** on `claude/ptl-metric-catalog-map` (pinned
+`7a43470`); PnM reference material only on `claude/pnm-p80-orderedits` (`851886f`). Neither branch
+holds both. **Provenance format:** `repo@<commit-sha>:<path>#L<n>` — never a bare path or branch
+name. Commit SHAs are the only stable citation.
 
 **Dashboards:** `metabase.prod-internal.porter.in` — `dashboard/4198` (Business Observability),
 `dashboard/4569` (Customer), `card/33519` (Ops Orders Details), `dashboard/4793` (**canonical
-cancellation**, ruling D5).
+cancellation**, ruling D5), and ⚠️ **`dashboard/4632`** — the monthly reconciliation surface, **never
+opened by this KB**, yet the basis of its only tier-3 claims (`G-167`).
+
+**Operational source:** `notion:36a9c6eaaa6d809db065efc12ecf4f42` — the PTL weekly-report playbook,
+imported 2026-08-11. Import spec and rationale:
+`repo@1f008cd:ptl-selfserve/iteration-2-weekly-report-skill-import-spec.md`.
+⚠️ Its own front matter cites a companion, `references/experiment_report_prompt.md`, **never read**.
 
 ---
 
@@ -144,7 +158,15 @@ cancellation**, ruling D5).
   mismatch, not a D3 breach; Business Session Conversion's is **correct** — D6 exempts it (`G-119`).
 - ⚠️ **Strategic:** Project Argus (the cross-vertical Metric Store) **rejected** the hand-rolled,
   no-semantic-layer shape ruling D2 builds on. Treat raw-table self-serve as provisional (`G-132`).
-- **48 substantive gaps** + 74 uncovered metrics + 93 unopened cards → [GAPS.md](./GAPS.md).
-  **BLOCKED** gaps need an owner decision, not more analysis.
+- **66 substantive gaps** + 74 uncovered metrics + 93 unopened cards **+ one entire unopened
+  dashboard (4632)** → [GAPS.md](./GAPS.md). **BLOCKED** gaps need an owner decision, not more analysis.
+- **Weekly-report playbook imported 2026-08-11** (`G-154`–`G-171`). It opened **13 conflicts** with
+  this KB and recorded **12 self-contradictions** inside itself (`G-168`). Two rows were **corrected**
+  under tier 3 — `T-033` (date basis) and `M-008` (revenue base). Five new gaps are **owner-blocked**:
+  `G-154` week convention · `G-155` namespace · `G-161` denominator · `G-163` business definition ·
+  `G-164` exclusion mechanism. **The import deliberately made this KB less certain, not more** — no
+  `verified` row was upgraded, and several long-standing facts are now marked contested.
+- ⚠️ **The imported source postdates this KB's `last_verified` (2026-07-29).** A staleness sweep
+  across every card-sourced row is outstanding → `G-160`.
 - Reviewed by a blind accuracy checker and a zero-context loadability test. **No number here has
   been validated against the warehouse — no query has been run.** Nothing is stakeholder-ready.

@@ -21,7 +21,7 @@ Every fact in `business.md`, `metrics.md` and `data-model.md` is a table row, ne
 
 | Column | Meaning | Required |
 |---|---|---|
-| `id` | Stable identifier — `B-###` business, `M-###` metric, `T-###` table/column, `G-###` gap. **Never reused, never renumbered.** | **always** |
+| `id` | Stable identifier — `B-###` business, `M-###` metric, `T-###` table/column, `G-###` gap, `Q-###` query rule (`query-rules.md` only). **Never reused, never renumbered.** | **always** |
 | `statement` | The fact itself, one sentence or one formula. | **always** |
 | `source_ref` | Where it came from. See §3. | **always** |
 | `confidence` | `verified` / `unverified` / `assumption`. See §4. | **always** |
@@ -41,6 +41,18 @@ refresh it unless you actually re-checked them all; re-check one row → overrid
 per-metric blocks rather than a row, because a metric definition carries a formula, caveats and
 multiple sources that do not fit one line — the same four required elements are still present in
 every block.
+
+**`query-rules.md` is a special case** (added 2026-08-11). It records *observed production practice*,
+not governed definition, so its `Q-###` rows carry two extra required columns: **`tier`** (§6) and
+**`collides_with`** — the KB row the rule contradicts, with that row's position stated inline. **A
+rule with a non-empty `collides_with` may never be read alone.** Without both columns a practice
+file becomes a back door around the precedence ladder, which is the one thing it must not be.
+
+**Single-source files may declare `source_ref` and `confidence` once in the header**, exactly as
+`last_verified` is declared once — repeating one identical value down 18 rows is noise, not
+provenance. This is permitted **only** when every row in the file genuinely shares both values, and
+the header must say so explicitly. The moment a second source or a second confidence enters, both
+become per-row columns.
 
 **IDs are append-only.** To add a fact, take the next unused number in that series. Never renumber
 existing rows — other files and past sessions cite them. If an ID is retired, record that it was
@@ -110,12 +122,30 @@ A STALE row is not wrong — it is *unchecked*. Mark it `unverified`, open a `G-
 ## 6. Precedence — when sources disagree
 
 ```
-1. Observed card SQL          ← strongest
-2. DECISION_LOG D1–D7         ← owner rulings
-3. iteration-1 metric catalog
-4. journey / proposal docs
-5. Notion Product Ops Review  ← weakest for definitions
+1. Observed card SQL                                    ← strongest
+2. DECISION_LOG D1–D7                                   ← owner rulings
+3. Reconciled operational SQL                           ← see below
+4. iteration-1 metric catalog
+5. journey / proposal docs · UNreconciled operational SQL
+6. Notion Product Ops Review                            ← weakest for definitions
 ```
+
+**Tier 3 — reconciled operational SQL** (added 2026-08-11, ruling R1 of `iteration-2`). Analyst SQL
+that was **executed against production** *and* **reconciled against a named Metabase surface**. It
+beats a document's assertion because someone ran it and compared; it loses to card SQL because it is
+hand-authored and is not what a stakeholder verifies against.
+
+- **Tier is a property of the *claim*, never of the document.** One source may hold tier-3 and tier-5
+  claims side by side. Assign per claim, always.
+- **A claim that names no surface is tier 5.** Naming one is necessary, not sufficient.
+- **"Reconciled" means the reconciliation demonstrably happened.** If the KB's own reading of the
+  named surface contradicts the claim, the reconciliation did not happen and the claim is tier 5.
+  A source asserting that it matches a dashboard is not evidence that it does.
+- **Where a tier-3 claim outranks a KB row, that row's `statement` is CORRECTED** — not merely
+  annotated — with the superseded wording preserved verbatim in its `note`. Annotation alone makes a
+  precedence ruling indistinguishable from no ruling at all.
+- **Tier governs precedence, never confidence.** A tier-3 claim can outrank a row and still be
+  `unverified`. See §4.
 
 **The exception, and it is absolute:** when observed SQL contradicts an owner ruling (levels 1 vs 2),
 **do not resolve it.** Record both sides, set `confidence: unverified`, and open a `G-###` row naming
@@ -174,7 +204,7 @@ Bumping it because you read the row, or because it looks fine, destroys the fiel
 When you finish work that touched this KB:
 1. Every row you touched has a refreshed `last_verified` and an honest `confidence`.
 2. Every unresolved thing you hit is a `G-###` row with a real `next_action`.
-3. `CONTEXT.md` stays **under 150 lines** — it is loaded every time. If it grew, move detail into a
+3. `CONTEXT.md` stays **under 175 lines** — it is loaded every time. If it grew, move detail into a
    topic file and leave a pointer. An over-long entry point is how instructions start getting
    ignored.
 4. If you added a topic file, add it to the `CONTEXT.md` topic map, or nothing will ever load it.

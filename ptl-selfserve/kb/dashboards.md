@@ -58,9 +58,24 @@ db73 on 2026-07-30. Two facts remain db83-only — `T-001a` (the `0/1/2` state l
 | Customer Dashboard | `dashboard/4569` | 50 cards / 7 tabs | 22 | Customers, retention, conversion, business/personal |
 | Ops - Orders Details | `card/33519` | single card | 1 | Order-level operational detail |
 | Cancellation (canonical, D5) | `dashboard/4793` | 6 CBDF/CADF-family cards read | 6 | **The only verified source of CBDF/CADF** |
+| ⚠️ **Monthly reconciliation** | **`dashboard/4632`** | **unknown — never opened** | **0** | **Named 2026-08-11 as the surface PTL monthly reporting reconciles against. Not previously known to this KB.** |
+
+> **`dashboard/4632` is a live surface this KB has never seen** (added 2026-08-11 from
+> `notion:36a9c6eaaa6d809db065efc12ecf4f42`). Production monthly reporting cites it as its
+> reconciliation target for **order count** (`updated_at` basis), **revenue** (`order_fares.total_fare`
+> with the discount join), and the **internal-user exclusion mechanism**. Those three claims are the
+> KB's only **tier-3** material (CONTRIBUTING §6) and they drive the corrections to `T-033` and
+> `M-008` — yet no card on 4632 has been opened, no SQL read, and no staleness fingerprint taken.
+> It is **not** among the 93 cards counted below, so total uncovered surface is larger than that
+> figure implies. → `G-167`
+>
+> A companion reference `9771305` appears alongside it. It is **7 digits against 5-digit card ids**
+> everywhere else in this KB, so it is recorded as an **unresolved reference**, not asserted to be a
+> card. → `G-167`
 
 > **93 cards were NOT opened** — 54 on 4198, 28 on 4569, 11 on 4793. Every one is listed with a
 > reason in [GAPS.md](./GAPS.md) `G-120`…`G-131`. This is a stated boundary, not implied coverage.
+> **This count excludes `dashboard/4632` entirely**, which was unknown when it was taken.
 
 ---
 

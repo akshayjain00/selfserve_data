@@ -55,6 +55,11 @@ and denominator at the cut you need, *then* divide. Never average daily ratios.
   **no `state` predicate anywhere**, so it is architecturally incapable of producing a
   *completed*-orders figure under any parameterisation. `33462` is canonical beyond doubt.
 - **note:** offline-union base per ruling D3 — must be shown **both** incl. and excl. offline (`T-071`).
+- ⚠️ **This formula states no date basis, and the basis changes the count.** `[unverified · notion:36a9…]`
+  Weekly reporting counts on `created_at`, monthly on `updated_at`; cross-month next-day orders land
+  in different periods, so the two disagree by a non-trivial monthly amount. Production also counts
+  `DISTINCT id` where this row counts `DISTINCT external_id` — whether those ever diverge is
+  unestablished. → `T-033`, `G-158`. `last_verified 2026-08-11`
 - **Reported values:** see the snapshot in [business.md](./business.md).
 
 ### M-003 — Total Fulfilment % ✅ `verified`
@@ -65,6 +70,14 @@ and denominator at the cut you need, *then* divide. Never average daily ratios.
   33466 / 43238 / 37104 compute `completed / (all − orders cancelled within 60s of creation)`,
   **dropping those orders from the denominator**. The prototype names this variant but never
   implements it. → `G-002`, `G-035`
+- ⚠️ **`placed = all states` is contradicted by production reporting, which uses a TERMINAL
+  denominator.** `[unverified · notion:36a9…]` The weekly report restricts every fulfilment and
+  cancellation denominator to `state IN (3,4)` — completed plus cancelled — on the grounds that open
+  orders (`state` 1 and 2) inflate the denominator and understate FF. **The KB row holds:** it is card
+  SQL (tier 1) and the contrary claim is **tier 5** — it names dashboard 4793 but the KB's own reading
+  of 4793's card 43237 shows an unconditional count, so the claimed reconciliation did not happen
+  (→ `G-168`). Recorded as a **production deviation**, not a correction: a number computed on one base
+  is not comparable to a number computed on the other. → `G-161`. `last_verified 2026-08-11`
 - **Reported values:** see the snapshot in [business.md](./business.md).
 
 ### M-004 — Effective Fulfilment % ⚠️ `unverified`
@@ -88,6 +101,11 @@ and denominator at the cut you need, *then* divide. Never average daily ratios.
   then `vehicle_name IS NULL`.
 - **Denominator:** `placed_orders` = unconditional `COUNT(DISTINCT order_id)` — i.e. **% of demand**,
   matching house formula `B-060`. Not a share of cancellations.
+  - ⚠️ **Contradicted by production reporting**, which uses `state IN (3,4)` — a **terminal**
+    denominator — for cancel%, CBDF% and CADF% alike. `[unverified · notion:36a9…]` **This row holds**
+    (tier 1 card SQL vs a tier-5 claim, per `G-168`), but the deviation is real and unresolved:
+    the weekly report and this dashboard do not compute the same ratio. → `G-161`.
+    `last_verified 2026-08-11`
 - **source_ref:** `metabase:card/43237` on `metabase:dashboard/4793` (canonical per `DECISION_LOG:D5`) · catalog #28
 - **Internal users ARE excluded** — hardcoded in the `base` CTE:
   `AND o.customer_mobile NOT IN (SELECT DISTINCT mobile FROM partload_analytics.ptl_internal_users)`.
@@ -114,6 +132,9 @@ and denominator at the cut you need, *then* divide. Never average daily ratios.
 - **source_ref:** `metabase:card/43237` · `source_updated_at: 2025-11-27T09:19:28Z` · catalog #30
 - **confidence: `verified`** (mechanic); **same three residuals as M-005**, same un-promoted status,
   same hardcoded internal-user exclusion → `G-001`, `G-002`
+- ⚠️ **Same terminal-denominator deviation as `M-005`** → `G-161`. `last_verified 2026-08-11`
+- 🔍 **CADF has a documented structural mechanism this KB otherwise lacks** — assignments that stay
+  open past slot close and cancel hours later, with execution status uncaptured. See `B-077`.
 - **Reported values:** see the snapshot in [business.md](./business.md). ⚠️ the source states a
   "+1.2pp" movement but its own figures give 13.81 − 12.99 = **0.82pp** → `G-117`.
 
@@ -124,6 +145,16 @@ and denominator at the cut you need, *then* divide. Never average daily ratios.
   internal-user exclusion nor the business-user filter**, unlike every other builder. → `G-010`
 - **note:** clubbing population scope differs across 4198 cards — 33460 counts all non-cancelled
   states, while 47540 / 48449 / 49365 restrict to completed only. → `G-011`
+- ⚠️ **CONFLICT — the denominator itself is disputed, not just the population scope.**
+  `[unverified · notion:36a9…]` Production reporting includes **all** `batched_orders_v1` rows at
+  `status=3` **including solo 1-order batches**, and denominates on `batch_id` count. This row
+  denominates over batches with **≥2 orders**. Those are different numbers, not different filters.
+  **The source's own QC check proves the divergence:** it asserts *"clubbing ≥ 1.0 for all
+  corridors"* — a floor that only makes sense on a solo-inclusive base, because a ≥2-orders base
+  floors at **2.0**. Production also groups routes into **corridors** rather than counting individual
+  routes, which it states understates clubbing. Neither side is corrected: both are tier 5.
+  → `G-162`, and this bears directly on `G-011`'s open "decide the canonical clubbing base" and on
+  `G-137`'s date-filter workaround. `last_verified 2026-08-11`
 
 ### M-008 — AOV (Average Order Value) ⚠️ `unverified`
 - **Prototype formula:** `SUM(revenue WHERE state = 3) / completed_orders`.
@@ -135,6 +166,23 @@ and denominator at the cut you need, *then* divide. Never average daily ratios.
   the prototype's `created_at` is wrong; fix the prototype (`G-007` closed). But the date basis
   **also splits within the family**: 33706 and 52889 use `updated_at`, **37413 uses `created_at`**.
   So AOV has 3 revenue bases **×** 2 date bases. → `G-135`
+- 🔧 **CORRECTED 2026-08-11 — the bases are not three rivals; they are a cadence split plus one
+  gross-of-discount alternate.** `[unverified · notion:36a9…]` Production practice, tier 3
+  (reconciled against `metabase:dashboard/4632`), states:
+  - **Weekly** revenue = `SUM(estimated_fare)/100` on `state=3`, dated `created_at` → card **33706**
+  - **Monthly** revenue = `SUM(order_fares.total_fare)/100`, joined `is_current_fare = TRUE`, dated
+    `updated_at` → card **37413**. Using `estimated_fare` monthly is named as a defect: *"does not
+    match 4632 — discount not applied."*
+  - Adding `quotations.discount_amount_minor_units` back yields **revenue *without* discount**, i.e.
+    a gross measure — card **52889** is that, not a third rival for the same quantity.
+
+  **Superseded framing** (preserved per CONTRIBUTING §6): *"three competing revenue bases coexist…
+  3 revenue bases × 2 date bases."* The count was right; the reading that they compete for one
+  definition was not. `G-004` and `G-135` stay **BLOCKED** — the owner still picks canonical AOV, but
+  now chooses between *cadences*, not between three unexplained rivals. → `G-158`, `T-033`, `T-013`
+- 🔍 **Discounted-order share is a distinct measure** built on the same column: `state=3` orders with
+  `quotations.discount_amount_minor_units > 0`. Not yet an `M-###`. → Pass 2.
+- **`last_verified 2026-08-11`** for the corrected paragraph only; the rows above retain 2026-07-29.
 - Fares are stored in **paise** (`T-010`). **Reported values:** see [business.md](./business.md).
 
 ### M-009 — Business Session Conversion % ✅ `verified` / ⚠️ definition clash
@@ -146,6 +194,13 @@ and denominator at the cut you need, *then* divide. Never average daily ratios.
   (`T-020`). Whether the two populations agree is unverified. → `G-012`
 - ✅ **`both_bases = False` here is CORRECT, not a defect.** Ruling **D6's build note explicitly
   exempts this metric** from the dual-base requirement. Do not "fix" it. → `G-119`
+- ⚠️ **Production argues this metric's terminal event is wrong.** `[unverified · notion:36a9…]` The
+  weekly report's demand metric is `booknow_clicked ÷ VSS` (`M-023`), on the stated ground that
+  *completed ÷ sessions conflates fulfilment with demand* — a completed-order conversion moves when
+  FF moves, even if booking intent is unchanged. Recorded, not resolved. → `M-023`, `G-012`.
+  `last_verified 2026-08-11`
+- ⚠️ **`user_type` is not how production segments Business.** Four production queries join out to
+  `dim_customers.frequency IN (1,2,3,4)`; `user_type` appears **zero** times. → `G-163`, `T-062`
 - **Reported values:** see [business.md](./business.md).
 
 ### M-010 — New Business Users Acquired (monthly, first order) ⚠️ `unverified`
@@ -200,6 +255,11 @@ the source catalogue (kept `unverified`, but for a specific, evidenced reason �
 - **source_ref:** `metabase:card/44469` · catalog #11 · executed 2026-07-30: **23.2%** (Jun-26, Business, completed)
 - **confidence: `verified`** — but ⚠️ **this ratio has no `NULLIF` guard**, unlike its siblings (`M-010`, `M-016`) — a zero-session month would raise a divide-by-zero rather than return null, breaking house rule `B-032`. → new gap, see below.
 - **note:** "New" in the catalogue title is an **output row**, not a filter — the card exposes new/repeat as a dimension; picking the right row is a manual step.
+- 🔍 **The same funnel exists in production at event level, not card level.** `[unverified · notion:36a9…]`
+  Four stages on `app_session_id`: VSS → `vehicleselectionscreen_confirm_clicked` (PTL vehicle only) →
+  `ptlbookingdetailspage_quote_viewed` → `ptlbookingdetailspage_booknow_clicked`. Useful as an
+  independent cross-check on this card, and its `NULLIF(...,0)` pattern is exactly the guard this row
+  is missing. → `M-023`, `T-062`. `last_verified 2026-08-11`
 
 ### M-015 — Average Sessions Before First PTL Order, Business Users ✅ `verified`
 - **Formula:** average count of VSS-view sessions preceding a customer's first **completed** PTL order.
@@ -227,6 +287,20 @@ the source catalogue (kept `unverified`, but for a specific, evidenced reason �
 - **confidence: `verified`**. ⚠️ **Ruling D6 deferred this metric to "iteration 2.5"** on the assumption
   no card existed for it — one does, and it's straightforward. Worth flagging back to the metric
   owner that the deferral's premise may no longer hold. → `G-081` updated, not silently promoted past a ruling.
+- ⚠️ **CONFLICT — this may not be the same metric production reports.** `[unverified · notion:36a9…]`
+  This row's clock is **raw**: order-created → first vehicle-assigned. Production's equivalent runs a
+  **three-branch clock anchored on the pickup-slot date** (see `M-021`), which returns 0 for a driver
+  committed before the slot day and measures from 08:00 on the slot date otherwise. On advance
+  bookings the two differ by a large margin. **They are different metrics, not one metric on two
+  cards.** → `G-169`
+- ⚠️ Production also names three reasons a Metabase allocation figure diverges from its own: CADF
+  (`state=4`) orders included, no `state` filter, and a `GREATEST` floor silently zeroing negative
+  cross-day intervals. Whether any applies to **card 42081 specifically is untested** — its title is
+  "*Completed* orders - P50 Allocation Time", so the state complaints may not bite. → `G-171`
+- ⚠️ **`verified` here rests on a card cited by title.** 42081 carries **no staleness fingerprint**
+  (`G-152`) and CONTRIBUTING §4 says a card title is never sufficient evidence. Owner ruling
+  2026-08-11 keeps `verified`; the premise is recorded rather than silently relied upon. → `G-171`
+- **`last_verified 2026-08-11`** for the three notes above.
 
 ### M-020 — GM% per PTL Order ✅ `verified` — canonical card corrected
 - **Formula:** `(total_revenue − total_cost) / total_revenue`, aggregate-then-ratio.
@@ -234,6 +308,73 @@ the source catalogue (kept `unverified`, but for a specific, evidenced reason �
 - **confidence: `verified`**. ⚠️ Card **37413** ("Total Revenue", already cited elsewhere in this KB
   for `M-008`/AOV) carries the *same* `gm` column as a secondary field — but **37416 is the correct
   canonical citation** for this metric, not 37413. Don't conflate the two cards' shared column.
+
+---
+
+## 1e. Added 2026-08-11 — imported from the weekly-report playbook
+
+Source for all three: `notion:36a9c6eaaa6d809db065efc12ecf4f42`, **tier 5** (CONTRIBUTING §6 — the
+claims name no reconciled Metabase surface). **All `unverified`:** no card SQL was read and no query
+was run. These are recorded so they can be *checked*, not so they can be quoted.
+All three `last_verified: 2026-08-11`.
+
+### M-021 — First Vehicle Allocation Time (P50 / P80) ⚠️ `unverified`
+- **Definition:** minutes on the shared clock (below) to the **first-ever** vehicle assignment —
+  `MIN(created_at)` across **all** `order_vehicles` rows, **no `is_active` filter**, so a driver later
+  cancelled still counts. Measures how fast supply initially responded.
+- **Source table:** `prod_curated.partload_application.order_vehicles` — the prefixed form
+  specifically (`T-074`). Do **not** derive the assignment with `ROW_NUMBER()`.
+- **Publish P50 and P80 together, never P50 alone** — P50 alone hides the long tail, which is where
+  the failure mode lives.
+- **source_ref:** `notion:36a9c6eaaa6d809db065efc12ecf4f42` · **confidence: `unverified`**
+- **aliases:** Table A, first allocation time
+- ⚠️ **Not established to be the same metric as `M-019`**, whose clock is raw order-created →
+  first-assigned with no slot anchoring. → `G-169`
+
+### M-022 — Final Confirmed Vehicle Allocation Time (P50 / P80) ⚠️ `unverified`
+- **Definition:** same clock, run to the **last active** assignment — `MAX(created_at) WHERE
+  is_active = TRUE`. Measures how long the customer waited for the driver who actually came.
+- **Same-vehicle fallback:** if the vehicle at `MIN(created_at)` equals the vehicle at
+  `MAX(created_at WHERE is_active = TRUE)`, use the `M-021` timestamp instead.
+- **`M-022` − `M-021` is the driver-replacement signal.** A wide gap on a city or corridor means
+  drivers are assigned and then replaced before pickup. 🔍 **This is candidate coverage for catalogue
+  #53 Reallocation Rate**, which `G-150` records as *confirmed genuinely absent from Metabase* — the
+  quantity may be computable from `order_vehicles` after all. → `G-083`, `G-150`, `B-005`
+- **source_ref:** `notion:36a9c6eaaa6d809db065efc12ecf4f42` · **confidence: `unverified`**
+- **aliases:** Table B, final allocation time, confirmed-driver allocation time
+
+> **The shared clock — three branches, anchored on the PICKUP-SLOT date.** Applies to both metrics,
+> each against its own timestamp.
+> 1. Assigned at or before **08:00 IST** *and* on or before the slot date → **0 min**.
+> 2. Order created on the **same calendar day as the pickup-slot date** (true same-day) →
+>    creation-to-assignment elapsed minutes.
+> 3. Otherwise → measured from **08:00 IST on the pickup-slot date**, floored at zero.
+>
+> ⚠️ **The source's own CRITICAL warning, and the easiest thing here to get wrong:** branch 2 compares
+> the **order-creation date to the SLOT date** — *not* to the assignment date. Comparing creation to
+> assignment wrongly applies the same-day formula to advance bookings that happen to be assigned on
+> their booking day, inflating allocation time by hundreds of minutes for orders whose driver was in
+> fact locked in well before the slot day began.
+>
+> **Base:** orders created in the period, **`state = 3` only** — CADF (`state=4`) orders excluded.
+> **0-minute orders stay in the percentile base** — a zero means a pre-committed driver and is a valid
+> observation, not a null to be filtered out.
+
+### M-023 — VSS → Book Now Conversion % ⚠️ `unverified`
+- **Formula:** `booknow_clicked sessions / VSS sessions`, session-granular on
+  `ptl_fe_events.app_session_id`.
+- **VSS session** = the vehicle-selection screen loaded **with a PTL vehicle present**, identified by
+  `vehicle_ids_seq` containing `-1` or `1159`. Those two identifiers are load-bearing; do not alter
+  them. Route join needs `TRY_TO_NUMBER` on a JSON string (`T-076`).
+- **Why this and not completed÷sessions:** a completed-order conversion moves whenever fulfilment
+  moves, so it cannot separate a demand problem from an ops problem. Book-now is the last
+  demand-side event before fulfilment enters. → `M-009`, `G-012`
+- **source_ref:** `notion:36a9c6eaaa6d809db065efc12ecf4f42` · **confidence: `unverified`**
+- 🔍 Bears on two open catalogue questions: `G-147`/`G-053` (#18's candidate chart ends at
+  "book now clicked" rather than order-placed — this argues that endpoint is the *right* one) and
+  `G-148` (#17 was judged mislabeled for the same reason). Neither is closed here.
+- ⚠️ **Dashboard `4632` is named as this metric's reference surface and the KB has never recorded it**
+  → `G-167`.
 
 ---
 
