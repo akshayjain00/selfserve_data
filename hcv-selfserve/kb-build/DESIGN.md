@@ -321,9 +321,12 @@ Closing reconciliation arithmetic per §11.4.
 
 Header: base URL + restated staleness procedure. Then:
 
-- **Staleness-fingerprint register** — `card | source_updated_at | database_id` for **every** card
-  the KB relies on, plus the rule that **any card without a fingerprint is recorded as a `G-###`**.
-  One `get_card` metadata call each; no queries.
+- **Staleness-fingerprint register** — `card | source_updated_at | database_id` for every card the
+  KB **cites** (`D-012`): those feeding a covered metric or a recorded conflict. One `get_card`
+  metadata call each; no queries. **Any cited card without a fingerprint is recorded as a `G-###`.**
+  A single `G-###` commits to the full-dashboard sweep, with a `next_action` naming **a specific
+  card list and a named owner** — PTL's equivalent has sat open, and "sweep the dashboards" is not
+  an executable action.
 - **DB-connection register** — `id | name | role here`. HCV spans **70, 106, 108**.
 - **Surfaces-covered table** — `surface | id | scale (cards/tabs) | opened | role`, with the
   explicit boundary statement: *N cards were not opened. This is a stated boundary, not implied coverage.*
@@ -528,16 +531,24 @@ backed by a `B-###` or `T-###` row; the hard-rule list is pointers, not free-sta
 
 | Question | Conflict |
 |---|---|
-| **No north star** | `1882` recommends Completed Orders; `4146` recommends Fulfilment % |
+| ~~**No north star**~~ | **SETTLED `D-011` — Fulfilment % is L0** (`OWNER:2026-08-14`). Its *denominator* stays BLOCKED, below |
+| **Fulfilment denominator** | Total vs unique vs business-hours demand — three live under one name. `D-011` designates the metric, **not** its formula |
 | **Canonical revenue** | Four formulas on `1882`, plus the pack's, plus the store's |
 | **Canonical AOV** | Three on `1882`, one on `4146` (card 32713), plus `metric.porter.average_order_value` |
 | **MAP / DAP** | Login-based (pack, dashboards) vs order-based (store) |
 | **Allocation %** | Three formulas on `4146`, plus the pack's `fo_driver_id IS NOT NULL` |
-| **Fulfilment denominator** | Total vs unique vs business-hours demand |
+| **Allocation key** | `metric.porter.cadf` detects allocation via `driver_id`; the pack uses `fo_driver_id` and says explicitly *"not `driver_id`"* |
+| **Time-to-accept** | Store `avg_time_to_accept_seconds` is a **mean**, clocked **notification-sent → acceptance**; pack §4 is **P50/75/90**, clocked **`order_time` → `fo_trip_accepted_time`** |
 | **CADF attribution base** | Card 32670 divides by total demand; the store divides by CADF |
 | **Argus posture** | The store already carries HCV metrics the dashboards re-derive against legacy `trucks.*` |
 
-The four store conflicts of §8 rung 3 are: revenue, AOV, MAP/DAP, CADF attribution base.
+**Store-vs-pack/card conflicts (§8 rung 3), verified first-hand 2026-08-14:** revenue · AOV ·
+MAP/DAP · CADF attribution base · **allocation key** · **time-to-accept**. The last two appear in
+**neither Notion inventory**.
+
+> ⚠️ **The inventories under-report.** `GAPS.md` cannot be assembled by transcribing their
+> contested-definition lists. Every metric the KB covers gets its own store-vs-pack-vs-card
+> comparison, done at **step 3**, not step 5.
 
 ---
 

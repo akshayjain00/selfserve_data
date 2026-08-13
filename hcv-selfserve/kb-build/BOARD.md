@@ -15,7 +15,7 @@ Steps map 1:1 onto DESIGN.md §14.
 | # | Step | State |
 |---|---|---|
 | 0 | Design agreed, branch cut, query pack committed | **done** — `5a06a81`, `20f6416` |
-| 1 | `CONTRIBUTING.md` — schema contract (§6.3) | not started |
+| 1 | `CONTRIBUTING.md` — schema contract (§6.3) | **done** |
 | 2 | `data-model.md` (§6.5) + `business.md` (§6.4) | not started |
 | 3 | `metrics.md` — full blocks (§6.7), then the deduped index; counts fixed (§11.2) | not started |
 | 4 | `dashboards.md` — registers first, then cards (§6.8) | not started |
@@ -60,12 +60,16 @@ Steps map 1:1 onto DESIGN.md §14.
 
 DESIGN.md §13; these become `GAPS.md` rows at step 5 and `WALKTHROUGH.md` §9 at step 8.
 
-- No north star — `1882` says Completed Orders, `4146` says Fulfilment %
+- ~~No north star~~ — **SETTLED `D-011`: Fulfilment % is L0** (`OWNER:2026-08-14`)
+- **Fulfilment denominator** — total vs unique vs business-hours demand. `D-011` designates the
+  metric, not its formula; this stays open and is now the highest-priority gap, since it is the
+  denominator of the north star
 - Canonical revenue — four formulas on `1882`, plus the pack's, plus the store's
 - Canonical AOV — three on `1882`, one on `4146`, plus `metric.porter.average_order_value`
 - MAP/DAP — login-based (pack, dashboards) vs order-based (store)
 - Allocation % — three formulas on `4146`, plus the pack's `fo_driver_id IS NOT NULL`
-- Fulfilment denominator — total vs unique vs business-hours demand
+- **Allocation key** — store `cadf` uses `driver_id`; pack uses `fo_driver_id` (new, 2026-08-14)
+- **Time-to-accept** — store mean/notification-clocked vs pack percentiles/order-clocked (new)
 - CADF attribution base — total demand vs CADF
 - Argus posture — is HCV self-serve targeting the store, or working around it?
 

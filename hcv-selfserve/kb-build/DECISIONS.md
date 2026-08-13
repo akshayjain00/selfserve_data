@@ -85,3 +85,31 @@ decisions.
 fork of two orders of magnitude in output size (~130 rows vs 1). Per-row matches PTL, which is the
 architecture being replicated; the class-level action stops ~130 rows each needing bespoke intent.
 **Supersedes:** nothing — it resolves an ambiguity `D-003` left open rather than changing it.
+
+### D-011 · 2026-08-14 · North star = Fulfilment % — `OWNER:2026-08-14`
+**Decision:** **Fulfilment %** is HCV's north star (L0). Demand, Completed Orders and Allocation %
+are demoted to L1 supporting. This is an explicit owner ruling and is citable as
+`OWNER:2026-08-14`, which under `D-009` makes the *designation* `verified`.
+**Why:** `metabase:dashboard/4146` recommends it; `dashboard/1882` recommends Completed Orders;
+neither dashboard had a single primary metric. Owner settled it in favour of 4146.
+
+> ⚠️ **The designation is `verified`; the metric's own definition is not.** Fulfilment %'s
+> denominator is unresolved — total demand vs unique demand vs business-hours placed orders are all
+> in production under the name "fulfilment" (`4146` contested-definition list). That gap stays
+> **BLOCKED — owner** and must not be treated as closed by this ruling. An L0 with a contested
+> denominator is a known, recorded tension, not an oversight.
+>
+> The pack's `ff_pct` = `completed / total_placed` (§2/§2a/§6) is therefore *one* of the three live
+> denominators, not automatically the canonical one.
+
+### D-012 · 2026-08-14 · Fingerprint the cited cards now; commit to a full sweep as a tracked gap
+**Decision:** `dashboards.md`'s staleness register covers the cards the KB actually cites — those
+feeding a covered metric or a recorded conflict. Every other card on `1882`/`4146` is listed in the
+surfaces-covered table as **not opened**, a stated boundary. A single `G-###` commits to the full
+sweep.
+**Why:** ~100+ cards across the two dashboards; most will never be cited. Cited-first unblocks
+step 4 without pretending the boundary is permanent.
+**Guard against rot:** PTL's equivalent (`G-152`, nine unfingerprinted cards) is still open. This
+gap's `next_action` therefore names **a specific card list and a named owner**, not "sweep the
+dashboards" — a `next_action` that cannot be executed without further thought is the failure mode
+`CONTRIBUTING.md` §8 exists to prevent.
