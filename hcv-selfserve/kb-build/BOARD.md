@@ -8,6 +8,32 @@ and trust.
 
 ---
 
+## Coordination mode
+
+**This folder is the coordination record** — `DECISIONS.md` (append-only, orchestrator-only) +
+`BOARD.md` (living state) + `DESIGN.md` (the spec). It is named `kb-build/` rather than
+`coordination/` to mirror PTL, whose trail lived in `coordination/kb-build/`. No separate
+`coordination/` folder exists in this repo; do not create one.
+
+**Mode: SEQUENTIAL** (recorded 2026-08-14, per the four-question test)
+
+| Question | Answer |
+|---|---|
+| Decomposable into sub-tasks not needing each other's live output? | **Partly.** Steps 2 → 3 → 4 → 5 → 6 are strictly ordered — `CONTRIBUTING.md` sets the schema every later file conforms to, and `CONTEXT.md` summarises all of them |
+| Breadth or depth? | **Depth** for steps 2 and 6. **Breadth** only inside step 3's per-metric comparison |
+| Can parallel workers avoid writing the same section? | Only in step 3 — every other step writes one file end-to-end |
+| Worth the token cost + a synthesis step? | Not for steps 2, 4, 6. **Arguably yes for step 3's ~12 independent store-vs-pack-vs-card comparisons** |
+
+**Decision:** SEQUENTIAL throughout, with one reviewed exception — **step 3's evidence-gathering is
+a candidate for parallel fan-out and will be put to the owner before spawning**, since house rules
+require explicit approval for parallel fan-out on production work. Blind checkers used as gates
+(steps 0 and 7) are standing-authorised and are not fan-out.
+
+**Roles:** orchestrator (this session) is the sole writer of `DECISIONS.md` and `BOARD.md`. Workers
+return findings; they never write the shared record.
+
+---
+
 ## Status
 
 Steps map 1:1 onto DESIGN.md §14.
@@ -16,7 +42,7 @@ Steps map 1:1 onto DESIGN.md §14.
 |---|---|---|
 | 0 | Design agreed, branch cut, query pack committed | **done** — `5a06a81`, `20f6416` |
 | 1 | `CONTRIBUTING.md` — schema contract (§6.3) | **done** |
-| 2 | `data-model.md` (§6.5) + `business.md` (§6.4) | not started |
+| 2 | `data-model.md` (§6.5) + `business.md` (§6.4) | **done** |
 | 3 | `metrics.md` — full blocks (§6.7), then the deduped index; counts fixed (§11.2) | not started |
 | 4 | `dashboards.md` — registers first, then cards (§6.8) | not started |
 | 5 | `GAPS.md` — 25 contested defs, ~24 filter/bug findings, 18 design callouts, seed gaps, coverage rows (§6.6) | not started |
