@@ -113,3 +113,63 @@ step 4 without pretending the boundary is permanent.
 gap's `next_action` therefore names **a specific card list and a named owner**, not "sweep the
 dashboards" — a `next_action` that cannot be executed without further thought is the failure mode
 `CONTRIBUTING.md` §8 exists to prevent.
+
+### D-013 · 2026-08-14 · Argus posture — the KB is a migration map · `OWNER:2026-08-14`
+**Decision:** This KB reads as a **migration map toward the governed metric store**, not a parallel
+definition set. The goal state is **one source of truth and one definition per metric**, and that
+source is `metric.porter.*`.
+**Why:** Owner ruling. Settles the `G-###` seeded as "Argus posture" and resolves PTL's `G-132`
+question in the opposite direction for HCV — where PTL's architecture had been *rejected* by Argus,
+HCV's store already exists and is the target.
+
+**What changes:**
+- Every full `M-###` entry's `store_ref` carries a **`migration:` line** — the delta to close, and
+  **what closing it would change about the reported number**. A delta with no stated consequence is
+  not a migration plan.
+- Where no store counterpart exists, `store_ref: none` becomes a **gap with a `next_action`**
+  ("propose `metric.porter.<name>`"), not a dead end.
+- `GAPS.md` class F is reframed: rows record *distance from the target*, not *posture undecided*.
+
+**What does NOT change — read this before "simplifying" the ladder:**
+> ⚠️ The precedence ladder (`CONTRIBUTING.md` §6) is an **evidentiary** ordering — what is
+> demonstrably true *today*. `D-013` sets the **target**. These are different axes and the ladder
+> does not move. The pack stays rung 1 because it is reconciled SQL; the store stays rung 3 for
+> formulas because its definitions have not been reconciled against anything here.
+>
+> The absolute exception still holds. `D-013` tells you **which direction convergence runs**; it
+> does **not** decide which formula is correct, and it is not licence to overwrite a pack definition
+> with a store definition.
+
+### D-014 · 2026-08-14 · `dashboard/6406` is the go-forward demand source · `OWNER:2026-08-14`
+**Decision:** `metabase:dashboard/6406` ("HCV Demand Dashboard", created 2026-08-12) is the
+canonical HCV **demand** surface going forward. `dashboard/1882`'s Traffic & Demand tab becomes
+legacy. The owner states Experience and Supply will migrate into `6406` over time.
+**Why:** Owner ruling. `6406` consolidates OMS and SO demand in one place with data from Jan-2025;
+`1882` splits the same measures across incompatible lineages.
+
+**What it resolves:** the three-objects-answer-"completed orders" problem (`T-050`/`T-051`/`T-059`,
+`G-012`) now has a stated target — one consolidated demand object rather than three.
+
+**What it does not resolve, and must be recorded before anyone treats `6406` as settled:**
+- **`T-029`** — the Demand card's status filter is **commented out**, so `6406`'s "Demand" counts
+  every status while the pack's base is `(4,5)`. Two different populations under one word.
+- **`T-021`** — the dashboard's `vehicle_mapping` default is `["14ft","10ft","9ft"]`, which
+  **excludes 17ft and 19ft**. The default view under-reports HCV against the pack's scope.
+- **Stale defaults** — dashboard defaults to `2025-04-01 → 2025-09-30`; card 55561 defaults to
+  `2025-12-10 → 2025-12-10`, a single day. The two disagree, and neither is current.
+- **No distance dimension**, which is the pack's primary economic cut (6 of 8 sections use it), and
+  **no 10ft NCR/non-NCR split** (`T-023`, `T-024`). Both confirmed absent; the owner has flagged
+  distance and Business/Retail as planned.
+- **Matchmaking data exists only from Jan-2026**, so those cards are empty for the pack's own
+  reporting history.
+- The four dimension filters (`vehicle_id`, `vehicle_mapping`, `city_name`, `Tier`) are wired in
+  card SQL as optional `[[and {{…}}]]` blocks with real dimension aliases. Whether the
+  **dashboard-level** parameters are mapped through to them is not determinable from the API
+  response and needs a UI check → `G-014`.
+
+> ⚠️ **Convergence is not free, and one case is already known.** `metric.porter.map` is
+> **order-based** (≥1 completed order/month); the pack's MAP is **login-based**
+> (`business_login_hours > 0.5`/day). Migrating MAP to the store **changes the number reported in
+> the MBR** — it is a business decision with a visible consequence, not a mechanical repoint. Each
+> such case ships as a gap stating the delta *and its cost*, for the owner to accept or reject
+> per metric.
