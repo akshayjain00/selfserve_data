@@ -3,6 +3,10 @@
 **Append-only.** Newest at the bottom. Never edit or delete a prior entry; supersede it with a new
 one that names what it replaces. Full rationale for the initial set: [DESIGN.md](./DESIGN.md).
 
+> **Note on ids.** DESIGN.md v1 carried a parallel `H1`–`H5` series for the same decisions. Those
+> labels are **retired and must not be cited** — `D-###` here is the single series. Mapping, for
+> anyone reading a v1 quote: `H1→D-001`, `H2→D-002`, `H3→D-003`, `H4→D-004`, `H5→D-007`.
+
 ---
 
 ### D-001 · 2026-08-14 · KB only, no query layer
@@ -56,3 +60,28 @@ reconciled, against what, on what date.
 at birth — PTL's drifted once and was caught by audit rather than by process.
 **Consequence:** A manual-sync burden with no automation. Stated in `CONTRIBUTING.md`, not left to
 memory.
+
+### D-008 · 2026-08-14 · Themed decade-block ID allocation
+**Decision:** Allocate `B-`/`T-`/`M-`/`G-` ids in themed decade blocks (DESIGN.md §7). Insertions
+and splits use letter suffixes (`T-001a`, `B-053b`) — never a renumber.
+**Why:** Flat sequential allocation is **irreversible** once renumbering is forbidden. PTL allocates
+in blocks (`B-030–034` conventions, `B-060–061` formulas, `T-030/031` time basis); v1 of this spec
+said only "next unused number", which would have yielded `B-001…B-140` sequential across ~140 rows
+with no way to recover the structure or file a future fact near its kin.
+**Found by:** blind coverage check, ranked its highest-rework-cost omission.
+
+### D-009 · 2026-08-14 · Owner rulings citable as `OWNER:<yyyy-mm-dd>`
+**Decision:** Add `OWNER:<yyyy-mm-dd>` to the `source_ref` forms.
+**Why:** `D-006` admits "an explicit owner ruling" as grounds for `verified`, but `D-001` removes
+the `DECISION_LOG` that PTL cited as `DECISION_LOG:D<n>`. Without a replacement form,
+`verified`-by-ruling had no expressible provenance — a live contradiction between two locked
+decisions.
+**Found by:** blind coverage check.
+
+### D-010 · 2026-08-14 · Resolve the coverage ambiguity: one `G-###` per index-only metric
+**Decision:** Each index-only metric gets its own `G-###` row, in `GAPS.md` class G, sharing a
+**class-level `next_action`**.
+**Why:** v1 said "each gets one `G-###`" in one place and "the uncovered surface" in another — a
+fork of two orders of magnitude in output size (~130 rows vs 1). Per-row matches PTL, which is the
+architecture being replicated; the class-level action stops ~130 rows each needing bespoke intent.
+**Supersedes:** nothing — it resolves an ambiguity `D-003` left open rather than changing it.
