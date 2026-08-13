@@ -32,11 +32,29 @@ Steps map 1:1 onto DESIGN.md §14.
 | Notion `HSC : HCV Dashboard` | ✅ read | 54 metrics, 16 contested, 10 callouts, snapshot 2026-07-18 |
 | Notion `HSC : HCV Deep Dive` | ✅ read | 34 metrics, 9 contested, 8 callouts, snapshot 2026-07-18 |
 | Sheet `HCV_Metrics_DD` | ✅ read | ~90 rows; exact count confirmed at step 3 |
-| Metabase `dashboard/1882`, `dashboard/4146` | ⛔ not attempted | **Blocks step 4** — one `get_card` per card for the fingerprint register. Metadata only |
-| Governed store `metric.porter.*` | ⛔ not attempted | **Blocks step 3** — `store_ref` is mandatory on every full entry (`D-004`) |
+| Metabase (domestic) | ✅ live, pre-authenticated | `get_card` verified on 32713; returns `updated_at`, `database_id`, parameter defaults, native SQL |
+| Governed store `metric.porter.*` | ✅ live via Data Catalog | `list_metrics` / `get_metric` verified. `D-004` is executable |
 
-> ⚠️ If the store is unreachable, `store_ref` degrades from a fact to an open gap on **every** full
-> entry, which materially weakens `D-004`. Worth establishing before step 3, not during it.
+**Store metrics confirmed to exist** (read 2026-08-14, not reported second-hand):
+`map` · `accept_rate` · `accepted_notifications` · `notification_acceptance_rate` ·
+`avg_time_to_accept_seconds` · `total_accept_seconds` · `total_accepted_pings` · `cadf` ·
+`cadf_customer` · `cadf_partner` · `cadf_customer_attr_pct` · `cadf_partner_attr_pct` ·
+`login_hrs_per_active` · `orders_per_active` · `payout_per_active` · `spot_acquisition` ·
+`cge_rc_m1_retained_customers`
+
+### Conflicts verified first-hand — two are NOT in either Notion inventory
+
+| # | Conflict | Status |
+|---|---|---|
+| 1 | **MAP** — `metric.porter.map` = "distinct partners who **completed at least 1 order**" (order-based); pack §5 = `SUM(business_login_hours) > 0.5`/day (login-based) | Reported by `4146`, now **verified from both sides** |
+| 2 | **Allocation key** — `metric.porter.cadf` detects allocation via `driver_id IS NOT NULL`; the pack states explicitly *"Allocation uses `fo_driver_id` (fact-orders driver), **not** `driver_id`"* | ⚠️ **NEW — in neither inventory** |
+| 3 | **Time-to-accept** — store `avg_time_to_accept_seconds` is a **mean**, measured **notification-sent → acceptance**; pack §4 is **P50/P75/P90**, measured **order_time → `fo_trip_accepted_time`**. Different aggregation *and* different start point | ⚠️ **NEW — in neither inventory** |
+| 4 | **Card 32713 defaults silently scope to Delhi + 14ft + a 2-week 2025 window** (`geo_region_id=2`, `vehicle_category=14ft`, `Start_date=2025-04-28`, `End_date=2025-05-11`). `4146` flagged card 33106 for *hardcoding* Delhi but not this | ⚠️ **NEW — in neither inventory** |
+| 5 | `32713`'s `vehicle_category` picklist offers **`8ft`**, outside the pack's `9ft–19ft` HCV scope; `Tier` values are `Tier1`/`Tier2` (no space) — confirms hard rule 9 first-hand | ⚠️ **NEW** |
+
+> ⚠️ **Consequence for the build:** the inventories under-report. `GAPS.md` cannot be assembled by
+> transcribing their contested-definition lists — each metric the KB covers needs its own
+> store-vs-pack-vs-card comparison. Costed into step 3, not step 5.
 
 ## Open — needs a person, not more analysis
 
