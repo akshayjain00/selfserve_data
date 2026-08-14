@@ -62,9 +62,13 @@ Re-checked a single row? Leave the file header alone and put an inline override 
 
 To add a fact, take the next unused number **inside that fact's block** (§2.5). Never renumber.
 
-- **Splitting a row** — use a letter suffix: `T-001` → `T-001` + `T-001a`. Say in the `note` why it
-  was split (usually: so a well-evidenced half is not dragged down by a weak half).
-- **Inserting** near existing kin — letter suffix again (`B-053b`). Never shift the numbers around it.
+- **Splitting a row** — use a letter suffix, and say in the `note` why. **Worked example in this KB:**
+  `T-022` (Tier 1 via `dim_geo_regions.tier`) was split into `T-022a` (the `Tier1`-no-space encoding
+  on a different column) and `T-022b` (the hardcoded `CASE` on `geo_region_id`) — so one
+  well-evidenced fact is not dragged down by two weaker ones.
+- **Inserting** near existing kin — letter suffix again. **Worked example:** `T-024a` records that
+  `pack:§4`'s category is exclusive, filed beside `T-024`'s overlapping-members fact rather than at
+  the end of the series. Never shift the numbers around it.
 - **Retiring an ID** — record that it was retired. A never-explained missing number reads as a
   mistake to the next reader. **Retired IDs are never reused.**
 

@@ -124,8 +124,12 @@ No number in this KB has been validated against the warehouse. No query has been
 base table (`T-073`) has not been rebuilt in this engagement; and `T-030` leaves the **unit scaling
 of every revenue and AOV figure unresolved**.
 
-Per [CONTRIBUTING.md](./CONTRIBUTING.md) §7, values live **only** here, tagged by **data period**
-(`May-2026`), never by review name. When the first snapshot is added it must carry:
+| id | statement | source_ref | confidence |
+|---|---|---|---|
+| **B-090** | **The snapshot contract.** Metric values live **only** in this section, tagged by **data period** (`May-2026`), never by review name. Every snapshot carries current **and prior** period columns, a blockquoted preamble naming source and capture date, and inline `⚠️` + gap ids on any figure with an open caveat | [CONTRIBUTING.md](./CONTRIBUTING.md) §7 | **verified** |
+| **B-091** | **No value has ever been entered here.** No query has been run in this engagement; the pack's base table has not been rebuilt (`T-073`); and `T-030` leaves unit scaling unresolved | this KB's own build record | **verified** |
+
+Per `B-090`, when the first snapshot is added it must carry:
 
 - a blockquoted preamble — point-in-time, source, capture date, and that every value is `unverified`
 - **current and prior period** columns, so movement is readable
