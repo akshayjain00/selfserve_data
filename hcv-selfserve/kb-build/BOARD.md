@@ -74,7 +74,7 @@ Steps map 1:1 onto DESIGN.md §14.
 | 4 | `dashboards.md` — registers first, then cards (§6.8) | **done** |
 | 5 | `GAPS.md` — 45 explicit rows across classes A–H + 98 class-G | **done** |
 | 6 | `CONTEXT.md` — entry point, 145/150 lines, written last (§6.2) | **done** |
-| 7 | Verification gate (§15) | ⛔ **NOT RUN** — mechanical 10/10 only; all 3 blind checkers died on session limit (`D-024`) |
+| 7 | Verification gate (§15) | ⚠️ **PARTIAL** — mechanical **16/16 PASS**; blind checkers re-running **one at a time** after `D-024` |
 | 8 | `WALKTHROUGH.md` + published artifact (§6.9) | **BLOCKED on step 7** (`D-024`) — do not start |
 
 ## Sources
@@ -163,6 +163,19 @@ Things this build discovered that a future session (or the PnM/PTL equivalents) 
    grepping the ID sequence. Do that check before every commit that touches the log.
 
 ---
+
+## Mechanical pass — 16/16, re-runnable
+
+`CONTEXT.md` ≤150 (145) · cross-refs resolve, no orphans · every KB file routed from CONTEXT ·
+12 entries each with `store_ref` + verbatim SQL · partition 9+3=12 · index numbered 1..98 exactly ·
+178−26−57+3=98 · 12+98=110 · no bare `M0##` outside quotes · no bare `pack:§` without `repo@` ·
+`last_verified` in every header · confidence vocabulary closed to the three · `next_action` present
+in classes A–D, F, H · every full entry carries all six required fields · relative links only ·
+gap status vocabulary conforms.
+
+> Two checker bugs found and fixed while running these, both false positives: a regex choking on the
+> hyphen in `data-model.md`, and one matching the prose heading "**Ho**w ids are allocated" as class
+> H. **A verification script is itself unverified code** — its failures look identical to real defects.
 
 ## Verification history
 
