@@ -127,7 +127,32 @@ of every revenue and AOV figure unresolved**.
 | id | statement | source_ref | confidence |
 |---|---|---|---|
 | **B-090** | **The snapshot contract.** Metric values live **only** in this section, tagged by **data period** (`May-2026`), never by review name. Every snapshot carries current **and prior** period columns, a blockquoted preamble naming source and capture date, and inline `⚠️` + gap ids on any figure with an open caveat | [CONTRIBUTING.md](./CONTRIBUTING.md) §7 | **verified** |
-| **B-091** | **No value has ever been entered here.** No query has been run in this engagement; the pack's base table has not been rebuilt (`T-073`); and `T-030` leaves unit scaling unresolved | this KB's own build record | **verified** |
+| **B-091** | **First values entered 2026-08-14** (`D-027`), from one owner-authorised read-only query against `hcv_overall_demand_mart`. **Scope is narrow**: month × overall only — **no distance and no category split**, because `mbr_mapping_v2` was not rebuilt (`T-073`) | `OWNER:2026-08-14` · Snowflake, read 2026-08-14 | **verified** |
+
+### Snapshot · data period **May–Jul 2026** · captured 2026-08-14
+
+> **Point-in-time.** Source: `prod_eldoria.mart.hcv_overall_demand_mart`, the pack's standard scope
+> (`B-060`) at **month × overall** grain. Captured by one read-only query, 2026-08-14. **These are
+> not the pack's published figures** — the pack cuts by category and distance and these do not, and
+> `mbr_mapping_v2` was not rebuilt. Revenue and AOV are **absent** because `T-030` leaves unit
+> scaling `unverified`. ⚠️ on a figure means read its gap row first.
+
+| metric | May-2026 | Jun-2026 | Jul-2026 | note |
+|---|---|---|---|---|
+| Placed (`M-002`) | 620,065 | 630,365 | 640,894 | ⚠️ includes SO-only rows → `G-030` |
+| **FF % as reported** (`M-001`) | **54.57** | **55.87** | **56.11** | ⚠️ depressed by `G-030` |
+| FF % excluding SO-only | 57.37 | 55.99 | 56.21 | the `G-030`-corrected series |
+| **`G-030` distortion (pp)** | **−2.80** | **−0.12** | **−0.10** | ⚠️ **not stable across months** |
+| SO-only share of placed | **4.88 %** | 0.22 % | 0.18 % | ⚠️ a **22× collapse** May→Jun |
+| Allocation % — `fo_driver_id` (`M-007`) | 83.56 | 86.31 | 88.38 | the pack's key |
+| Allocation % — `driver_id` (store key) | 84.99 | 87.06 | 88.97 | → `G-032` |
+| Key-choice spread (pp) | 1.43 | 0.75 | 0.59 | also shrinking |
+
+> ⚠️ **`G-030` reverses the reported FF % trend, and this is the single most consequential number in
+> this KB.** As reported, FF % rises **+1.30 pp** May→Jun (54.57 → 55.87) and reads as improvement.
+> Corrected, it **falls −1.38 pp** (57.37 → 55.99). **The reported "improvement" is largely the
+> artifact disappearing, not fulfilment improving.** Any May-vs-June HCV fulfilment narrative built
+> on the reported series is directionally wrong. → `G-030`, `G-081`
 
 Per `B-090`, when the first snapshot is added it must carry:
 

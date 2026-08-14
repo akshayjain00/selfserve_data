@@ -64,7 +64,8 @@ identities across 25 *source rows*** — MAP is catalogued by no source. Never s
    10ft order** (`T-024`). `§4` does not (`T-024a`).
 3. **The denominator of FF %, E-FF %, Unique FF % and Allocation % contains rows that can never
    reach the numerator.** SO-only rows have NULL `fo_driver_id` and NULL `order_status` **by
-   construction** — no fact-order leg exists (`G-030`). **Existence verified; magnitude unknown.**
+   construction** — no fact-order leg exists (`G-030`). **Sized 2026-08-14: 1.74 % of May-Jul placed - but 4.88 % in May vs 0.22 % in June,
+   which REVERSES the reported FF % trend** (`G-081`).
 
 ## Precedence — when sources disagree
 
@@ -140,5 +141,9 @@ PTL template: `claude/ptl-metric-catalog-map` @ `28703aa`. PnM reference: `claud
   value read (`G-010`).
 - **12 gaps are `BLOCKED — owner`** — they need a person, not more analysis. **3 are mechanical** and
   would raise the evidence grade immediately: `G-050`, `G-014`, `G-073`.
-- ⚠️ **No number in this KB has been validated against the warehouse. No query has been run.**
-  The pack's base table has not been rebuilt in this engagement. **Nothing here is stakeholder-ready.**
+- ⚠️ **One series is now warehouse-validated** (`D-027`, `OWNER:2026-08-14`) - FF % and Allocation %
+  at **month x overall** grain, in [business.md](./business.md) §7. **Nothing else is.** No category or
+  distance split; `mbr_mapping_v2` was not rebuilt; revenue and AOV absent pending `T-030`.
+- ⚠️ **`G-030` reverses the reported FF % trend May-Jun 2026** (`G-081`). Reported **+1.30 pp**;
+  corrected **-1.38 pp**. **Do not present a May-vs-June HCV fulfilment trend until `G-081` closes.**
+- **Nothing here is stakeholder-ready.**

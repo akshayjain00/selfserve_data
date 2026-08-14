@@ -565,3 +565,43 @@ and it *did* sum, at 178−26−57+3=98. **A partition can be internally consist
 because the inputs were never audited against the artifact's own citations.** The mechanical pass
 checked the addition; nothing checked the addends. That is the gap a blind reader found and a
 self-written checker structurally cannot.
+
+### D-027 · 2026-08-14 · `G-030` SIZED by query — and it **reverses the reported FF % trend**
+**Owner granted Snowflake query permission.** Two read-only `SELECT`s against
+`prod_eldoria.mart.hcv_overall_demand_mart` at the pack's standard scope (`B-060`). First values ever
+entered in `business.md` §7.
+
+**The by-construction claim is empirically confirmed.** All **32,821** SO-only rows have
+`fo_driver_id` NULL **and** `order_status` NULL **and** **zero completions**. Not one can reach the
+numerator of FF %, E-FF %, Unique FF % or Allocation %. The DDL inference was right.
+
+**Magnitude — and the average hides the finding:**
+
+| | May-26 | Jun-26 | Jul-26 |
+|---|---|---|---|
+| SO-only share of placed | **4.88 %** | 0.22 % | 0.18 % |
+| FF % as reported | 54.57 | 55.87 | 56.11 |
+| FF % excluding SO-only | **57.37** | 55.99 | 56.21 |
+| `G-030` distortion | **−2.80 pp** | −0.12 pp | −0.10 pp |
+
+**Reported FF % rises +1.30 pp May→Jun and reads as improvement. Corrected, it falls −1.38 pp.**
+The "improvement" is largely the artifact disappearing. **Any May-vs-June HCV fulfilment narrative
+built on the reported series is directionally wrong.** → new gap `G-081`, `OPEN — high · ESCALATED`.
+
+**I framed the test wrong, and the record should say so.** I told the owner *"at 2 % it's a footnote,
+at 20 % materially wrong."* The average is **1.74 %** — by that test, a footnote. **The test was the
+wrong one.** What breaks a trend is not the level of a distortion but its **variance across periods**,
+and I did not think to check for that until the monthly cut showed a 22× collapse. A stable 5 %
+distortion would have been harmless to trend reading; a 4.88 %→0.22 % swing is not.
+
+**Second finding, unprompted by the DDL analysis: the allocation-key divergence is NOT confined to
+SO-only rows.** `driver_id IS NOT NULL AND fo_driver_id IS NULL` holds for **13,225 `both`-type rows**
+as well as 4,155 SO-only — **17,380 total**. `D-020`/`G-032` assumed the divergence lived in the
+SO-only set. It does not. Allocation % on the store's key is **+1.43 pp** (May), +0.75, +0.59 — also
+shrinking, and the shrink is unexplained.
+
+**Snapshot scope, stated precisely so it is not over-read:** month × **overall** only. **No category
+and no distance split** — `mbr_mapping_v2` was not rebuilt (`T-073`). **Revenue and AOV absent** —
+`T-030` leaves unit scaling `unverified`. These are **not** the pack's published figures.
+
+**`G-024` (empty snapshot) is partially closed**; the rest waits on `T-030` and a rebuilt base table.
