@@ -454,3 +454,32 @@ the completed count** — §3/§3a use `COUNT(DISTINCT CASE WHEN order_status = 
 **Also recorded:** pack §5's inner `GROUP BY` includes `geo_region_id` while the `SELECT` does not,
 so the `> 0.5` login test is applied **per region**, not per driver-day — a driver splitting a day
 across two regions may fail both halves while passing the combined day.
+
+### D-024 · 2026-08-14 · **The step-7 verification gate did NOT run** — session limit
+**What happened:** all three blind checkers (spec-conformance, accuracy-vs-sources, adversarial
+blind-spot hunt) were spawned and **all three terminated early** on an API session limit, each
+having read only part of the artifact. Reset: 08:20 Asia/Calcutta.
+
+**Decision: the KB is NOT verified, and must not be described as verified.** What has passed is the
+**mechanical** pass only (`DESIGN.md` §15's third bullet) — 10/10, listed in `BOARD.md`. The other
+two gate components — **blind accuracy check** and **zero-context loadability test** — have **not
+run at all**.
+
+**Why this is recorded as a decision rather than a note:** `D-007` and `DESIGN.md` §15 make the gate
+a precondition for step 8 (`WALKTHROUGH.md` + published artifact). **Step 8 must not start until the
+gate completes.** Shipping a team-facing walkthrough off an unverified KB would propagate any defect
+into the artifact people actually read — the failure mode PTL hit and audited its way out of.
+
+**The prior says the gate will find things.** Every verification pass in this build found real
+defects in freshly-written work: 28 in the spec, a knowingly-wrong count and four missing SQL
+excerpts in `metrics.md`, a dangling `G-071` in `GAPS.md`, a dangling `B-090` in `CONTEXT.md`, two
+phantom ids in `CONTRIBUTING.md`. **Expected findings from a completed gate: not zero.**
+
+**Resource constraint, recorded as a first-class finding.** The adversarial checker's own brief asked
+it to identify *"what assumes effort, access, or attention that will not be available."* It answered
+by dying of exactly that. Three full-artifact blind reads is a real budget, and this build did not
+plan for it. **Any future KB of this size should budget the gate as its own session**, not as a tail
+task after seven files are written.
+
+**Re-spawn briefs are recorded in `BOARD.md` §Gate** so a cold session can re-run all three verbatim
+without reconstructing them.

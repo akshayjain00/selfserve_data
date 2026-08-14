@@ -74,8 +74,8 @@ Steps map 1:1 onto DESIGN.md §14.
 | 4 | `dashboards.md` — registers first, then cards (§6.8) | **done** |
 | 5 | `GAPS.md` — 45 explicit rows across classes A–H + 98 class-G | **done** |
 | 6 | `CONTEXT.md` — entry point, 145/150 lines, written last (§6.2) | **done** |
-| 7 | Verification gate (§15) | **in progress** — mechanical 10/10; 3 blind checkers running |
-| 8 | `WALKTHROUGH.md` + published artifact (§6.9) | not started |
+| 7 | Verification gate (§15) | ⛔ **NOT RUN** — mechanical 10/10 only; all 3 blind checkers died on session limit (`D-024`) |
+| 8 | `WALKTHROUGH.md` + published artifact (§6.9) | **BLOCKED on step 7** (`D-024`) — do not start |
 
 ## Sources
 
@@ -172,3 +172,24 @@ Things this build discovered that a future session (or the PnM/PTL equivalents) 
 | 2026-08-14 | Blind coverage audit vs `ptl-selfserve/kb/` | *"Reproduces the reference's rules but not its shapes."* 14 classes of missing structure; highest rework cost = flat ID allocation (`D-008`) |
 | — | Blind accuracy check of the built KB | pending, step 7 |
 | — | Zero-context loadability test | pending, step 7 |
+
+---
+
+## Gate — re-spawn briefs (step 7)
+
+**All three died on a session limit at ~06:40 IST 2026-08-14, resets 08:20.** Re-spawn verbatim.
+Each must be **BLIND**: give it the sources and the artifact, **never the orchestrator's reasoning**.
+
+**Artifact for all three:** `hcv-selfserve/kb/` — CONTEXT · CONTRIBUTING · business · data-model ·
+metrics · dashboards · GAPS. **All read-only.**
+
+| # | checker | given | asked |
+|---|---|---|---|
+| **A** | Spec conformance | `kb-build/DESIGN.md` + DECISIONS + BOARD, and the artifact | Section by section: MET / PARTIAL / VIOLATED / UNVERIFIABLE. Focus §6 per-file anatomy, §7 ID blocks, §11 counting contract (recompute every number), §12 ten hard rules + backing ids, §15 gate, and whether each of D-001..D-024 is actually implemented. Also: anything in the artifact the spec does **not** authorise |
+| **B** | Accuracy vs sources | the pack (`hcv_metrics_queries.md`), Metabase (**metadata only**), Data Catalog, both Notion pages — and the artifact | Is each claim true? Priority: every SQL excerpt verbatim at its cited line · every `store_ref` incl. **hunting for counterparts the author may have missed behind a `none`** · every card fingerprint · every Notion attribution · the column claims · the numbers 54/34/90/178/26/47/10/3/98/12/110. Classify CONFIRMED / WRONG / OVERSTATED / UNVERIFIABLE |
+| **C** | Adversarial | proposed (`kb-build/`) vs built (`kb/`) vs reference (`ptl-selfserve/kb/`) | Blind spots nobody named · resource constraints that will not survive contact with reality · logical flaws. Plus: *where is this KB most likely to be wrong, and why?* and *what is the strongest criticism a skeptical senior stakeholder would make?* |
+
+**Then:** the **zero-context loadability test** — a fresh reader loads `CONTEXT.md` alone and routes
+three tasks to the right file. Not yet run.
+
+**Fold every must-fix back in and log it as a decision**, so the trail shows what review changed.
