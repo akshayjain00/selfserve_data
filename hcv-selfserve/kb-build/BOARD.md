@@ -1,7 +1,7 @@
 # HCV KB build — board
 
 **Living document.** Overwrite freely; the durable record is [DECISIONS.md](./DECISIONS.md).
-Last updated 2026-08-14T05:33+0530. Spec: [DESIGN.md](./DESIGN.md) (v2).
+Last updated 2026-08-14T06:05+0530. Spec: [DESIGN.md](./DESIGN.md) (v2).
 
 **Goal:** `hcv-selfserve/kb/` — a base-context knowledge base for HCV that a cold reader can load
 and trust.
@@ -36,15 +36,15 @@ return findings; they never write the shared record.
 
 ## Roster — workers in flight
 
-**Status as of 2026-08-14T05:33+0530.** Four read-only evidence workers spawned for step 3 under
-`D-016`. **None has reported yet.** They gather; the orchestrator writes all 12 `metrics.md` blocks.
+**Status as of 2026-08-14T06:05+0530.** All four workers have **REPORTED**. Spawned for step 3 under
+`D-016`. Findings are recorded in `D-017`–`D-023`. Next: the orchestrator writes all 12 `metrics.md` blocks.
 
 | Worker | Metrics (`D-015` numbering) | Open question it carries |
 |---|---|---|
-| W1 — OMS revenue trio | 1 Completed Orders (OMS) · 2 Revenue · 3 AOV | **Units** — is `oms_public.order_fares.fare` paise or rupees? (`T-030`) |
-| W2 — demand & allocation | 4 Total Placed · 5 Allocation % · 6 Completed Orders (mart) | **Allocation key** — does the mart carry both `driver_id` and `fo_driver_id`, and is `fo_driver_id` NULL for SO-only rows *by construction*? |
-| W3 — fulfilment ratios | 7 Fulfilment % (L0) · 8 E-FF % · 10 Unique FF % | **The three denominators**, mapped card by card with verbatim SQL |
-| W4 — dedup, ATA, MAP | 9 Unique Demand · 11 Time to Accept · 12 MAP | **MAP migration** — is a login-based MAP buildable on the store's own source model? |
+| ~~W1~~ — OMS revenue trio | 1 Completed Orders (OMS) · 2 Revenue · 3 AOV | ✅ **REPORTED** — units resolved as rupees. See `D-018`, `D-019` |
+| ~~W2~~ — demand & allocation | 4 Total Placed · 5 Allocation % · 6 Completed Orders (mart) | ✅ **REPORTED** — silent denominator defect found. See `D-020`, `D-021` |
+| ~~W3~~ — fulfilment ratios | 7 Fulfilment % (L0) · 8 E-FF % · 10 Unique FF % | ✅ **REPORTED** — denominator map delivered, all five cards, verbatim SQL. See `D-017` |
+| ~~W4~~ — dedup, ATA, MAP | 9 Unique Demand · 11 Time to Accept · 12 MAP | ✅ **REPORTED** — MAP migration is definition-only. See `D-022`, `D-023` |
 
 **If resuming cold and these have not reported:** re-spawn from the prompts implied by the table
 above; nothing they produce is written to disk, so no partial state needs cleaning up. Their output
