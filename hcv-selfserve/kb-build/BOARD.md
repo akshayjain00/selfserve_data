@@ -36,7 +36,11 @@ return findings; they never write the shared record.
 
 ## Roster — workers in flight
 
-**Status as of 2026-08-14T06:05+0530.** All four workers have **REPORTED**. Spawned for step 3 under
+**Status as of 2026-08-14T06:40+0530.** Step-3 workers all reported. **Step-7 gate now running: three
+BLIND checkers** — spec-conformance (DESIGN vs kb/), accuracy (sources vs claims), adversarial
+blind-spot hunt. None was given the orchestrator's reasoning; that is the point of a blind gate.
+
+Earlier roster, spawned for step 3 under
 `D-016`. Findings are recorded in `D-017`–`D-023`. Next: the orchestrator writes all 12 `metrics.md` blocks.
 
 | Worker | Metrics (`D-015` numbering) | Open question it carries |
@@ -70,7 +74,7 @@ Steps map 1:1 onto DESIGN.md §14.
 | 4 | `dashboards.md` — registers first, then cards (§6.8) | **done** |
 | 5 | `GAPS.md` — 45 explicit rows across classes A–H + 98 class-G | **done** |
 | 6 | `CONTEXT.md` — entry point, 145/150 lines, written last (§6.2) | **done** |
-| 7 | Verification gate (§15) | not started |
+| 7 | Verification gate (§15) | **in progress** — mechanical 10/10; 3 blind checkers running |
 | 8 | `WALKTHROUGH.md` + published artifact (§6.9) | not started |
 
 ## Sources
