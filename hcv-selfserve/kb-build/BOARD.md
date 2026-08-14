@@ -68,7 +68,7 @@ Steps map 1:1 onto DESIGN.md §14.
 | 3a | `metrics.md` §1 — 12 full blocks + §1d + reconciliation | **done** |
 | 3b | `metrics.md` §2 — deduped index, **98 rows**, counts fixed | **done** |
 | 4 | `dashboards.md` — registers first, then cards (§6.8) | **done** |
-| 5 | `GAPS.md` — 25 contested defs, ~24 filter/bug findings, 18 design callouts, seed gaps, coverage rows (§6.6) | not started |
+| 5 | `GAPS.md` — 45 explicit rows across classes A–H + 98 class-G | **done** |
 | 6 | `CONTEXT.md` — entry point, ≤150 lines, written last (§6.2) | not started |
 | 7 | Verification gate (§15) | not started |
 | 8 | `WALKTHROUGH.md` + published artifact (§6.9) | not started |

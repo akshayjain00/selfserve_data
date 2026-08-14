@@ -248,7 +248,7 @@ Severity qualifiers: `OPEN — high` · `OPEN — low` · `OPEN — informationa
 `OPEN — mechanical, do next` · `OPEN · ESCALATED` · `BLOCKED — owner, structural`.
 
 **Closing a gap:** mark the row `CLOSED` with the date and the resolving ID, and **strike the ID
-through** (`~~G-003~~`). **Do not delete it.** Consequences that outlive the closure get **spin-off
+through** (`~~G-0nn~~`). **Do not delete it.** Consequences that outlive the closure get **spin-off
 IDs appended at the end of the series**, never inserted into the gap.
 
 **Escalations stay after the fix.** Write *"raised with the card owner on `<date>`; do not remove
