@@ -41,7 +41,7 @@ conflict (`D-012`). Read 2026-08-14.
 **17 cards fingerprinted.**
 
 > ⚠️ **Cards this KB cites but has NOT fingerprinted** — every one is a gap per `D-012`.
-> Named in recorded conflicts but never opened: **28688, 39506, 28691, 28692, 28693, 37311, 28195,
+> Named in recorded conflicts but never opened — **31 cards**: **28688, 39506, 28691, 28692, 28693, 37311, 28195,
 > 29553, 29559, 28673, 28669, 28678** (the `1882` revenue/AOV family) and **32645, 32668, 32694,
 > 32670, 32687, 32700, 33106, 33133, 33269, 32927, 36946, 32950, 28841, 28843, 28844, 28845, 29910,
 > 39374, 43512** (the `4146` families). → `G-050`
@@ -56,7 +56,7 @@ conflict (`D-012`). Read 2026-08-14.
 
 | id | role in this KB | evidence |
 |---|---|---|
-| **108** | Carries every `6406` card and most `1882` cards. The connection the pack's marts sit behind | `get_card` on 13 cards, read 2026-08-14 |
+| **108** | Carries every `6406` card and most `1882` cards. The connection the pack's marts sit behind | `get_card` on **15** cards, read 2026-08-14 |
 | **106** | Carries `28681` and `33212` — the `trucks_*` mart family | `get_card` on 2 cards, read 2026-08-14 |
 | **70** | Named by `nb4146` as one of three connections `4146` spans. **Not observed by this KB** | `nb4146` scope notes — `unverified` |
 

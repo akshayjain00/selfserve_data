@@ -483,3 +483,46 @@ task after seven files are written.
 
 **Re-spawn briefs are recorded in `BOARD.md` §Gate** so a cold session can re-run all three verbatim
 without reconstructing them.
+
+### D-025 · 2026-08-14 · Blind conformance check: **42 findings.** Fixed 7, deferred 5, 1 needs recount
+**The gate found real defects, as the prior said it would.** Checker A (spec conformance) completed;
+B (accuracy vs sources) and C (adversarial) still have **not run** (`D-024`).
+
+**Fixed immediately — all verified before and after:**
+| # | defect | fix |
+|---|---|---|
+| F25 | **`metrics.md` §3 was DUPLICATED** — my §2 edit left the stale copy in place, opening with a malformed doubled table header | Truncated 643→611 lines; one §3 remains |
+| F30 | **`T-030` held four contradictory states across four files**, and shipped verbatim the 100×-error framing `D-018` explicitly retracted — reachable by a reader following the documented load protocol | `T-030` now `rupees` / `unverified` per `D-018`; retracted framing replaced with the four evidence lines and the per-table-convention warning |
+| F20 | `dashboards.md` DB partition **13 + 2 = 15 ≠ 17** | 13→**15** |
+| F21 | `G-050` said **"~19 cards"** against a list of **31** | →**31**, and the "~" removed (it is a literal list) |
+| F22 | `CONTEXT.md` said **11** `BLOCKED — owner`; there are **12** | →**12** |
+| F27 | `CONTEXT.md` + `metrics.md` said **4** live AOV formulas; `G-033` enumerates **5** | →**5** in both |
+| F26 | Closing line claimed two counts were "estimates, not facts" **after** they were resolved to 98/110 | removed with the duplicate §3 |
+
+**Deferred, and why — these are honest debts, not oversights:**
+- **F1** — 10 of 12 blocks omit the spec-mandated `grain:` line. Real; needs 10 edits.
+- **F17** — `T-` time-basis ids sit at `010–013` inside the core-enums block; the mandated `040–049`
+  block is **entirely unused**. **Permanent** — `D-008`/`CONTRIBUTING.md` §2.3 forbid the renumber
+  that would fix it. The block map is now aspirational for `T-`, and that must be stated.
+- **F18/F41** — the `G-` series does not start a fresh decade per class, and `GAPS.md` **overrides the
+  spec in writing** without an authorising decision. **This entry is that decision**: the four-range
+  scheme in `GAPS.md` supersedes `DESIGN.md` §7's `G-` rule, for the reason stated there.
+- **F32** — `D-010`'s per-metric `G-201`–`G-298` rows do not exist as rows; only as an arithmetic
+  rule. Implemented differently from how it was recorded. **This entry supersedes that half of `D-010`.**
+- **F35** — a reader of `kb/` alone **cannot learn the gate did not run**, and `CONTEXT.md` cites the
+  trail as "D-001..D-023", omitting `D-024` — the decision that says the KB is unverified.
+
+**Needs a recount before anything downstream is trusted — `F23`/`F24`, HIGH:**
+The `−26` term in `metrics.md` §3 is **wrong and mis-split**. Recomputed from the blocks' own
+`inventory_ref` lines: `nb1882` = **9** distinct (not 10 — `nb1882:M002` is claimed by both `M-003`
+and `M-008`), `nb4146` = **10** (not 9), and **`gsheet` = 0, not 7 — no full entry carries a single
+`gsheet:` reference.** Worse, `M-012` MAP cites `nb1882:M041` + `nb4146:M016`, and index row 26 (DAP)
+cites the same two — **the same source rows are counted as both covered and indexed**, so the
+partition is not complementary. This also contradicts §3's own headline that *"MAP has no metric row
+in any of the three sources."*
+**`−26` produces the 98, which produces the 110.** Until recounted, **treat 98 and 110 as unverified.**
+
+**The lesson, recorded:** the mechanical pass scored **16/16** on this same artifact. It checks that
+numbers *are stated*, not that they are *right* — every one of F20/F21/F22/F23/F24/F27 is an
+arithmetic error the mechanical pass declared clean. **A self-written checker cannot find what its
+author did not think to check.** That is the argument for the blind gate, made empirically.

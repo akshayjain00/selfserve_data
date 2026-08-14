@@ -46,7 +46,7 @@ gap row first.**
 | M-007 | Allocation % | `COUNT(fo_driver_id IS NOT NULL) / total_placed` | ⚠️ `unverified` (`G-030`, `G-032`) |
 | M-008 | Completed Orders (OMS) | `COUNT(DISTINCT o.id)` where `status = 4` | `verified` |
 | M-009 | Revenue | `SUM(ceil(fare) + coupon + referral + subscription)`, `fare_type=2` | `verified`, reconciled |
-| M-010 | AOV | `revenue / completed` | ⚠️ `unverified` — 4 live formulas (`G-033`) |
+| M-010 | AOV | `revenue / completed` | ⚠️ `unverified` — **5** live formulas (`G-033`) |
 | M-011 | Time to Accept p50/p75/p90 | `order_time → fo_trip_accepted_time`, capped 0–3600s | `verified` |
 | M-012 | MAP | distinct partners with a day of `business_login_hours > 0.5` | `verified` |
 
@@ -138,7 +138,7 @@ PTL template: `claude/ptl-metric-catalog-map` @ `28703aa`. PnM reference: `claud
   store counterpart at all** and must be proposed; two are **`NOT EQUIVALENT`** to theirs.
 - **Units are rupees, not paise** (`T-030`) — evidenced four ways, still `unverified` without one
   value read (`G-010`).
-- **11 gaps are `BLOCKED — owner`** — they need a person, not more analysis. **3 are mechanical** and
+- **12 gaps are `BLOCKED — owner`** — they need a person, not more analysis. **3 are mechanical** and
   would raise the evidence grade immediately: `G-050`, `G-014`, `G-073`.
 - ⚠️ **No number in this KB has been validated against the warehouse. No query has been run.**
   The pack's base table has not been rebuilt in this engagement. **Nothing here is stakeholder-ready.**

@@ -283,7 +283,7 @@ would change about the reported number.** A delta without a stated consequence i
   LEFT JOIN fare f ON o.id = f.order_id
   LEFT JOIN dist d ON o.id = d.id
   ```
-- **confidence: `unverified`** — four AOV formulas are live across `1882`, `4146` and the store.
+- **confidence: `unverified`** — **five** AOV formulas are live: three on `1882`, one on `4146`, plus the store.
 - **store_ref:** `metric.porter.average_order_value` —
   `SUM(total_revenue_without_registration_income) / NULLIF(SUM(comp_orders), 0)` on
   `finance_mis_india_calculated_metrics` · owners `arpanbarnwal@`, `mahiteshpoojary@`,
@@ -608,36 +608,3 @@ and cannot carry SO-only demand. Counted as named; the delta is stated in its en
 
 **Entries inheriting the `G-030` denominator defect: 4** — `M-001`, `M-004`, `M-006`, `M-007`. All
 four are ratios whose denominator is `M-002`.
-
----
-
-## §3 Reconciliation
-
-| | count | basis |
-|---|---|---|
-| | count | which |
-|---|---|---|
-| Full `M-###` entries | **12** | `D-015` — one per (measure, source lineage) pair |
-| `store_ref` **named** | **9** | `M-001` `M-002` `M-003` `M-007` `M-008` `M-009` `M-010` `M-011` `M-012` |
-| `store_ref: none` — must be **proposed** | **3** | `M-004` E-FF · `M-005` Unique Demand · `M-006` Unique FF (blocked behind `M-005`) |
-| **9 + 3 = 12** ✓ | | the partition is complete |
-
-Of the 9 named, **one is flagged as not a true counterpart** — `M-002`'s `metric.porter.demand` is
-OLC-scoped and cannot carry SO-only demand. It is counted as named because a counterpart is
-identified; the delta is stated in its entry.
-
-| migration verdict | count | which |
-|---|---|---|
-| Identical definition — cheapest | **1** | `M-009` Revenue |
-| Definition change, no new modelling | **1** | `M-012` MAP |
-| Differently-filtered same measure | **4** | `M-001` `M-002` `M-003` `M-008` |
-| Key/population contested | **1** | `M-007` Allocation % |
-| **`NOT EQUIVALENT`** — different measurement | **2** | `M-010` AOV · `M-011` Time to Accept |
-| No target exists | **3** | `M-004` `M-005` `M-006` |
-| **1+1+4+1+2+3 = 12** ✓ | | |
-
-**Entries inheriting the `G-030` denominator defect: 4** — `M-001`, `M-004`, `M-006`, `M-007`. All
-four are ratios whose denominator is `M-002`.
-
-**Two counts on this page are estimates, not facts**, and are labelled so in §2: the index-only row
-count and the deduped union. They are fixed when §2 is written, per `D-015`.

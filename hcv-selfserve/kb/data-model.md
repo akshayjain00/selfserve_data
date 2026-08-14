@@ -95,13 +95,20 @@ consolidates the OMS and SO legs.
 
 | id | column | stored as | convert | source_ref | confidence |
 |---|---|---|---|---|---|
-| **T-030** | `order_fares.fare` (`fare_type = 2`, `is_current`) | ⚠️ **unknown** | ⚠️ **unknown** | `repo@20f6416:…#L104` and `metabase:card/32713` both compute `ceil(fare) + coupon_discount + referral_discount + subscription_discount` with **no `/100`** | **assumption** — the absence of a divisor *suggests* rupees, but no source states it |
+| **T-030** | `order_fares.fare` (`fare_type = 2`, `is_current`) | **rupees** | **none — do not divide** | `repo@20f6416:…#L104` · `metabase:card/32713` · `store:metric.porter.revenue` — all three compute `ceil(fare) + coupon_discount + referral_discount + subscription_discount` with **no `/100`** | **unverified** (`D-018`) — evidenced four ways, but the catalog documents no unit for this column (`description: null`) |
 
-> ⚠️ **Do not quote an HCV revenue or AOV figure in rupees until `T-030` is resolved.** PTL's
-> equivalent columns are **paise** (`/100`); if HCV shares the physical column and the scaling, every
-> HCV revenue number in circulation is 100× too large. Neither the pack nor any card inspected
-> applies a divisor, so either HCV's column differs from PTL's or a scaling bug is widespread.
-> → `G-010`, **OPEN — high**
+> **Why `unverified` and not `verified`.** The catalog documents **no unit** for this column
+> (`description: null`). Four independent lines point to rupees: the **governed, approved**
+> `metric.porter.revenue` uses the identical expression with no divisor; its measure `daily_revenue`
+> repeats it; `ceil(fare)` is **semantically inert on an integer paise column** and only earns its
+> place on a fractional rupee value; and pack, four cards and the store all apply `ceil()` while none
+> applies `/100`. **One value read closes it** — a ~₹5,000 trip reads `5000.xx` if rupees,
+> `500000` if paise. → `G-010`, **OPEN — low**
+>
+> ⚠️ **Paise is a *per-table* convention at Porter, not a platform-wide one.** `ra_public` and
+> `partload_application` (PTL) fare columns are documented in paise; `pnm_application` fare columns
+> are documented **"in INR"**. **Do not infer HCV's scaling from PTL's** — that inference was made
+> once in this KB's drafting and was wrong (`D-018`).
 
 ---
 
