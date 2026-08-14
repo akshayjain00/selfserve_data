@@ -78,6 +78,13 @@ To add a fact, take the next unused number **inside that fact's block** (§2.5).
 > ⚠️ **The inventories' ID ranges are not their metric counts.** They use lettered children
 > (`M001a`, `M016a`, `M020a`), so `M001`–`M047` carries 54 metrics. Do not "correct" this.
 
+**One exemption: a bare `M0##` inside a verbatim source quote stays unaltered.** When this KB quotes
+a source's own words — the `source-status` column, a contested-definition note — the quote is
+evidence, and **editing a quote to satisfy a naming rule corrupts the evidence.** Leave it, and rely
+on the row's own `inventory_ref` to disambiguate. The rule binds **this KB's own prose**, not
+material it is quoting. Any automated check for bare ids must exclude quoted spans, or it will
+report these two known-good cases forever.
+
 ### §2.5 ID block map
 
 | Series | Block | Theme |

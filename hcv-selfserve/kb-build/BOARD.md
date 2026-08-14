@@ -66,7 +66,7 @@ Steps map 1:1 onto DESIGN.md §14.
 | 1 | `CONTRIBUTING.md` — schema contract (§6.3) | **done** |
 | 2 | `data-model.md` (§6.5) + `business.md` (§6.4) | **done** |
 | 3a | `metrics.md` §1 — 12 full blocks + §1d + reconciliation | **done** |
-| 3b | `metrics.md` §2 — deduped index (~120–130 rows), counts fixed | not started |
+| 3b | `metrics.md` §2 — deduped index, **98 rows**, counts fixed | **done** |
 | 4 | `dashboards.md` — registers first, then cards (§6.8) | **done** |
 | 5 | `GAPS.md` — 25 contested defs, ~24 filter/bug findings, 18 design callouts, seed gaps, coverage rows (§6.6) | not started |
 | 6 | `CONTEXT.md` — entry point, ≤150 lines, written last (§6.2) | not started |
