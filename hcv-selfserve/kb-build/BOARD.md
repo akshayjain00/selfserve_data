@@ -65,7 +65,8 @@ Steps map 1:1 onto DESIGN.md §14.
 | 0 | Design agreed, branch cut, query pack committed | **done** — `5a06a81`, `20f6416` |
 | 1 | `CONTRIBUTING.md` — schema contract (§6.3) | **done** |
 | 2 | `data-model.md` (§6.5) + `business.md` (§6.4) | **done** |
-| 3 | `metrics.md` — full blocks (§6.7), then the deduped index; counts fixed (§11.2) | not started |
+| 3a | `metrics.md` §1 — 12 full blocks + §1d + reconciliation | **done** |
+| 3b | `metrics.md` §2 — deduped index (~120–130 rows), counts fixed | not started |
 | 4 | `dashboards.md` — registers first, then cards (§6.8) | not started |
 | 5 | `GAPS.md` — 25 contested defs, ~24 filter/bug findings, 18 design callouts, seed gaps, coverage rows (§6.6) | not started |
 | 6 | `CONTEXT.md` — entry point, ≤150 lines, written last (§6.2) | not started |
