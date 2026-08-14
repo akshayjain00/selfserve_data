@@ -46,7 +46,7 @@ would change about the reported number.** A delta without a stated consequence i
   dashboards are what diverge (`G-031`). Closing the delta moves FF onto the OLC KPI tree where
   FF + CADF + CBDF + stockout + missed decompose to 1 of demand. **Cost:** the number shifts by the
   test-mobile share plus any non-(4,5) rows, and **the distance split is lost entirely** (`G-037`).
-- **inventory_ref:** `nb1882:M005` · `nb4146:M005`
+- **inventory_ref:** `nb1882:M005` · `nb1882:M011` ("Completion %" — the inventory itself calls it *"redundant with Fulfilment %"*) · `nb4146:M005` · `gsheet:33`
 - **grain:** `§2`/`§6` month × category × distance · `§2a` month × distance
 - ⚠️ **Three denominators are live in production under the name "fulfilment"** → `G-031`
 - ⚠️ **The denominator contains rows that can never reach the numerator** → `G-030`. This is the
@@ -74,7 +74,7 @@ would change about the reported number.** A delta without a stated consequence i
   the inline Tier-1 / 9–19ft / test-mobile scoping. Not reconcilable without a scope contract.
   `metric.porter.total_orders` is nearer in shape but is FO-only, so it structurally cannot carry
   SO-only demand. **No dbt metric is defined on `hcv_overall_demand_mart` at all** (`metrics: null`).
-- **inventory_ref:** `nb1882:M001` · `nb4146:M001`
+- **inventory_ref:** `nb1882:M001` · `nb4146:M001` · `gsheet:27`
 - **grain:** month × category × distance (`§2`/`§6`); month × distance (`§2a`)
 - ⚠️ `T-002` — `COALESCE(order_status, 5)` makes a NULL status a **cancellation**, and on SO-only
   rows status is NULL *by construction* → `G-030`
@@ -126,7 +126,7 @@ would change about the reported number.** A delta without a stated consequence i
 - **migration:** nothing to migrate *to*. **`next_action`: propose `metric.porter.effective_fulfilment`**
   to `vinay.nadig@theporter.in` / `lfc.da@theporter.in` — but only after `G-034` settles which
   attribution basis is canonical, since the two live implementations disagree on the columns.
-- **inventory_ref:** `nb1882:M006`
+- **inventory_ref:** `nb1882:M006` · `gsheet:34`
 - ⚠️ **Card 28681 carries two competing E-FF definitions**, differing on **two axes at once** — the
   attribution column pair *and* the source mart. Both aliased `effective_fulfillment`; only one
   reaches the dashboard → `G-034`
@@ -158,7 +158,7 @@ would change about the reported number.** A delta without a stated consequence i
   **new store metric**, not a swap, and that metric needs geospatial columns
   (`from/to_address_lat/long`) plus `customer_id` ordering that `trucks_daily_demand_summary` is not
   documented to carry.
-- **inventory_ref:** `nb4146:M002`
+- **inventory_ref:** `nb4146:M002` · `gsheet:28`
 - ⚠️ The `LEAD` window extends to 2026-08-02 while output is cut at 2026-08-01, so late-July orders
   dedup against successors that never appear in the result. **Deliberate** — the pack comments it as
   a buffer. Recorded so nobody "fixes" it → `G-071` (informational anti-gap)
@@ -209,7 +209,7 @@ would change about the reported number.** A delta without a stated consequence i
   non-null `so_driver_id`. (b) *Adopting the store metric wholesale* — its denominator is
   `count_distinct(order_id)` on `fact_orders`, which **structurally cannot contain SO-only demand**,
   so those rows leave **numerator and denominator both**. That is a larger restatement than (a).
-- **inventory_ref:** `nb1882:M004` · `nb4146:M007`
+- **inventory_ref:** `nb1882:M004` · `nb4146:M007` · `gsheet:35`
 - ⚠️ **`fo_driver_id` vs `driver_id`** — `fo_driver_id` exists in **exactly one model
   platform-wide**; `driver_id` in 414. Two governance chains disagree across three source models → `G-032`
 - ⚠️ **The denominator defect (`G-030`) bites hardest here** — SO-only rows are unallocatable *by
@@ -325,7 +325,7 @@ would change about the reported number.** A delta without a stated consequence i
   responsiveness.** The pack's interval **strictly contains** the store's — the gap is the
   matchmaking latency the store's clock never sees. **A mean cannot be reconciled to a p50 by any
   adjustment**, and the store declares no outlier guard where the pack caps at 3600s → `G-036`
-- **inventory_ref:** `nb4146:M026` (allocation-time family)
+- **inventory_ref:** `nb1882:M043` · `nb4146:M026` · `gsheet:29` (the allocation-time family)
 - ⚠️ **`metabase:card/55503` is NOT the reconciliation target** — its clock is
   `TRIP_ACCEPTED_TIME → TRIP_START_ENTRY_TIMESTAMP`, i.e. **arrival**, a third clock.
   **`metabase:card/55527` is** — but it aliases the result `allocation_time_minutes` while computing
@@ -358,7 +358,7 @@ would change about the reported number.** A delta without a stated consequence i
   **fewer** driver-days; (b) adopting the store's *order-based* definition instead **reduces** MAP,
   and MAP is the denominator of `payout_per_active`, `orders_per_active` and `login_hrs_per_active`,
   so all three **rise** for unchanged numerators → `G-023`
-- **inventory_ref:** `nb1882:M041` (DAP family) · `nb4146:M016`
+- **inventory_ref:** **`none`.** ⚠️ This previously cited `nb1882:M041` / `nb4146:M016` — **both are DAP, not MAP.** DAP is login-based and daily; MAP is monthly. Those two rows belong to index row 26, and citing them here double-counted them. Consistent with §3: **MAP is catalogued by no source.**
 - ⚠️ **Three login thresholds are in play and none is governed for HCV** — pack `> 0.5
   business_login_hours`; store sibling `total_login_days` `> 0 total_login_hours`; pack prose *"at
   least 1 hour"*. `list_metrics(name="dap")` returns **0 rows** — the DAP the pack anchors to has no
@@ -391,12 +391,12 @@ reason. Per [CONTRIBUTING.md](./CONTRIBUTING.md) §8.5 these are recorded, never
 
 ## §2 Index — every other HCV metric
 
-**98 rows.** One per un-promoted metric, deduped across `nb1882` (54), `nb4146` (34) and
+**99 rows.** One per un-promoted metric, deduped across `nb1882` (54), `nb4146` (34) and
 `gsheet:HCV_Metrics_DD` (**90 rows — counted, not estimated**). Each carries one `G-###` in
 `GAPS.md` class G (`D-010`), sharing a class-level `next_action`.
 
 **Gap ids are allocated mechanically: index row *N* ↔ `G-(200 + N)`.** So row 1 is `G-201`, row 98
-is `G-298`. This is checkable by script rather than by hand, and no id can drift.
+is `G-299`. This is checkable by script rather than by hand, and no id can drift.
 
 > ⚠️ **`source-status` is the source's OWN wording, carried verbatim — `Pending`, `contested`,
 > `Argus P1`, `GAP`. It is NOT a KB confidence value** ([CONTRIBUTING.md](./CONTRIBUTING.md) §4).
@@ -506,6 +506,7 @@ to base · `R4` genuinely different SQL kept distinct.
 | 96 | HCV Allocation Error Rate % | gs | `gsheet:2` | L1 | Health | "Pending; Argus P1" — **DataDog** | R4 |
 | 97 | HCV Allocation API Latency P95 | gs | `gsheet:3` | L1 | Health | "Pending; Argus P1" — **DataDog** | R4 |
 | 98 | HCV Allocation L4 Tickets | gs | `gsheet:4` | L1 | Health | "Pending; Argus NA" — **Jira** | R4 |
+| 99 | Time to Accept Post Tray Listing P50/P90 | gs | `gsheet:30` | L1 | Satisfaction | "Pending; Argus P2" | R4 |
 
 ### §2a Merges a reader may contest
 
@@ -561,24 +562,24 @@ nb4146 unique metrics                 34   (source-stated: 16 base + 18 derived)
 gsheet:HCV_Metrics_DD rows            90   (counted)
                              raw =   178
 
-− source rows covered by full entries −26   nb1882 ×10 · nb4146 ×9 · gsheet ×7
-                                    = 152
+− source rows covered by full entries −25   nb1882 ×10 · nb4146 ×9 · gsheet ×6
+                                    = 153
 − cross-source merges                 −47   (21 merge groups spanning 2+ sources)
 − within-sheet merges                 −10   (6 merge groups inside the sheet)
-                                    =  95
+                                    =  96
 + variant rows split out               +3   business-hours FF · hourly FF · business-hours Allocation %
-                             INDEX =   98
+                             INDEX =   99
 ```
 
-**178 − 26 − 57 + 3 = 98** ✓
+**178 − 25 − 57 + 3 = 99** ✓  *(recounted 2026-08-14 — see `D-026`)*
 
 ### The KB's own totals
 
 | | count |
 |---|---|
 | Full `M-###` entries (§1) | **12** |
-| Index rows (§2) | **98** |
-| **Total distinct HCV metrics in this KB** | **110** |
+| Index rows (§2) | **99** |
+| **Total distinct HCV metrics in this KB** | **111** |
 
 > ⚠️ **12 full entries ≠ 12 source metric identities.** They retire **11** — **MAP has no metric row
 > in any of the three sources.** It appears only inside `nb4146:M016`'s notes, as the governed-store

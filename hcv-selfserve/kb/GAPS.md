@@ -21,7 +21,7 @@ Two schemes are live, and the split is **deliberate and permanent**, not an acci
 |---|---|
 | `G-004`–`G-029` | **Mixed early range.** Allocated during steps 2–3 as facts were written, before gaps were grouped into classes. Non-contiguous by class |
 | `G-030`–`G-099` | Allocated during steps 3–4, **grouped loosely by class** |
-| `G-201`–`G-298` | **Class G only** — one per index row, allocated mechanically: index row *N* ↔ `G-(200 + N)` |
+| `G-201`–`G-299` | **Class G only** — one per index row, allocated mechanically: index row *N* ↔ `G-(200 + N)` |
 | `G-100`–`G-199` | **Reserved for new gaps.** Take the next unused number here |
 
 **Ids were never renumbered to fit the class scheme.** [CONTRIBUTING.md](./CONTRIBUTING.md) §2.3
@@ -119,12 +119,12 @@ not silently correct it** ([CONTRIBUTING.md](./CONTRIBUTING.md) §8.5).
 
 ## G. Coverage — metrics
 
-**98 index rows, one gap each.** Ids are allocated mechanically: **index row *N* ↔ `G-(200 + N)`**,
-so row 1 is `G-201` and row 98 is `G-298`.
+**99 index rows, one gap each.** Ids are allocated mechanically: **index row *N* ↔ `G-(200 + N)`**,
+so row 1 is `G-201` and row 99 is `G-299`.
 
 **The rows are not duplicated here.** They live in **[metrics.md](./metrics.md) §2**, with their
 source, `inventory_ref`, level, Doshi category, verbatim source-status and dedup rule. Maintaining
-two copies of a 98-row list guarantees they diverge, and a diverged index is worse than a single one.
+two copies of a 99-row list guarantees they diverge, and a diverged index is worse than a single one.
 
 > **Class-level `next_action`, applying to all 98:** promote to a full `M-###` entry — which requires
 > (a) locating its implementing card SQL, (b) fingerprinting that card, (c) establishing its

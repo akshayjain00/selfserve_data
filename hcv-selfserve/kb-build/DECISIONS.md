@@ -526,3 +526,42 @@ in any of the three sources."*
 numbers *are stated*, not that they are *right* — every one of F20/F21/F22/F23/F24/F27 is an
 arithmetic error the mechanical pass declared clean. **A self-written checker cannot find what its
 author did not think to check.** That is the argument for the blind gate, made empirically.
+
+### D-026 · 2026-08-14 · Recount closes `F23`/`F24` — the headline numbers were **wrong**, and are now 25 / 99 / 111
+**The blind checker was right.** Recomputed from the 12 blocks' own `inventory_ref` lines:
+
+| | claimed | actual |
+|---|---|---|
+| `nb1882` rows covered | 10 | **10** ✓ (after fixes) |
+| `nb4146` rows covered | 9 | **9** ✓ |
+| `gsheet` rows covered | 7 | **6** |
+| **total covered** | **26** | **25** |
+| index rows | 98 | **99** |
+| KB total | 110 | **111** |
+
+**Two genuine defects caused it, both now fixed:**
+
+1. **`M-012` MAP cited `nb1882:M041` and `nb4146:M016` — both are DAP, not MAP.** DAP is login-based
+   and daily; MAP is monthly. Those two rows are **index row 26**, so citing them in a full entry
+   **double-counted them** — the partition was not complementary. It also flatly contradicted §3's own
+   headline that *"MAP is catalogued by no source."* **`M-012`'s `inventory_ref` is now `none`**, with
+   the retracted citation recorded inline so the error is visible rather than erased.
+2. **Eight source rows the index-builder excluded were cited by no block at all** — so they were
+   deducted from the index while appearing in no full entry. Added where the mapping is sound:
+   `nb1882:M011` ("Completion %", which the inventory itself calls *"redundant with Fulfilment %"*)
+   and `gsheet:33` → `M-001` · `gsheet:27` → `M-002` · `gsheet:34` → `M-004` · `gsheet:28` → `M-005`
+   · `gsheet:35` → `M-007` · `nb1882:M043` + `gsheet:29` → `M-011`.
+
+**One excluded row genuinely belongs in the index, and is now row 99:** `gsheet:30` *"Time to accept
+after listing on tray"* is **tray-clocked**, not order-clocked — a different measurement from the
+pack's `M-011` (`order_time → fo_trip_accepted_time`), and distinct from index row 17
+(tray-listing → *allocation*). Excluding it assumed an equivalence that does not hold.
+
+**Arithmetic now reconciles: `178 − 25 − 57 + 3 = 99`, and `12 + 99 = 111`.** Propagated to
+`CONTEXT.md`, `GAPS.md` (class G now `G-201`–`G-299`) and `metrics.md`.
+
+**What this says about the counting contract.** `DESIGN.md` §11.4 required that every partition sum —
+and it *did* sum, at 178−26−57+3=98. **A partition can be internally consistent and still wrong,
+because the inputs were never audited against the artifact's own citations.** The mechanical pass
+checked the addition; nothing checked the addends. That is the gap a blind reader found and a
+self-written checker structurally cannot.

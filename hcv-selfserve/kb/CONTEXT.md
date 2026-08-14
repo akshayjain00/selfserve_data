@@ -50,9 +50,9 @@ gap row first.**
 | M-011 | Time to Accept p50/p75/p90 | `order_time → fo_trip_accepted_time`, capped 0–3600s | `verified` |
 | M-012 | MAP | distinct partners with a day of `business_login_hours > 0.5` | `verified` |
 
-**110 distinct HCV metrics: 12 full entries + 98 index rows** ([metrics.md](./metrics.md) §2).
+**111 distinct HCV metrics: 12 full entries + 99 index rows** ([metrics.md](./metrics.md) §2).
 Derived from **178 source rows** across three sources. **12 `M-###` numbers retire 11 *source*
-identities across 26 *source rows*** — MAP is catalogued by no source. Never swap those three units.
+identities across 25 *source rows*** — MAP is catalogued by no source. Never swap those three units.
 
 ### Three facts that prevent most errors
 
@@ -117,7 +117,7 @@ works from any branch.**
 hcv-selfserve/
   hcv_metrics_queries.md   ← the pack, rung 1 — pinned repo@20f6416
   kb/                      ← you are here
-  kb-build/                ← DESIGN · DECISIONS (D-001..D-023) · BOARD — process trail, not KB content
+  kb-build/                ← DESIGN · DECISIONS (D-001..D-026) · BOARD — process trail, not KB content
 ```
 
 **Provenance format:** `repo@<sha>:<path>#L<n>` — never a bare path or branch name. Two clones exist
