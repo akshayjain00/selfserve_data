@@ -1,7 +1,7 @@
 # HCV KB build — board
 
 **Living document.** Overwrite freely; the durable record is [DECISIONS.md](./DECISIONS.md).
-Last updated 2026-08-14. Spec: [DESIGN.md](./DESIGN.md) (v2).
+Last updated 2026-08-14T05:33+0530. Spec: [DESIGN.md](./DESIGN.md) (v2).
 
 **Goal:** `hcv-selfserve/kb/` — a base-context knowledge base for HCV that a cold reader can load
 and trust.
@@ -31,6 +31,28 @@ require explicit approval for parallel fan-out on production work. Blind checker
 
 **Roles:** orchestrator (this session) is the sole writer of `DECISIONS.md` and `BOARD.md`. Workers
 return findings; they never write the shared record.
+
+---
+
+## Roster — workers in flight
+
+**Status as of 2026-08-14T05:33+0530.** Four read-only evidence workers spawned for step 3 under
+`D-016`. **None has reported yet.** They gather; the orchestrator writes all 12 `metrics.md` blocks.
+
+| Worker | Metrics (`D-015` numbering) | Open question it carries |
+|---|---|---|
+| W1 — OMS revenue trio | 1 Completed Orders (OMS) · 2 Revenue · 3 AOV | **Units** — is `oms_public.order_fares.fare` paise or rupees? (`T-030`) |
+| W2 — demand & allocation | 4 Total Placed · 5 Allocation % · 6 Completed Orders (mart) | **Allocation key** — does the mart carry both `driver_id` and `fo_driver_id`, and is `fo_driver_id` NULL for SO-only rows *by construction*? |
+| W3 — fulfilment ratios | 7 Fulfilment % (L0) · 8 E-FF % · 10 Unique FF % | **The three denominators**, mapped card by card with verbatim SQL |
+| W4 — dedup, ATA, MAP | 9 Unique Demand · 11 Time to Accept · 12 MAP | **MAP migration** — is a login-based MAP buildable on the store's own source model? |
+
+**If resuming cold and these have not reported:** re-spawn from the prompts implied by the table
+above; nothing they produce is written to disk, so no partial state needs cleaning up. Their output
+is evidence only — every judgement call still belongs to the orchestrator.
+
+**Why each carries a question:** pure transcription would have returned what the Notion inventories
+already say, and those inventories are known to under-report (see Conflicts, below). Each question
+is one the KB cannot ship honestly without.
 
 ---
 
@@ -108,6 +130,34 @@ DESIGN.md §13; these become `GAPS.md` rows at step 5 and `WALKTHROUGH.md` §9 a
   worked example (DESIGN §6.9 names the substitute)
 - PTL has moved on — remote is one commit ahead of this branch's base (`1f008cd`, iteration-2 spec);
   does not touch `kb/`, so the template is unaffected
+
+## Learnings — carry these forward
+
+Things this build discovered that a future session (or the PnM/PTL equivalents) should not re-learn.
+
+1. **Blind checks find shape defects that self-review cannot.** The spec's own author had specified
+   the reference architecture's *rules* faithfully and its *shapes* not at all. Two blind checkers
+   found 28 coherence defects and 14 classes of missing structure. The most expensive — flat ID
+   allocation (`D-008`) — would have been **irreversible** once ~140 rows landed.
+2. **Cite the source's own words, then check them.** The pack's caveat says "sections 1–4 depend on
+   `mbr_mapping_v2`"; reading the SQL showed **every section except §5** does. Transcribing a
+   source's self-description propagates its errors.
+3. **Inventories under-report.** Two probes against Metabase and the metric store found three
+   conflicts present in neither Notion page. A KB assembled by transcription would have shipped
+   confidently incomplete.
+4. **Metric-store metadata is richer than expected and solves a problem PTL never did.** Every
+   `metric.porter.*` metric carries a named business owner, an approval record and a freshness
+   contract (`B-070`). PTL's highest-leverage unresolved gap was *"assign per-metric ownership"*;
+   for HCV, ownership arrives free wherever a store counterpart exists (`B-070a`).
+5. **Cross-vertical enum collisions are a real hazard, not a theoretical one.** `status = 4` means
+   *Cancelled* in PTL and *completed* in HCV, in KBs sitting side by side on branches cut from each
+   other (`T-003`).
+6. **An append-only log needs its ordering checked, not assumed.** Two structural bugs were
+   introduced into `DECISIONS.md` by anchored edits — one entry landed *inside* another, orphaning
+   its closing note; two more were written above their predecessor. Both were caught only by
+   grepping the ID sequence. Do that check before every commit that touches the log.
+
+---
 
 ## Verification history
 
