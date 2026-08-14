@@ -140,6 +140,13 @@ HCV's store already exists and is the target.
 > does **not** decide which formula is correct, and it is not licence to overwrite a pack definition
 > with a store definition.
 
+> ⚠️ **Convergence is not free, and one case is already known.** `metric.porter.map` is
+> **order-based** (≥1 completed order/month); the pack's MAP is **login-based**
+> (`business_login_hours > 0.5`/day). Migrating MAP to the store **changes the number reported in
+> the MBR** — it is a business decision with a visible consequence, not a mechanical repoint. Each
+> such case ships as a gap stating the delta *and its cost*, for the owner to accept or reject
+> per metric.
+
 ### D-014 · 2026-08-14 · `dashboard/6406` is the go-forward demand source · `OWNER:2026-08-14`
 **Decision:** `metabase:dashboard/6406` ("HCV Demand Dashboard", created 2026-08-12) is the
 canonical HCV **demand** surface going forward. `dashboard/1882`'s Traffic & Demand tab becomes
@@ -167,9 +174,45 @@ legacy. The owner states Experience and Supply will migrate into `6406` over tim
   **dashboard-level** parameters are mapped through to them is not determinable from the API
   response and needs a UI check → `G-014`.
 
-> ⚠️ **Convergence is not free, and one case is already known.** `metric.porter.map` is
-> **order-based** (≥1 completed order/month); the pack's MAP is **login-based**
-> (`business_login_hours > 0.5`/day). Migrating MAP to the store **changes the number reported in
-> the MBR** — it is a business decision with a visible consequence, not a mechanical repoint. Each
-> such case ships as a gap stating the delta *and its cost*, for the owner to accept or reject
-> per metric.
+### D-015 · 2026-08-14 · The pack yields exactly **12** full `M-###` entries
+**Decision:** Applying `DESIGN.md` §11.2's rule — one `M-###` per distinct **(measure, source
+lineage)** pair, grain variants as dimensions, `§6` as a projection, ratio denominators first-class
+— the count is **fixed at 12**. Every count stated anywhere in the KB now agrees with this number.
+
+| # | metric | pack § | lineage |
+|---|---|---|---|
+| 1 | Completed Orders (OMS) | §1 | `oms_public.orders.status = 4` |
+| 2 | Revenue | §1 | `oms_public.order_fares` |
+| 3 | AOV | §1 | derived, OMS |
+| 4 | Total Placed (demand base) | §2/§2a/§3/§3a/§6 | mart |
+| 5 | Allocation % | §2/§2a/§6 | mart, `fo_driver_id` |
+| 6 | Completed Orders (mart) | §2/§2a/§3/§3a/§6 | `order_status = 4` |
+| 7 | **Fulfilment % — L0** (`D-011`) | §2/§2a/§6 | mart |
+| 8 | Effective Fulfilment % | §2/§2a | mart + `dim_cancel_reasons_attribution` |
+| 9 | Unique Demand | §3/§3a/§6 | mart + dedup (`B-062`) |
+| 10 | Unique Fulfilment % | §3/§3a/§6 | mart |
+| 11 | Time to Accept p50/p75/p90 | §4 | mart |
+| 12 | MAP | §5 | `fact_active_partners` |
+
+**Why 1 and 6 are separate:** §1 counts `oms_public.orders.status = 4`; §2/§3/§6 count
+`hcv_overall_demand_mart.order_status = 4`. Same name, different object, never reconciled (`T-050`
+vs `T-051`, `G-012`). Merging them would hide the conflict this KB exists to expose.
+
+**Why 11 is one entry, not three:** p50/p75/p90 are three aggregations of one measure over one
+population — percentiles are a dimension of the metric, not separate metrics.
+
+### D-016 · 2026-08-14 · Parallel evidence-gathering for step 3, approved by the owner
+**Decision:** Four read-only workers, three metrics each, gathering pack SQL excerpts, store
+counterparts, card metadata and migration deltas. **The orchestrator writes all 12 `metrics.md`
+blocks**; workers return findings only and never write the shared record.
+**Why:** Approved by the owner, as `BOARD.md`'s coordination mode required for production fan-out.
+Beyond wall-clock, the binding reason is context: each `get_metric` returns ~4KB of JSON and 12 of
+them would crowd out step 6 (`CONTEXT.md`), the file that must summarise everything.
+**Rejected alternative:** workers drafting their own blocks. Shape and confidence-tagging would
+drift between workers on exactly the file where consistency matters most, and that drift is subtle
+enough to survive review.
+
+**Each worker was also given one high-priority open question** rather than only transcription work:
+units (paise vs rupees, `T-030`) · the allocation key and whether `fo_driver_id` is NULL for SO-only
+rows *by construction* · the three live fulfilment denominators, mapped card by card · whether a
+login-based MAP is buildable on the store's own source model.
