@@ -162,6 +162,8 @@ and denominator at the cut you need, *then* divide. Never average daily ratios.
   a D3 violation** — retention is not among the metrics D3 enumerates. → `G-010`
 - **note:** dashboard 4569 carries **two incompatible retention taxonomies** —
   new/retained/reactivated (38287, 39117) vs a binary lifetime-based new/repeat (39107, 39149). → `G-023`
+  Owner ruled 2026-08-14 that the **repeat basis is lifetime order count**, not in-period order
+  count; card 39118 was rewritten to match the same day. → `G-154`
 
 ---
 

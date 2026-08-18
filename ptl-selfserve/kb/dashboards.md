@@ -16,7 +16,7 @@ built on it is **STALE**. Re-extract before trusting it. See CONTRIBUTING §5.
 | 33462 | 2026-07-28T09:54:28Z | 73 | 38287 | 2026-07-14T10:08:52Z | 73 |
 | 33483 | 2026-07-28T09:54:27Z | 73 | 39149 | 2026-07-14T10:55:48Z | 73 |
 | 33485 | 2026-01-09T09:12:11Z | 73 | 39107 | 2026-07-14T09:15:34Z | 73 |
-| 37419 | 2026-01-11T18:11:46Z | 73 | 39118 | 2025-10-07T11:47:51Z | 73 |
+| 37419 | 2026-01-11T18:11:46Z | 73 | 39118 | 2026-08-14T07:56:55Z | 73 |
 | 33466 | 2026-01-11T16:16:18Z | 73 | 43406 | 2025-12-01T09:46:29Z | 73 |
 | 43238 | 2026-02-09T09:57:42Z | 73 | 39104 | 2025-10-07T11:59:16Z | 73 |
 | 37104 | 2026-01-11T17:50:47Z | 73 | 38900 | 2025-09-16T11:32:57Z | 73 |
@@ -116,7 +116,7 @@ Poor Customer Retention, Conversion, First-time User Metrics.
 | 38283 | Revenue per Customer | — | — |
 | 39101 | AOV (overall / business / personal) | — | `M-008` |
 | 38619 / 44080 | Orders per Customer | — | — |
-| 39118 | Repeat Purchase Rate | **intra-period** ≥2 orders | `G-023` |
+| 39118 | Repeat Purchase Rate | **lifetime** order count >1 through end of period — *rewritten 2026-08-14, was intra-period ≥2* | `G-154` |
 | 39107 / 39149 | New vs Repeat % | **binary, lifetime-based** | `G-023` |
 | 35397 / 44086 | Cohort Retention M0–M12 | — | `M-011` |
 | 43406 / 44088 | Aggregate M1/M3/M6/M12 Retention | — | `M-011` |
