@@ -21,7 +21,7 @@ Two schemes are live, and the split is **deliberate and permanent**, not an acci
 |---|---|
 | `G-004`–`G-029` | **Mixed early range.** Allocated during steps 2–3 as facts were written, before gaps were grouped into classes. Non-contiguous by class |
 | `G-030`–`G-099` | Allocated during steps 3–4, **grouped loosely by class** |
-| `G-201`–`G-299` | **Class G only** — one per index row, allocated mechanically: index row *N* ↔ `G-(200 + N)` |
+| `G-201`–`G-399` | **Class G only** — one per index row, allocated mechanically: index row *N* ↔ `G-(200 + N)` |
 | `G-100`–`G-199` | **Reserved for new gaps.** Take the next unused number here |
 
 **Ids were never renumbered to fit the class scheme.** [CONTRIBUTING.md](./CONTRIBUTING.md) §2.3
@@ -120,12 +120,12 @@ not silently correct it** ([CONTRIBUTING.md](./CONTRIBUTING.md) §8.5).
 
 ## G. Coverage — metrics
 
-**99 index rows, one gap each.** Ids are allocated mechanically: **index row *N* ↔ `G-(200 + N)`**,
-so row 1 is `G-201` and row 99 is `G-299`.
+**107 index rows, one gap each.** Ids are allocated mechanically: **index row *N* ↔ `G-(200 + N)`**,
+so row 1 is `G-201` and row 107 is `G-307`.
 
 **The rows are not duplicated here.** They live in **[metrics.md](./metrics.md) §2**, with their
 source, `inventory_ref`, level, Doshi category, verbatim source-status and dedup rule. Maintaining
-two copies of a 99-row list guarantees they diverge, and a diverged index is worse than a single one.
+two copies of a 107-row list guarantees they diverge, and a diverged index is worse than a single one.
 
 > **Class-level `next_action`, applying to all 98:** promote to a full `M-###` entry — which requires
 > (a) locating its implementing card SQL, (b) fingerprinting that card, (c) establishing its
@@ -134,6 +134,9 @@ two copies of a 99-row list guarantees they diverge, and a diverged index is wor
 
 ⚠️ marks the source's own highest-risk labels — `CONTESTED`, `MAJOR FINDING`, and every row whose
 verbatim status names a bug. Those are in `metrics.md` §2's `source-status` column.
+
+| **G-082** | ⚠️ **`coverage-map` asserts `not-started` for metrics that are demonstrably started, and counts a different universe** | It stamps **all 118 rows** `status: pending`, `blocker: not-started`, `north_star: null`, `provenance: "stated"` — a uniform stamp, not an assessment. On the **12** metrics with full `M-###` entries (verbatim SQL) and on the FF %/Allocation % series now **warehouse-validated** in [business.md](./business.md) §7, that is **factually wrong**. It also enumerates **118** HCV metrics where this KB enumerates **119** — two answers to one question | **Regenerate `metric-coverage.json` FROM [metrics.md](./metrics.md) §1+§2** so status is derived, not asserted, and the two counts cannot diverge. Until then treat its `status`/`blocker`/`north_star` fields as **void** and read coverage from `metrics.md`. Owner: this KB's maintainer | **OPEN — high** |
+| **G-083** | The `coverage-map`'s own source is **outside this repo and uncommitted** | All 118 rows cite `ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17`, which this KB has never read. Under [CONTRIBUTING.md](./CONTRIBUTING.md) §3 a `local:`-only source **can never exceed `unverified`** | Commit that spec into this repo, or accept the 8 harvested rows (`G-300`–`G-307`) stay `unverified` permanently | **OPEN — low** |
 
 ## H. Coverage — cards and surfaces not opened
 

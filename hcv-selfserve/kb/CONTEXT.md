@@ -15,9 +15,8 @@ your task needs** — not all of them. `last_verified: 2026-08-14`
 | "What's unresolved?" | [GAPS.md](./GAPS.md) |
 | **About to edit this KB** | [CONTRIBUTING.md](./CONTRIBUTING.md) — **required** |
 
-**Every fact is an addressable row**: `B-###` business · `M-###` metric · `T-###` table/column ·
-`G-###` gap. Each carries its source, confidence, and where the source has one, a staleness stamp.
-**Cite IDs when you answer.** An answer without an ID cannot be checked, and this KB exists to be checked.
+**Every fact is an addressable row** — `B-###` business · `M-###` metric · `T-###` table · `G-###` gap
+— each with source, confidence, staleness. **Cite IDs:** an uncited answer cannot be checked.
 
 ## What HCV covers
 
@@ -50,8 +49,8 @@ gap row first.**
 | M-011 | Time to Accept p50/p75/p90 | `order_time → fo_trip_accepted_time`, capped 0–3600s | `verified` |
 | M-012 | MAP | distinct partners with a day of `business_login_hours > 0.5` | `verified` |
 
-**111 distinct HCV metrics: 12 full entries + 99 index rows** ([metrics.md](./metrics.md) §2).
-Derived from **178 source rows** across three sources. **12 `M-###` numbers retire 11 *source*
+**119 distinct HCV metrics: 12 full entries + 107 index rows** ([metrics.md](./metrics.md) §2).
+Derived from **296 source rows** across **four** sources. **12 `M-###` numbers retire 11 *source*
 identities across 25 *source rows*** — MAP is catalogued by no source. Never swap those three units.
 
 ### Three facts that prevent most errors
@@ -71,7 +70,7 @@ identities across 25 *source rows*** — MAP is catalogued by no source. Never s
 
 **1.** the query pack *(reconciled SQL)* → **2.** observed Metabase card SQL → **3.** governed store
 `metric.porter.*` *(authoritative for **naming and governance**, not formulas)* → **4.** the Notion
-inventories' judgement → **5.** Sheet `HCV_Metrics_DD` *(AI-drafted, unratified →* `assumption`*)* →
+inventories' judgement → **5.** unratified catalogues — Sheet `HCV_Metrics_DD` and `coverage-map` *(→* `assumption`*)* →
 **6.** card titles — **never evidence**.
 
 > **Absolute exception:** when pack, card and store disagree — **and they do** — **do not resolve it.**
@@ -118,7 +117,8 @@ works from any branch.**
 hcv-selfserve/
   hcv_metrics_queries.md   ← the pack, rung 1 — pinned repo@20f6416
   kb/                      ← you are here
-  kb-build/                ← DESIGN · DECISIONS (D-001..D-026) · BOARD — process trail, not KB content
+  coverage-map/            ← derived snapshot, NOT a source (`G-082`) · 118 rows, 8 harvested
+  kb-build/                ← DESIGN · DECISIONS (D-001..D-028) · BOARD — process trail, not KB content
 ```
 
 **Provenance format:** `repo@<sha>:<path>#L<n>` — never a bare path or branch name. Two clones exist

@@ -605,3 +605,58 @@ and no distance split** — `mbr_mapping_v2` was not rebuilt (`T-073`). **Revenu
 `T-030` leaves unit scaling `unverified`. These are **not** the pack's published figures.
 
 **`G-024` (empty snapshot) is partially closed**; the rest waits on `T-030` and a rebuilt base table.
+
+### D-028 · 2026-08-18 · Merge `hcv_selfserve` into `hcv-selfserve` — a **harvest**, not a union
+**Decision:** the two HCV directories become one. **`hcv-selfserve` (hyphen) survives.**
+`coverage-map/` moves in as a **sibling of `kb/`**, its two genuinely additive parts are harvested
+into the KB, and its coverage fields are declared **void** rather than merged.
+
+**Why hyphen wins — the asymmetry is ~1750:2 and one side is untracked:**
+
+| | `hcv-selfserve` | `hcv_selfserve` |
+|---|---|---|
+| contents | 11 files, 1,754 lines | 2 files |
+| git | 31 commits | **untracked**, never committed on any branch |
+| dependencies | 46 pack line-citations, ~40 relative links | none |
+| precedent | matches `pnm-selfserve`, `ptl-selfserve` (both hyphen, tracked) | matches nothing |
+
+`CONTRIBUTING.md` §3 makes `repo@<sha>:<path>#L<n>` the citation contract, so renaming the hyphen
+directory would invalidate the path half of every citation in the KB. Renaming a 2-file untracked
+directory costs nothing. **Rename the small thing.**
+
+**Harvested — the ~15% that is genuinely additive:**
+1. **8 new customer/demand-side identities** (`HCV-103`, `104`, `105`, `106`, `107`, `110`, `113`,
+   `115`) → `metrics.md` §2 rows **100–107**. Session-conversion-by-funnel-step, median sessions
+   created, median booking time, **customer DAU/MAU**, customer TPO+calls, top cancellation reason,
+   reallocation. **A surface none of the first three sources carried** — this KB had partner DAP/MAP
+   but no customer DAU/MAU at all.
+2. **Thread ownership for 30 metrics** → new `metrics.md` **§2d**. LFC 20 · Core Platforms 6 ·
+   Marketplace 3 · Finance 1. **The only source that carries this**, and it supplies the named owner
+   that 107 class-G gaps otherwise share generically.
+
+**Independent corroboration worth recording:** the coverage map assigns **AOV → Finance** thread.
+This KB reached `metric.porter.average_order_value` = **Finance-MIS lineage**, owners
+`arpanbarnwal@` / `finanalytix@`, from the dbt catalog — a different route entirely. Two independent
+sources agreeing **strengthens `G-033`**; it does not close it (`CONTRIBUTING.md` §4).
+
+**NOT merged, and why — a flat union would have been harmful.** Every coverage-bearing field is
+constant across all 118 rows: `status: pending`, `blocker: not-started`, `north_star: null`,
+`provenance: "stated"`, and one identical `blocker_note`. That is a uniform stamp, not an assessment
+— and on the 12 metrics with full write-ups, and on the FF %/Allocation % series now
+warehouse-validated (`D-027`), it is **factually wrong**. It also counts **118** HCV metrics where
+this KB counts **119** — two answers to one question, which is what `GAPS.md` class G exists to
+prevent. → **`G-082`**: regenerate the JSON *from* `metrics.md`, and until then treat its
+`status`/`blocker`/`north_star` as void.
+
+**Its own source is uncommitted.** All 118 rows cite
+`ProdOps/.../2026-08-07-hcv-metric-mapping-design.md:17`, outside this repo and never read here.
+Under §3 a `local:`-only source can never exceed `unverified`. → **`G-083`**
+
+**Counts, stated as a delta so the 2026-08-14 recount stays auditable line by line:**
+`99 prior index rows + 8 new = 107`; **12 full + 107 index = 119**; raw source rows `178 + 118 = 296`
+across **four** sources. Two new `source_ref` forms registered: `cov:HCV-###` (weak) and the mapping
+spec (weakest, `local:`). Class G extended to `G-201`–`G-399`.
+
+**`CONTEXT.md` breached its 150-line cap during this merge and was compressed back to 150**, not
+allowed to slip. The cap is a hard rule in `DESIGN.md` §6.2; a cap that yields the first time it is
+inconvenient is not a cap.

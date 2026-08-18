@@ -391,12 +391,12 @@ reason. Per [CONTRIBUTING.md](./CONTRIBUTING.md) §8.5 these are recorded, never
 
 ## §2 Index — every other HCV metric
 
-**99 rows.** One per un-promoted metric, deduped across `nb1882` (54), `nb4146` (34) and
+**107 rows.** One per un-promoted metric, deduped across `nb1882` (54), `nb4146` (34) and
 `gsheet:HCV_Metrics_DD` (**90 rows — counted, not estimated**). Each carries one `G-###` in
 `GAPS.md` class G (`D-010`), sharing a class-level `next_action`.
 
 **Gap ids are allocated mechanically: index row *N* ↔ `G-(200 + N)`.** So row 1 is `G-201`, row 98
-is `G-299`. This is checkable by script rather than by hand, and no id can drift.
+is `G-307`. This is checkable by script rather than by hand, and no id can drift.
 
 > ⚠️ **`source-status` is the source's OWN wording, carried verbatim — `Pending`, `contested`,
 > `Argus P1`, `GAP`. It is NOT a KB confidence value** ([CONTRIBUTING.md](./CONTRIBUTING.md) §4).
@@ -507,6 +507,14 @@ to base · `R4` genuinely different SQL kept distinct.
 | 97 | HCV Allocation API Latency P95 | gs | `gsheet:3` | L1 | Health | "Pending; Argus P1" — **DataDog** | R4 |
 | 98 | HCV Allocation L4 Tickets | gs | `gsheet:4` | L1 | Health | "Pending; Argus NA" — **Jira** | R4 |
 | 99 | Time to Accept Post Tray Listing P50/P90 | gs | `gsheet:30` | L1 | Satisfaction | "Pending; Argus P2" | R4 |
+| 100 | Session Conversion (Vehicle Selection to Order Placed) | cov | `cov:HCV-103` | L0 | Usage | "pending; not-started; Argus P1" | R4 |
+| 101 | Median Sessions Created | cov | `cov:HCV-104` | L1 | Usage | "pending; not-started; Argus P2" | R4 |
+| 102 | Median Booking Time | cov | `cov:HCV-105` | L1 | Usage | "pending; not-started; Argus P2" | R4 |
+| 103 | DAU | cov | `cov:HCV-106` | L0 | Adoption | "pending; not-started; Argus P1" | R4 |
+| 104 | MAU | cov | `cov:HCV-107` | L0 | Adoption | "pending; not-started; Argus P1" | R4 |
+| 105 | TPO + Calls initiated by Cx | cov | `cov:HCV-110` · thread **Core Platforms** | L0 | Satisfaction | "pending; not-started; Argus NA" | R4 |
+| 106 | Top Cancellation Reason | cov | `cov:HCV-113` | L1 | Satisfaction | "pending; not-started; Argus P2" | R4 |
+| 107 | Reallocation | cov | `cov:HCV-115` | L1 | Usage | "pending; not-started; Argus P2" | R4 |
 
 ### §2a Merges a reader may contest
 
@@ -549,6 +557,28 @@ data error.** → `G-060`
 
 ---
 
+### §2d Thread ownership — from `coverage-map`, the only source that carries it
+
+**30 of 118** coverage-map rows name an owning thread. Neither Notion inventory carries this, and the
+Sheet's equivalent column was not brought into §2. **This is the additive half of the coverage map**
+(`D-028`) — and it supplies the named target that 107 class-G gaps otherwise share generically.
+
+| thread | n | metrics |
+|---|---|---|
+| **LFC** | 20 | CBDF · CADF · Customer CADF · Partner CADF · Delay · Fare breach · Wait-time breach · Pickup breach · Drop breach · % order delayed to pickup · Delay time · Avg order rating ×2 · OLC CADF/CAC/PAC · Order-related TPO (Px, Cx) · % orders pickup delay · % orders fare breach |
+| **Core Platforms** | 6 | Notification Undelivery % · Onboarding support requests · Non-order TPO · Sprinklr sessions (partner) · Sprinklr sessions created (Px) · TPO + calls initiated by Cx |
+| **Marketplace** | 3 | Missed Order · Stock Out · Allocation Rate |
+| **Finance** | 1 | **AOV** |
+
+> **`Finance` on AOV independently corroborates `G-033`.** This KB found `metric.porter.average_order_value`
+> to be **Finance-MIS lineage**, owned by `arpanbarnwal@` / `finanalytix@` — reached from the dbt
+> catalog. The coverage map, built from a different document entirely, assigns AOV to the **Finance**
+> thread. **Two independent sources agreeing raises confidence** — though per
+> [CONTRIBUTING.md](./CONTRIBUTING.md) §4, agreement between two *unverified* sources is still
+> `unverified`; here one side is catalog-read, so `G-033`'s AOV finding is strengthened, not closed.
+
+---
+
 ## §3 Reconciliation
 
 **Two units are counted here and they are not interchangeable** — this is the distinction PTL
@@ -573,13 +603,24 @@ gsheet:HCV_Metrics_DD rows            90   (counted)
 
 **178 − 25 − 57 + 3 = 99** ✓  *(recounted 2026-08-14 — see `D-026`)*
 
+**Delta, 2026-08-18 (`D-028`) — a fourth source arrived.** `coverage-map/metric-coverage.json`
+contributes **118 rows**, of which **110 map to metrics already covered or indexed** and **8 are new
+identities** — all customer/demand-side, a surface none of the first three sources carried:
+```
+prior index rows                       99
++ new identities from coverage-map     +8   HCV-103,104,105,106,107,110,113,115
+                              INDEX =  107
+```
+Stated as a delta rather than by redoing the base arithmetic, so the 2026-08-14 recount stays
+auditable line by line.
+
 ### The KB's own totals
 
 | | count |
 |---|---|
 | Full `M-###` entries (§1) | **12** |
-| Index rows (§2) | **99** |
-| **Total distinct HCV metrics in this KB** | **111** |
+| Index rows (§2) | **107** |
+| **Total distinct HCV metrics in this KB** | **119** |
 
 > ⚠️ **12 full entries ≠ 12 source metric identities.** They retire **11** — **MAP has no metric row
 > in any of the three sources.** It appears only inside `nb4146:M016`'s notes, as the governed-store

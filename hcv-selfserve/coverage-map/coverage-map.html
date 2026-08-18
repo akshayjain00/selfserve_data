@@ -1,0 +1,524 @@
+<meta charset="utf-8">
+<title>HCV Metric Coverage Map</title>
+<!-- This file is deliberately pure ASCII: every symbol (status glyphs, dashes, arrows) is written
+     as a \uXXXX escape rather than a raw character. A page served without a charset declaration is
+     decoded as windows-1252 by default, which turns UTF-8 glyphs into mojibake. Escapes are
+     resolved by the JS/HTML parser after decoding, so they survive either way. Keep it ASCII. -->
+<style>
+@media print{
+  .controls,.filters{display:none}
+  .node .kids{display:block !important}
+  .row{break-inside:avoid}
+}
+</style>
+<style>
+:root{
+  --bg:#ffffff; --panel:#f7f8fa; --panel-2:#eef0f4; --ink:#14171c; --ink-2:#4a5160;
+  --ink-3:#6e7781; --line:#d8dce3; --line-2:#c2c8d2; --accent:#0b5fbe;
+  --shipped:#136f2c; --partial:#8a5a00; --blocked:#b3202c; --pending:#5c6470; --unknown:#8b93a1;
+  --shipped-bg:#e3f3e7; --partial-bg:#fbf0d9; --blocked-bg:#fbe4e6; --pending-bg:#e9ebef; --unknown-bg:#f2f3f6;
+  --chip-on:#14171c; --chip-on-ink:#ffffff;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1216; --panel:#171b21; --panel-2:#1e232b; --ink:#e8ecf2; --ink-2:#aab3c0;
+    --ink-3:#8b949e; --line:#2b323c; --line-2:#3a424e; --accent:#6cb0ff;
+    --shipped:#54c26a; --partial:#e0aa2e; --blocked:#ff6b6b; --pending:#98a1ae; --unknown:#79828f;
+    --shipped-bg:#16301d; --partial-bg:#33280d; --blocked-bg:#3a1b1e; --pending-bg:#222831; --unknown-bg:#1b2027;
+    --chip-on:#e8ecf2; --chip-on-ink:#0f1216;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1216; --panel:#171b21; --panel-2:#1e232b; --ink:#e8ecf2; --ink-2:#aab3c0;
+  --ink-3:#8b949e; --line:#2b323c; --line-2:#3a424e; --accent:#6cb0ff;
+  --shipped:#54c26a; --partial:#e0aa2e; --blocked:#ff6b6b; --pending:#98a1ae; --unknown:#79828f;
+  --shipped-bg:#16301d; --partial-bg:#33280d; --blocked-bg:#3a1b1e; --pending-bg:#222831; --unknown-bg:#1b2027;
+  --chip-on:#e8ecf2; --chip-on-ink:#0f1216;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:15px/1.5 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  overflow-x:hidden;
+}
+.wrap{max-width:1060px; margin:0 auto; padding:28px 18px 80px}
+h1{font-size:21px; margin:0 0 4px; letter-spacing:-.01em; text-wrap:balance}
+
+/* keyboard focus must be visible - every row and chip is operable by keyboard */
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:4px}
+.row:focus-visible{outline-offset:-2px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:.01ms !important; animation-duration:.01ms !important}
+}
+.sub{color:var(--ink-2); font-size:13.5px; margin:0 0 18px}
+.sub b{color:var(--ink); font-weight:600}
+
+/* ---- header summary ---- */
+.summary{
+  background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  padding:12px 14px; margin-bottom:14px; font-size:13.5px;
+}
+.summary .tot{font-weight:650; font-size:15px}
+.sline{display:flex; flex-wrap:wrap; gap:6px 16px; align-items:baseline; margin-top:7px}
+.sitem{display:inline-flex; align-items:baseline; gap:6px; white-space:nowrap}
+.sitem .g{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.sitem .n{font-variant-numeric:tabular-nums; font-weight:600}
+.sitem .p{color:var(--ink-3); font-size:12.5px}
+.note{margin-top:9px; padding-top:9px; border-top:1px dashed var(--line);
+  color:var(--ink-2); font-size:12.5px}
+.note code{background:var(--panel-2); padding:1px 5px; border-radius:4px; font-size:11.5px}
+
+/* ---- controls ---- */
+.controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px}
+button.ctl{
+  font:inherit; font-size:12.5px; padding:5px 11px; border-radius:7px; cursor:pointer;
+  border:1px solid var(--line-2); background:var(--panel); color:var(--ink);
+}
+button.ctl:hover{background:var(--panel-2)}
+button.ctl[aria-pressed="true"]{background:var(--chip-on); color:var(--chip-on-ink); border-color:var(--chip-on)}
+.showing{margin-left:auto; color:var(--ink-3); font-size:12.5px; font-variant-numeric:tabular-nums}
+
+/* ---- filters ---- */
+.filters{border:1px solid var(--line); border-radius:10px; padding:4px 12px 12px; margin-bottom:16px; background:var(--panel)}
+.fgroup{display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:8px 0 0}
+.fgroup + .fgroup{border-top:1px solid var(--line); margin-top:8px}
+.flabel{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3);
+  min-width:104px; flex:0 0 104px; font-weight:600}
+.chip{
+  font:inherit; font-size:12px; line-height:1.3; padding:4px 9px; border-radius:20px; cursor:pointer;
+  border:1px solid var(--line-2); background:var(--bg); color:var(--ink-2); white-space:nowrap;
+}
+.chip:hover{border-color:var(--ink-3); color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--chip-on); color:var(--chip-on-ink); border-color:var(--chip-on)}
+.chip .cn{opacity:.62; font-variant-numeric:tabular-nums; margin-left:4px}
+
+/* ---- tree ---- */
+.tree{border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.row{display:flex; align-items:center; gap:9px; padding:7px 12px; border-top:1px solid var(--line); min-width:0}
+.tree > .node:first-child > .row{border-top:none}
+.branch > .row{cursor:pointer; background:var(--panel)}
+.branch > .row:hover{background:var(--panel-2)}
+.d1 > .row{background:var(--panel-2); font-weight:650}
+.caret{flex:0 0 12px; color:var(--ink-3); font-size:10px; transition:transform .12s; display:inline-block}
+.open > .row > .caret{transform:rotate(90deg)}
+.lbl{flex:1 1 auto; min-width:0; overflow-wrap:anywhere}
+.d2 > .row .lbl{font-weight:600}
+.kids{display:none}
+.open > .kids{display:block}
+
+/* indent */
+.d1 > .row{padding-left:12px}
+.d2 > .row{padding-left:28px}
+.d3 > .row{padding-left:46px}
+.leaf .row{padding-left:64px}
+
+/* ---- coverage bar ---- */
+.cov{display:flex; align-items:center; gap:8px; flex:0 0 auto}
+.bar{display:flex; width:86px; height:11px; border-radius:3px; overflow:hidden;
+  border:1px solid var(--line-2); background:var(--bg)}
+.seg{height:100%}
+.seg.shipped{background:var(--shipped)}
+.seg.partial{background:repeating-linear-gradient(45deg,var(--partial) 0 3px,transparent 3px 6px),var(--partial-bg)}
+.seg.blocked{background:repeating-linear-gradient(-45deg,var(--blocked) 0 2px,transparent 2px 5px),var(--blocked-bg)}
+.seg.pending{background:radial-gradient(var(--pending) .8px,transparent .9px) 0 0/4px 4px,var(--pending-bg)}
+.seg.unknown{background:var(--unknown-bg)}
+.frac{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px;
+  font-variant-numeric:tabular-nums; color:var(--ink-2); flex:0 0 auto; min-width:46px; text-align:right}
+
+/* ---- leaf ---- */
+.leaf .row{cursor:pointer; background:var(--bg)}
+.leaf .row:hover{background:var(--panel)}
+.leaf.inf .row{border-left:3px dashed var(--line-2); padding-left:61px}
+.glyph{flex:0 0 auto; width:19px; height:19px; border-radius:50%; display:inline-flex;
+  align-items:center; justify-content:center; font-size:11px; font-weight:700; line-height:1}
+.glyph.shipped{background:var(--shipped-bg); color:var(--shipped)}
+.glyph.partial{background:var(--partial-bg); color:var(--partial)}
+.glyph.blocked{background:var(--blocked-bg); color:var(--blocked)}
+.glyph.pending{background:var(--pending-bg); color:var(--pending)}
+.glyph.unknown{background:transparent; color:var(--unknown); border:1px dashed var(--unknown)}
+.tag{font-size:10.5px; padding:1px 6px; border-radius:5px; background:var(--panel-2);
+  color:var(--ink-3); flex:0 0 auto; font-weight:600; letter-spacing:.02em}
+.tag.lv{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.tag.infr{background:transparent; border:1px dashed var(--line-2); color:var(--ink-3)}
+.tag.alias{background:transparent; border:1px solid var(--line-2); color:var(--ink-3); font-weight:500}
+.bl{font-size:11.5px; color:var(--ink-3); flex:0 0 auto; white-space:nowrap}
+
+/* ---- detail ---- */
+.detail{display:none; padding:2px 12px 13px 64px; background:var(--bg);
+  border-top:1px solid var(--line); font-size:12.5px}
+.leaf.open .detail{display:block}
+.detail dl{display:grid; grid-template-columns:max-content 1fr; gap:4px 14px; margin:8px 0 0}
+.detail dt{color:var(--ink-3); font-size:11px; text-transform:uppercase; letter-spacing:.05em; font-weight:600}
+.detail dd{margin:0; overflow-wrap:anywhere}
+.detail code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px;
+  background:var(--panel-2); padding:1px 5px; border-radius:4px}
+.detail .none{color:var(--ink-3); font-style:italic}
+
+.empty{padding:26px 14px; text-align:center; color:var(--ink-3); font-size:13.5px}
+
+/* ---- legend ---- */
+.legend{display:flex; flex-wrap:wrap; gap:8px 14px; margin:14px 0 0; font-size:12px; color:var(--ink-2)}
+.legend span{display:inline-flex; align-items:flex-start; gap:6px; max-width:100%; overflow-wrap:anywhere}
+.legend span .glyph{flex:0 0 auto}
+
+@media (max-width:640px){
+  .wrap{padding:20px 12px 60px}
+  .flabel{flex:0 0 100%; min-width:0}
+  .bar{width:56px}
+  .bl{display:none}
+  .d2 > .row{padding-left:22px} .d3 > .row{padding-left:34px}
+  .leaf .row{padding-left:46px} .leaf.inf .row{padding-left:43px}
+  .detail{padding-left:46px}
+  .sitem{white-space:normal}
+  .legend{flex-direction:column; gap:8px}
+  .detail dl{grid-template-columns:1fr; gap:1px 0}
+  .detail dt{margin-top:7px}
+}
+</style>
+
+<div class="wrap">
+  <h1>Metric Coverage Map</h1>
+  <p class="sub" id="ns"></p>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="controls">
+    <button class="ctl" id="expandAll">Expand all</button>
+    <button class="ctl" id="collapseAll">Collapse all</button>
+    <button class="ctl" id="infOnly" aria-pressed="false">Show inferred only</button>
+    <span class="showing" id="showing"></span>
+  </div>
+
+  <div class="filters" id="filters"></div>
+  <div class="tree" id="tree"></div>
+
+  <div class="legend" id="legend"></div>
+</div>
+
+<script>
+const DATA = /*__COVERAGE_DATA__*/[{"id":"HCV-001","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Health"],"name":"Uptime","level":"L0","type":"Tech","domain":"Allocation-SOT","system":"DataDog","classification":"Health","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-002","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Health"],"name":"Error Rate","level":"L1","type":"Tech","domain":"Allocation-SOT","system":"DataDog","classification":"Health","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-003","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Health"],"name":"API Latency P95","level":"L1","type":"Tech","domain":"Allocation-SOT","system":"DataDog","classification":"Health","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-004","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Health"],"name":"L4 Tickets","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Jira","classification":"Health","argus_phase":"NA","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-005","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Health"],"name":"Notification Undelivery %","level":"L0","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Health","argus_phase":"P1","cross_thread":"Core Platforms","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-006","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Login hours per day","level":"L0","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-007","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Completed orders per DAP per day","level":"L0","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-008","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Idle time without dry run in hours","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-009","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Health"],"name":"Time between Pings in mins","level":"L1","type":"Tech","domain":"Allocation-SOT","system":"Snowflake","classification":"Health","argus_phase":"P3","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-010","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Acceptance rate","level":"L0","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-011","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"First batch allocation","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-012","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Persistence Gain","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-013","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Time to allocate post listing on Tray","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-014","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"#Orders in Tray","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-015","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"CBDF","level":"L0","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-016","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Missed Order","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"Marketplace","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-017","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Stock Out","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"Marketplace","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-018","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Cancellation time before allocation","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-019","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"CADF","level":"L0","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-020","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Customer CADF","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-021","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Porter CADF","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-022","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Partner CADF","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-023","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Cancellation time after allocation - CAC","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-024","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Cancellation time after allocation - PAC","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-025","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Usage"],"name":"Cancellation time after allocation - PoAC","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-026","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Adoption"],"name":"Avg DAP","level":"L0","type":"Business","domain":"Allocation-SOT","system":"Snowflake","classification":"Adoption","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-027","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Adoption"],"name":"Total Placed orders","level":"L0","type":"Business","domain":"Allocation-SOT","system":"Snowflake","classification":"Adoption","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-028","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Adoption"],"name":"Unique Demand","level":"L1","type":"Business","domain":"Allocation-SOT","system":"Snowflake","classification":"Adoption","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-029","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Satisfaction"],"name":"Allocation Time","level":"L0","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-030","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Satisfaction"],"name":"Time to accept after listing on tray","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Satisfaction","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-031","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Satisfaction"],"name":"Dry Run","level":"L0","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-032","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Satisfaction"],"name":"Delay","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-033","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Outcome"],"name":"FF - Fulfillment %","level":"L0","type":"Business","domain":"Allocation-SOT","system":"Snowflake","classification":"Outcome","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-034","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Outcome"],"name":"Effective Fulfilment Rate","level":"L0","type":"Business","domain":"Allocation-SOT","system":"Snowflake","classification":"Outcome","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-035","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Outcome"],"name":"Allocation Rate","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Outcome","argus_phase":"P1","cross_thread":"Marketplace","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-036","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Outcome"],"name":"Earnings Per Day","level":"L1","type":"Business","domain":"Allocation-SOT","system":"Snowflake","classification":"Outcome","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-037","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Outcome"],"name":"Partner Utilization","level":"L1","type":"Product","domain":"Allocation-SOT","system":"Snowflake","classification":"Outcome","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-038","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Health"],"name":"Notified partners per order","level":"L1","type":"Tech","domain":"Allocation-SOT","system":"Snowflake","classification":"Health","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-039","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Health"],"name":"Notified partners per batch","level":"L2","type":"Tech","domain":"Allocation-SOT","system":"Snowflake","classification":"Health","argus_phase":"P3","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-040","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Health"],"name":"Fetched partners","level":"L2","type":"Tech","domain":"Allocation-SOT","system":"Snowflake","classification":"Health","argus_phase":"P3","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-041","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Health"],"name":"Filtered in partners","level":"L2","type":"Tech","domain":"Allocation-SOT","system":"Snowflake","classification":"Health","argus_phase":"P3","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-042","vertical":"HCV","north_star":null,"path":["Allocation-SOT","Health"],"name":"Ranked partners","level":"L2","type":"Tech","domain":"Allocation-SOT","system":"Snowflake","classification":"Health","argus_phase":"P3","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-043","vertical":"HCV","north_star":null,"path":["Onboarding","Outcome"],"name":"Onboardings per month","level":"L0","type":"Business","domain":"Onboarding","system":"Snowflake","classification":"Outcome","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-044","vertical":"HCV","north_star":null,"path":["Onboarding","Outcome"],"name":"Sign up to Active driver rate","level":"L0","type":"Business","domain":"Onboarding","system":"Snowflake","classification":"Outcome","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-045","vertical":"HCV","north_star":null,"path":["Onboarding","Outcome"],"name":"Signup to Driver Creation (15d)","level":"L1","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Outcome","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-046","vertical":"HCV","north_star":null,"path":["Onboarding","Outcome"],"name":"Driver creation to Driver activated (15d)","level":"L1","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Outcome","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-047","vertical":"HCV","north_star":null,"path":["Onboarding","Outcome"],"name":"Signup to Vehicle Addition (15d)","level":"L2","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Outcome","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-048","vertical":"HCV","north_star":null,"path":["Onboarding","Outcome"],"name":"Signup to Owner Creation (15d)","level":"L2","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Outcome","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-049","vertical":"HCV","north_star":null,"path":["Onboarding","Outcome"],"name":"Signup to Doc Upload (15d)","level":"L2","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Outcome","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-050","vertical":"HCV","north_star":null,"path":["Onboarding","Outcome"],"name":"Doc upload to Driver Creation (15d)","level":"L2","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Outcome","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-051","vertical":"HCV","north_star":null,"path":["Onboarding","Outcome"],"name":"Channel Mix (Onboarding)","level":"L2","type":"Business","domain":"Onboarding","system":"Snowflake","classification":"Outcome","argus_phase":"P3","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-052","vertical":"HCV","north_star":null,"path":["Onboarding","Usage"],"name":"E2E onboarding TAT P90","level":"L0","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-053","vertical":"HCV","north_star":null,"path":["Onboarding","Usage"],"name":"P75 TAT from signup to lead","level":"L1","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-054","vertical":"HCV","north_star":null,"path":["Onboarding","Usage"],"name":"P75 TAT from lead to driver creation","level":"L1","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-055","vertical":"HCV","north_star":null,"path":["Onboarding","Usage"],"name":"Driver creation to activation TAT P75","level":"L1","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-056","vertical":"HCV","north_star":null,"path":["Onboarding","Satisfaction"],"name":"Support requests (onboarding-related)","level":"L0","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Satisfaction","argus_phase":"NA","cross_thread":"Core Platforms","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-057","vertical":"HCV","north_star":null,"path":["Onboarding","Satisfaction"],"name":"# City office visits for onboarding","level":"L1","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Satisfaction","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-058","vertical":"HCV","north_star":null,"path":["Onboarding","Adoption"],"name":"Time to first login after successful onboarding","level":"L0","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Adoption","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-059","vertical":"HCV","north_star":null,"path":["Onboarding","Adoption"],"name":"% onboarded partners completing first order within 15 days","level":"L0","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Adoption","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-060","vertical":"HCV","north_star":null,"path":["Onboarding","Adoption"],"name":"% onboarded partners completing first order within 30 days","level":"L1","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Adoption","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-061","vertical":"HCV","north_star":null,"path":["Onboarding","Adoption"],"name":"% onboarded partners completing first order within 90 days","level":"L1","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Adoption","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-062","vertical":"HCV","north_star":null,"path":["Onboarding","Adoption"],"name":"Time to first order acceptance","level":"L1","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Adoption","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-063","vertical":"HCV","north_star":null,"path":["Onboarding","Adoption"],"name":"Login hours of newly onboarded partners in first 15 days","level":"L1","type":"Product","domain":"Onboarding","system":"Snowflake","classification":"Adoption","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-064","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Outcome"],"name":"Partner daily earnings","level":"L0","type":"Business","domain":"Partner Lifecycle","system":"Snowflake","classification":"Outcome","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-065","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Outcome"],"name":"M1-Partner retention","level":"L0","type":"Business","domain":"Partner Lifecycle","system":"Snowflake","classification":"Outcome","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-066","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Outcome"],"name":"M6-Partner retention","level":"L0","type":"Business","domain":"Partner Lifecycle","system":"Snowflake","classification":"Outcome","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-067","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Outcome"],"name":"Completed orders per DAP per day","level":"L1","type":"Product","domain":"Partner Lifecycle","system":"Snowflake","classification":"Outcome","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-068","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Outcome"],"name":"Avg earnings per completed order","level":"L1","type":"Business","domain":"Partner Lifecycle","system":"Snowflake","classification":"Outcome","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-069","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Usage"],"name":"% Partners active for more than 20 days","level":"L0","type":"Product","domain":"Partner Lifecycle","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-070","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Usage"],"name":"Active days per month per partner","level":"L1","type":"Product","domain":"Partner Lifecycle","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-071","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Adoption"],"name":"DAP","level":"L0","type":"Business","domain":"Partner Lifecycle","system":"Snowflake","classification":"Adoption","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-072","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Adoption"],"name":"Idle Time (without dry run)","level":"L1","type":"Product","domain":"Partner Lifecycle","system":"Snowflake","classification":"Adoption","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-073","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Adoption"],"name":"Noticeboard engagement by Partners","level":"L2","type":"Product","domain":"Partner Lifecycle","system":"Amplitude","classification":"Adoption","argus_phase":"P3","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-074","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Adoption"],"name":"Wallet withdrawal","level":"L2","type":"Product","domain":"Partner Lifecycle","system":"Snowflake","classification":"Adoption","argus_phase":"P3","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-075","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Satisfaction"],"name":"TPO (Non Order related)","level":"L0","type":"Product","domain":"Partner Lifecycle","system":"Snowflake","classification":"Satisfaction","argus_phase":"NA","cross_thread":"Core Platforms","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-076","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Satisfaction"],"name":"Sprinklr Sessions (Non Order related)","level":"L1","type":"Product","domain":"Partner Lifecycle","system":"Snowflake","classification":"Satisfaction","argus_phase":"NA","cross_thread":"Core Platforms","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-077","vertical":"HCV","north_star":null,"path":["Partner Lifecycle","Satisfaction"],"name":"% Suspended partners per DAP","level":"L1","type":"Product","domain":"Partner Lifecycle","system":"Snowflake","classification":"Satisfaction","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-078","vertical":"HCV","north_star":null,"path":["OLC-Partner","Satisfaction"],"name":"Fare breach","level":"L0","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-079","vertical":"HCV","north_star":null,"path":["OLC-Partner","Satisfaction"],"name":"Wait time breach","level":"L1","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Satisfaction","argus_phase":"P2","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-080","vertical":"HCV","north_star":null,"path":["OLC-Partner","Satisfaction"],"name":"Pick up Breach","level":"L1","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-081","vertical":"HCV","north_star":null,"path":["OLC-Partner","Satisfaction"],"name":"Drop Breach","level":"L1","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-082","vertical":"HCV","north_star":null,"path":["OLC-Partner","Satisfaction"],"name":"ATA","level":"L0","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-083","vertical":"HCV","north_star":null,"path":["OLC-Partner","Satisfaction"],"name":"% Order delayed to reach pick up","level":"L1","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-084","vertical":"HCV","north_star":null,"path":["OLC-Partner","Satisfaction"],"name":"Delay time","level":"L1","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Satisfaction","argus_phase":"P2","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-085","vertical":"HCV","north_star":null,"path":["OLC-Partner","Satisfaction"],"name":"Avg Order rating","level":"L0","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-086","vertical":"HCV","north_star":null,"path":["OLC-Partner","Health"],"name":"Payment success %","level":"L1","type":"Tech","domain":"OLC-Partner","system":"Snowflake","classification":"Health","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-087","vertical":"HCV","north_star":null,"path":["OLC-Partner","Usage"],"name":"Payment online/offline split","level":"L2","type":"Business","domain":"OLC-Partner","system":"Snowflake","classification":"Usage","argus_phase":"P3","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-088","vertical":"HCV","north_star":null,"path":["OLC-Partner","Usage"],"name":"CADF","level":"L0","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-089","vertical":"HCV","north_star":null,"path":["OLC-Partner","Usage"],"name":"CAC","level":"L1","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-090","vertical":"HCV","north_star":null,"path":["OLC-Partner","Usage"],"name":"PAC","level":"L1","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-091","vertical":"HCV","north_star":null,"path":["OLC-Partner","Usage"],"name":"PoAC","level":"L1","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-092","vertical":"HCV","north_star":null,"path":["OLC-Partner","Usage"],"name":"Reallocation %","level":"L1","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-093","vertical":"HCV","north_star":null,"path":["OLC-Partner","Satisfaction"],"name":"Order-related TPO rate (Px)","level":"L0","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-094","vertical":"HCV","north_star":null,"path":["OLC-Partner","Satisfaction"],"name":"Order-related TPO rate (Cx)","level":"L0","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-095","vertical":"HCV","north_star":null,"path":["OLC-Partner","Satisfaction"],"name":"Sprinklr Sessions created (Px)","level":"L1","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Satisfaction","argus_phase":"NA","cross_thread":"Core Platforms","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-096","vertical":"HCV","north_star":null,"path":["OLC-Partner","Satisfaction"],"name":"% Orders with Manual fare adjustment","level":"L1","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Satisfaction","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-097","vertical":"HCV","north_star":null,"path":["OLC-Partner","Satisfaction"],"name":"Underpayment %","level":"L1","type":"Product","domain":"OLC-Partner","system":"Snowflake","classification":"Satisfaction","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-098","vertical":"HCV","north_star":null,"path":["Demand","Outcome"],"name":"Total Placed Orders","level":"L0","type":"Business","domain":"Demand","system":"Snowflake","classification":"Outcome","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-099","vertical":"HCV","north_star":null,"path":["Demand","Outcome"],"name":"Unique Demand","level":"L1","type":"Business","domain":"Demand","system":"Snowflake","classification":"Outcome","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-100","vertical":"HCV","north_star":null,"path":["Demand","Usage"],"name":"Session Conversion","level":"L1","type":"Product","domain":"Demand","system":"Amplitude","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-101","vertical":"HCV","north_star":null,"path":["Demand","Outcome"],"name":"AOV","level":"L1","type":"Business","domain":"Demand","system":"Snowflake","classification":"Outcome","argus_phase":"P2","cross_thread":"Finance","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-102","vertical":"HCV","north_star":null,"path":["Demand","Outcome"],"name":"Wallet Share","level":"L1","type":"Business","domain":"Demand","system":"Snowflake","classification":"Outcome","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-103","vertical":"HCV","north_star":null,"path":["Demand","Usage"],"name":"Session Conversion (Vehicle Selection to Order Placed)","level":"L0","type":"Product","domain":"Demand","system":"Amplitude","classification":"Usage","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-104","vertical":"HCV","north_star":null,"path":["Demand","Usage"],"name":"Median Sessions Created","level":"L1","type":"Product","domain":"Demand","system":"Amplitude","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-105","vertical":"HCV","north_star":null,"path":["Demand","Usage"],"name":"Median Booking Time","level":"L1","type":"Product","domain":"Demand","system":"Amplitude","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-106","vertical":"HCV","north_star":null,"path":["Demand","Adoption"],"name":"DAU","level":"L0","type":"Business","domain":"Demand","system":"Snowflake","classification":"Adoption","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-107","vertical":"HCV","north_star":null,"path":["Demand","Adoption"],"name":"MAU","level":"L0","type":"Business","domain":"Demand","system":"Snowflake","classification":"Adoption","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-108","vertical":"HCV","north_star":null,"path":["Demand","Adoption"],"name":"Transactions per user per month","level":"L1","type":"Business","domain":"Demand","system":"Snowflake","classification":"Adoption","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-109","vertical":"HCV","north_star":null,"path":["Demand","Adoption"],"name":"M1 Retention","level":"L1","type":"Business","domain":"Demand","system":"Snowflake","classification":"Adoption","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-110","vertical":"HCV","north_star":null,"path":["Demand","Satisfaction"],"name":"TPO + Calls initiated by Cx","level":"L0","type":"Product","domain":"Demand","system":"Snowflake","classification":"Satisfaction","argus_phase":"NA","cross_thread":"Core Platforms","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-111","vertical":"HCV","north_star":null,"path":["Demand","Satisfaction"],"name":"Avg Order rating","level":"L0","type":"Product","domain":"Demand","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-112","vertical":"HCV","north_star":null,"path":["Demand","Usage"],"name":"CBDF + CADF (CAC)","level":"L1","type":"Product","domain":"Demand","system":"Snowflake","classification":"Usage","argus_phase":"P1","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-113","vertical":"HCV","north_star":null,"path":["Demand","Satisfaction"],"name":"Top Cancellation Reason","level":"L1","type":"Product","domain":"Demand","system":"Snowflake","classification":"Satisfaction","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-114","vertical":"HCV","north_star":null,"path":["Demand","Satisfaction"],"name":"Time to Cancel","level":"L1","type":"Product","domain":"Demand","system":"Snowflake","classification":"Satisfaction","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-115","vertical":"HCV","north_star":null,"path":["Demand","Usage"],"name":"Reallocation","level":"L1","type":"Product","domain":"Demand","system":"Snowflake","classification":"Usage","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-116","vertical":"HCV","north_star":null,"path":["Demand","Satisfaction"],"name":"% Orders with pick up delay","level":"L1","type":"Product","domain":"Demand","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-117","vertical":"HCV","north_star":null,"path":["Demand","Satisfaction"],"name":"% Orders with fare breach","level":"L1","type":"Product","domain":"Demand","system":"Snowflake","classification":"Satisfaction","argus_phase":"P1","cross_thread":"LFC","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null},{"id":"HCV-118","vertical":"HCV","north_star":null,"path":["Demand","Satisfaction"],"name":"ETA distribution","level":"L1","type":"Product","domain":"Demand","system":"Snowflake","classification":"Satisfaction","argus_phase":"P2","cross_thread":"None recorded","status":"pending","blocker":"not-started","blocker_note":"Argus catalogue defines this metric but no computation: no table names, no filter expressions.","provenance":"stated","source":"ProdOps/02_specs_plans_logs/specs/2026-08-07-hcv-metric-mapping-design.md:17","resolves_to":null}];
+
+/* ---------- vocabulary (derived from data, never hardcoded per vertical) ---------- */
+const STATUS_ORDER = ['shipped','partial','blocked','pending','unknown'];
+const GLYPH = {shipped:'\u25CF', partial:'\u25D0', blocked:'\u25B2', pending:'\u25CB', unknown:'?'};
+const STATUS_HELP = {
+  shipped:'delivered and verified against its source',
+  partial:'built, but an open dispute or an unpromoted classification remains',
+  blocked:'a specific recorded obstruction stops the work',
+  pending:'nothing blocking; simply not done yet',
+  unknown:'the source documents say nothing either way'
+};
+
+/* A dimension earns a chip row only where the data actually varies on it, so the same
+   renderer serves verticals that carry different fields. Nothing here names a vertical. */
+const FILTER_CANDIDATES = [
+  {key:'type',           label:'Metric type'},
+  {key:'domain',         label:'Metric domain'},
+  {key:'classification', label:'Classification'},
+  {key:'system',         label:'System of record'},
+  {key:'level',          label:'Metric level'},
+  {key:'argus_phase',    label:'Argus phase'},
+  {key:'cross_thread',   label:'Cross-thread dep.'},
+  {key:'status',         label:'Status'},
+  {key:'blocker',        label:'Blocker reason'}
+];
+const FILTERS = FILTER_CANDIDATES.filter(f => {
+  const vals = new Set(DATA.map(r => r[f.key]).filter(v => v !== null && v !== undefined && v !== ''));
+  return vals.size > 1;
+});
+const active = {};                      // key -> Set of selected values
+FILTERS.forEach(f => active[f.key] = new Set());
+let inferredOnly = false;
+const expanded = new Set();             // node keys currently open
+const openLeaves = new Set();           // leaf ids with detail open
+
+/* ---------- tree ---------- */
+function buildTree(records){
+  const root = {key:'', label:'', children:new Map(), leaves:[], depth:0};
+  for (const r of records){
+    const segs = [r.vertical].concat(r.path);
+    let node = root, key = '';
+    for (const s of segs){
+      key = key ? key + ' \u203A ' + s : s;
+      if (!node.children.has(s))
+        node.children.set(s, {key, label:s, children:new Map(), leaves:[], depth:key.split(' \u203A ').length});
+      node = node.children.get(s);
+    }
+    node.leaves.push(r);
+  }
+  return root;
+}
+const TREE = buildTree(DATA);
+
+function matches(r){
+  if (inferredOnly && r.provenance !== 'inferred') return false;
+  for (const f of FILTERS){
+    const sel = active[f.key];
+    if (sel.size === 0) continue;                 // no chip in this group -> no constraint
+    if (!sel.has(String(r[f.key]))) return false; // OR within group, AND across groups
+  }
+  return true;
+}
+
+function rollup(node){
+  const by = {}; STATUS_ORDER.forEach(s => by[s] = 0);
+  let total = 0, visible = [];
+  for (const r of node.leaves) if (matches(r)){ by[r.status]++; total++; visible.push(r); }
+  for (const c of node.children.values()){
+    const s = rollup(c);
+    STATUS_ORDER.forEach(k => by[k] += s.by[k]);
+    total += s.total;
+  }
+  node._vis = visible;
+  node._roll = {by, total, shipped:by.shipped};
+  return node._roll;
+}
+
+/* ---------- render ---------- */
+function el(tag, cls, txt){ const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+
+function barEl(roll){
+  const cov = el('div','cov');
+  const bar = el('div','bar');
+  bar.setAttribute('role','img');
+  bar.setAttribute('aria-label', STATUS_ORDER.map(s => roll.by[s] + ' ' + s).join(', '));
+  for (const s of STATUS_ORDER){
+    if (!roll.by[s]) continue;
+    const seg = el('div','seg ' + s);
+    seg.style.width = (roll.by[s] / roll.total * 100) + '%';
+    seg.title = roll.by[s] + ' ' + s;
+    bar.appendChild(seg);
+  }
+  cov.appendChild(bar);
+  cov.appendChild(el('span','frac', roll.shipped + '/' + roll.total));
+  return cov;
+}
+
+function renderNode(node){
+  const roll = node._roll;
+  if (roll.total === 0) return null;                       // hide branches with no visible leaves
+
+  const wrap = el('div','node branch d' + Math.min(node.depth,3) + (expanded.has(node.key) ? ' open' : ''));
+  const row = el('div','row');
+  row.appendChild(el('span','caret','\u25B6'));
+  row.appendChild(el('span','lbl', node.label));
+  row.appendChild(barEl(roll));
+  row.setAttribute('role','button');
+  row.setAttribute('aria-expanded', expanded.has(node.key) ? 'true' : 'false');
+  row.tabIndex = 0;
+  const toggle = () => { expanded.has(node.key) ? expanded.delete(node.key) : expanded.add(node.key); render(); };
+  row.addEventListener('click', toggle);
+  row.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); } });
+  wrap.appendChild(row);
+
+  const kids = el('div','kids');
+  for (const c of node.children.values()){ const n = renderNode(c); if (n) kids.appendChild(n); }
+  for (const r of node._vis) kids.appendChild(renderLeaf(r));
+  wrap.appendChild(kids);
+  return wrap;
+}
+
+function renderLeaf(r){
+  const wrap = el('div','node leaf' + (r.provenance === 'inferred' ? ' inf' : '') + (openLeaves.has(r.id) ? ' open' : ''));
+  const row = el('div','row');
+  const g = el('span','glyph ' + r.status, GLYPH[r.status]);
+  g.title = r.status + ' \u2014 ' + STATUS_HELP[r.status];
+  row.appendChild(g);
+  row.appendChild(el('span','lbl', r.name));
+  if (r.resolves_to) row.appendChild(el('span','tag alias','\u2192 ' + r.resolves_to));
+  if (r.provenance === 'inferred') row.appendChild(el('span','tag infr','inferred'));
+  row.appendChild(el('span','tag lv', r.level));
+  if (r.blocker) row.appendChild(el('span','bl', r.blocker));
+
+  const hover = [r.status + (r.blocker ? ' \u00B7 ' + r.blocker : '')];
+  if (r.blocker_note) hover.push(r.blocker_note);
+  hover.push(r.source ? 'source: ' + r.source : 'source: none (inferred)');
+  row.title = hover.join('\n');
+
+  row.setAttribute('role','button');
+  row.tabIndex = 0;
+  const toggle = () => { openLeaves.has(r.id) ? openLeaves.delete(r.id) : openLeaves.add(r.id); render(); };
+  row.addEventListener('click', toggle);
+  row.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); } });
+  wrap.appendChild(row);
+
+  const d = el('div','detail');
+  const dl = document.createElement('dl');
+  const put = (k, v, raw) => {
+    dl.appendChild(el('dt', null, k));
+    const dd = el('dd');
+    if (v == null || v === ''){ dd.appendChild(el('span','none','\u2014')); }
+    else if (raw){ const c = el('code', null, v); dd.appendChild(c); }
+    else dd.textContent = v;
+    dl.appendChild(dd);
+  };
+  put('Status', r.status + ' \u2014 ' + STATUS_HELP[r.status]);
+  put('Blocker', r.blocker);
+  put('Why', r.blocker_note);
+  put('Source', r.source, true);
+  put('Provenance', r.provenance === 'stated'
+      ? 'stated \u2014 a repo file asserts this status'
+      : 'inferred \u2014 no repo evidence; go and verify');
+  put('Metric id', r.id, true);
+  if (r.resolves_to) put('Same metric as', r.resolves_to, true);
+  put('Level / type', r.level + ' \u00B7 ' + r.type);
+  put('Domain', r.domain);
+  if (r.classification) put('Classification', r.classification);
+  if (r.argus_phase) put('Argus phase', r.argus_phase);
+  if (r.cross_thread) put('Cross-thread dependency', r.cross_thread);
+  put('System of record', r.system);
+  d.appendChild(dl);
+  wrap.appendChild(d);
+  return wrap;
+}
+
+/* ---------- chrome ---------- */
+function renderFilters(){
+  const box = document.getElementById('filters');
+  box.textContent = '';
+  for (const f of FILTERS){
+    const counts = new Map();
+    for (const r of DATA){
+      const v = r[f.key];
+      if (v === null || v === undefined) continue;
+      counts.set(String(v), (counts.get(String(v)) || 0) + 1);
+    }
+    let vals = [...counts.keys()];
+    vals.sort(f.key === 'status'
+      ? (a,b) => STATUS_ORDER.indexOf(a) - STATUS_ORDER.indexOf(b)
+      : (a,b) => counts.get(b) - counts.get(a) || a.localeCompare(b));
+
+    const g = el('div','fgroup');
+    g.appendChild(el('span','flabel', f.label));
+    for (const v of vals){
+      const b = el('button','chip');
+      b.type = 'button';
+      b.dataset.key = f.key;
+      b.dataset.val = v;
+      b.setAttribute('aria-pressed', active[f.key].has(v) ? 'true' : 'false');
+      b.appendChild(document.createTextNode((f.key === 'status' ? GLYPH[v] + ' ' : '') + v));
+      b.appendChild(el('span','cn', String(counts.get(v))));
+      b.addEventListener('click', () => {
+        active[f.key].has(v) ? active[f.key].delete(v) : active[f.key].add(v);
+        render();
+      });
+      g.appendChild(b);
+    }
+    box.appendChild(g);
+  }
+}
+
+function renderSummary(){
+  const total = DATA.length;
+  const by = {}; STATUS_ORDER.forEach(s => by[s] = 0);
+  DATA.forEach(r => by[r.status]++);
+  const inf = DATA.filter(r => r.provenance === 'inferred').length;
+
+  const box = document.getElementById('summary');
+  box.textContent = '';
+  const head = el('div');
+  head.appendChild(el('span','tot', total + ' metrics'));
+  box.appendChild(head);
+
+  const line = el('div','sline');
+  for (const s of STATUS_ORDER){
+    const i = el('span','sitem');
+    const gl = el('span','g ' + s, GLYPH[s]);
+    gl.style.color = 'var(--' + s + ')';
+    i.appendChild(gl);
+    i.appendChild(el('span','n', String(by[s])));
+    i.appendChild(document.createTextNode(s));
+    i.appendChild(el('span','p', '(' + Math.round(by[s] / total * 100) + '%)'));
+    line.appendChild(i);
+  }
+  const i2 = el('span','sitem');
+  i2.appendChild(el('span','n', String(inf)));
+  i2.appendChild(document.createTextNode('inferred \u2014 unverified, needs checking'));
+  line.appendChild(i2);
+  box.appendChild(line);
+
+  const n = el('div','note');
+  const t = s => n.appendChild(document.createTextNode(s));
+  const code = s => n.appendChild(el('code', null, s));
+  t('Coverage means documented and verified in the knowledge base \u2014 not dashboarded. ');
+  t('Branch fractions read shipped / visible leaves and recompute as filters change. Rows marked ');
+  code('inferred');
+  t(' carry no repo citation and are the ones to go and verify.');
+
+  // Built from the status vocabulary itself, so the wording cannot drift away from the
+  // glyphs, the legend, or another vertical's evidence base.
+  const h = el('div','note');
+  h.appendChild(el('strong', null, 'How status was assigned. '));
+  h.appendChild(document.createTextNode(
+    'Status mirrors what the source documents assert about each metric, never a re-reading of their evidence: '));
+  STATUS_ORDER.forEach((s, i) => {
+    h.appendChild(el('code', null, s));
+    h.appendChild(document.createTextNode(
+      ' ' + STATUS_HELP[s] + (i < STATUS_ORDER.length - 1 ? '; ' : '. ')));
+  });
+  h.appendChild(document.createTextNode(
+    'Every row carries the file and line its status was read from \u2014 open a row to see it.'));
+  box.appendChild(n);
+  box.appendChild(h);
+}
+
+function renderLegend(){
+  const box = document.getElementById('legend');
+  box.textContent = '';
+  for (const s of STATUS_ORDER){
+    const sp = el('span');
+    sp.appendChild(el('span','glyph ' + s, GLYPH[s]));
+    sp.appendChild(document.createTextNode(s + ' \u2014 ' + STATUS_HELP[s]));
+    box.appendChild(sp);
+  }
+}
+
+function allBranchKeys(node, out){
+  for (const c of node.children.values()){ out.push(c.key); allBranchKeys(c, out); }
+  return out;
+}
+
+function render(){
+  rollup(TREE);
+  const tree = document.getElementById('tree');
+  tree.textContent = '';
+  let any = false;
+  for (const c of TREE.children.values()){ const n = renderNode(c); if (n){ tree.appendChild(n); any = true; } }
+  if (!any) tree.appendChild(el('div','empty','No metrics match these filters.'));
+
+  const shown = DATA.filter(matches).length;
+  const filtered = inferredOnly || FILTERS.some(f => active[f.key].size > 0);
+  document.getElementById('showing').textContent = filtered ? 'showing ' + shown + ' of ' + DATA.length : '';
+  document.getElementById('infOnly').setAttribute('aria-pressed', inferredOnly ? 'true' : 'false');
+  // keep chip pressed-state in sync without rebuilding the chip row
+  document.querySelectorAll('#filters .chip').forEach(b => {
+    b.setAttribute('aria-pressed', active[b.dataset.key].has(b.dataset.val) ? 'true' : 'false');
+  });
+}
+
+/* ---------- boot ---------- */
+const verts = [...new Set(DATA.map(r => r.vertical))];
+const nsBits = verts.map(v => {
+  const ns = (DATA.find(r => r.vertical === v) || {}).north_star;
+  return v + ' north star: ' + (ns || '\u2014');
+});
+const nsEl = document.getElementById('ns');
+nsEl.appendChild(el('b', null, nsBits.join('  \u00B7  ')));
+
+renderSummary();
+renderFilters();
+renderLegend();
+verts.forEach(v => expanded.add(v));   // top level open, everything below collapsed
+render();
+
+document.getElementById('expandAll').addEventListener('click', () => {
+  allBranchKeys(TREE, []).forEach(k => expanded.add(k)); render();
+});
+document.getElementById('collapseAll').addEventListener('click', () => {
+  expanded.clear(); openLeaves.clear(); render();
+});
+document.getElementById('infOnly').addEventListener('click', () => {
+  inferredOnly = !inferredOnly; render();
+});
+</script>

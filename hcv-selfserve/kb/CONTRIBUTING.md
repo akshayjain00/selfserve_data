@@ -126,6 +126,8 @@ fact be filed near its kin.
 | `store:metric.porter.<name>` | The governed metric store | medium |
 | `nb1882:M###` · `nb4146:M###` | The Notion inventories (§2.4) | medium |
 | `gsheet:HCV_Metrics_DD#<row>` | The Sheet, snapshot-dated | weak |
+| `cov:HCV-###` | `coverage-map/metric-coverage.json` — a derived snapshot, **not** a source of truth (`D-028`) | weak |
+| `spec:2026-08-07-hcv-metric-mapping-design` | The Argus mapping design doc the coverage map cites. **Outside this repo — cite as `local:` until committed** | **weakest** |
 | `local:<path>` | Anything not version-controlled | **weakest** |
 
 **Never a bare path or branch name.** Two clones of this repo exist on diverged branches; commit
