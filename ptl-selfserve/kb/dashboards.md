@@ -33,6 +33,25 @@ built on it is **STALE**. Re-extract before trusting it. See CONTRIBUTING §5.
 > ⚠️ **9 cards added 2026-07-30 (batch 2: 34052, 34364, 33784, 33823, 33785, 33824, 42081, 42080,
 > 37416) have NO fingerprint yet.** The worker that found them was scoped to metadata search, not
 > fingerprint capture — recorded here rather than guessed. → `G-152`
+> *(Partially closed 2026-08-07: **34052** = `2026-01-11T17:47:14Z`, **33784** = `2026-01-11T17:56:24Z`,
+> **42081** = `2026-08-05T17:51:14Z`. Seven remain.)*
+
+### Cards added 2026-08-07
+
+| card | name | `source_updated_at` | db | role |
+|---|---|---|---|---|
+| **52812** | PTL position on VSS | 2026-06-17T07:51:39Z | 73 | `M-021` — **the VSS TOF source the catalogue never pointed at.** Also emits PTL's list position and labels `vehicl_a_selected` as auto-selection (`M-023`) |
+| **43551** | SLA App sheet | 2026-06-08T10:41:23Z | 73 | `M-022` — **the live Perfect-Order metric (`OPOD`)**, in collection 5780 not on 4198 → `G-155` |
+| 44410 | VSS→Quote→BookNow session conversion | 2026-05-12T07:07:49Z | 73 | `M-009` — ⚠️ numerator is a **click**, no business filter → `G-158` |
+| 50929 | PTL Orders — Delay Research | 2026-06-05T12:01:28Z | 73 | Owner's own research card; documents `orders.trip_start/end_time` as 100%-covered. **Not an SLA source** — the SLA cards use `reached_pickup_at` arrival timestamps instead |
+
+> 🛑 **Dead cards — read before quoting anything from dashboard 4198's SLA tiles.**
+> **34052** (Perfect Order Experience) returns **0% for every month Feb-26 → Jul-26**.
+> **33784** (On-Time Pickup) returns **zero rows**. Both read `gsheet_sync.ptl_table`, whose sync
+> stopped after Jan-2026 (`T-074`). Because the join is `LEFT JOIN`, the failure renders as a
+> confident `0%` rather than an error. → `G-154`. Companion cards **33823 / 33785 / 33824 / 34364**
+> share the source and are near-certainly dead too — **not yet individually executed**, so they are
+> recorded as suspect, not confirmed.
 
 ### The three Metabase database connections
 | id | name | role here |

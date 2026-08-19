@@ -46,18 +46,17 @@ reading its gap row first.
 | M-004 | Effective Fulfilment % | `100 × completed / (placed − cbdf_cancels)` | ⚠️ `unverified` (`G-002`) |
 | M-005 | CBDF % | `100 × cancels(state=4, **no** vehicle) / placed_orders` | `verified` mechanic, ⚠️ `G-001` |
 | M-006 | CADF % | `100 × cancels(state=4, vehicle assigned) / placed_orders` | `verified` mechanic, ⚠️ `G-001` |
-| M-007 | Avg Orders per Trip (clubbing) | `clubbed_orders / clubbing_trips` (batches ≥2 orders) | `verified`, ⚠️ filter gap `G-010` |
+| M-007 | Avg Orders per Trip (clubbing) | `orders / batches` — **all batches, no ≥2 restriction** | `verified` (formula **corrected** 2026-08-07, `G-157`), ⚠️ `G-010` |
 | M-008 | AOV | `SUM(revenue WHERE state=3) / completed` | ⚠️ `unverified` — 3 revenue bases (`G-004`) |
-| M-009 | Business Session Conversion % | `100 × orders / sessions` | `verified`, ⚠️ different "business" def (`G-012`) |
+| M-009 | Business Session Conversion % | `100 × orders / sessions` | ⚠️ **`unverified`** — cited card counts a *click*, no business filter (`G-158`); `ptl_fe_events.user_type` **does not exist** |
 | M-010 | New Business Users (monthly) | first-order count in month | ⚠️ `unverified` — not implemented (`G-010`) |
 | M-011 | M1 Business Retention % | `100 × m0_retained / m0_business_users` | `verified`, ⚠️ base gap (`G-010`) |
 
-**23 of 85 catalogue rows now have a full `M-###` entry** (via **20 M-numbers** — 2 of them each
-close more than one row, so the two counts legitimately differ). **62 rows remain index-only**
-([metrics.md](./metrics.md) §2) — 23+62=85. The original catalog audit (frozen) = **85 rows**: 15
-`confirmed`, 6 `contradicted`, 64 `unverified` → 70 not confirmed *at audit time* — 3 of those 64
-turned out to be **catalogue mapping errors** (`G-148`, `G-149`). See [GAPS.md](./GAPS.md) §F3/§F4,
-incl. 14 owner/vehicle-supply rows possibly untrackable (`G-151`).
+**25 of 85 catalogue rows** have a full `M-###` entry (via 23 M-numbers — some close >1 row);
+**60 remain index-only** ([metrics.md](./metrics.md) §2). ⚠️ **4 of the 25 are documented but dead**
+(`G-154`). Frozen original audit: 15 `confirmed` · 6 `contradicted` · 64 `unverified`, 3 of which
+were **mapping errors** (`G-148`, `G-149`). Detail + the 14 possibly-untrackable supply rows
+(`G-151`): [GAPS.md](./GAPS.md) §F3–§F5.
 
 ### Three facts that prevent most errors
 - **`orders.state`**: `3=Completed, 4=Cancelled` — `T-001`, verified on db73. The `0/1/2` labels are db83-only (`T-001a`).
@@ -112,31 +111,30 @@ is one metadata call (`get_card`), **not** a query. See [CONTRIBUTING.md](./CONT
 ## Source locations
 
 Repo `github.com/akshayjain00/selfserve_data`. **`kb/` is published on two branches and is
-self-contained — every link inside it is relative, so it works from either.** Its sibling assets are
-**only** on `claude/ptl-metric-catalog-map`:
-```
-ptl-selfserve/kb/               ← you are here (on BOTH branches)
-─── the following exist ONLY on claude/ptl-metric-catalog-map ───
-ptl-selfserve/DECISION_LOG.md         ← owner rulings D1–D7 (domain authority)
-ptl-selfserve/iteration-1-ptl-*.md    ← the 85-row catalog + ranked open questions
-ptl-selfserve/selfserve_nlq/          ← prototype (metrics_registry, sqlgen, ask.py)
-```
-If you are on `claude/pnm-metrics-catalog-map-vg251i` those four are absent — switch branches or
-use the pinned SHA below to read them.
-**Provenance format:** `repo@<commit-sha>:<path>#L<n>` — never a bare path or branch name. Two
-clones of this repo exist on **diverged branches**; PTL work is on `claude/ptl-metric-catalog-map`
-(pinned `7a43470`), PnM reference material on `claude/pnm-p80-orderedits` (pinned `851886f`).
-Neither branch holds both. Commit SHAs are the only stable citation.
+self-contained** — every link inside is relative. Siblings exist **only** on
+`claude/ptl-metric-catalog-map`: `ptl-selfserve/DECISION_LOG.md` (owner rulings D1–D7),
+`iteration-1-ptl-*.md` (the 85-row catalog + open questions), `selfserve_nlq/` (prototype). On
+`claude/pnm-metrics-catalog-map-vg251i` those are absent — switch branches or use the pinned SHA.
+**Provenance:** `repo@<sha>:<path>#L<n>`, never a bare path or branch name. PTL work is pinned
+`7a43470`; PnM reference material is `claude/pnm-p80-orderedits` pinned `851886f`. Neither branch
+holds both; SHAs are the only stable citation.
 
-**Dashboards:** `metabase.prod-internal.porter.in` — `dashboard/4198` (Business Observability),
-`dashboard/4569` (Customer), `card/33519` (Ops Orders Details), `dashboard/4793` (**canonical
-cancellation**, ruling D5).
+**Dashboards** (`metabase.prod-internal.porter.in`): `4198` Business Observability · `4569` Customer ·
+`card/33519` Ops Orders Details · `4793` **canonical cancellation** (D5). Card index: dashboards.md.
 
 ---
 
 ## State of the work — read before promising anything
 
+- 🛑 **FOUR METRICS ARE DEAD, NOT JUST UNVERIFIED (2026-08-07).** `M-017` Perfect Order Experience
+  returns **0% for every month since Feb-26** on a live leadership dashboard; `M-018`'s on-time cards
+  return **zero rows**. Cause: `gsheet_sync.ptl_table` stopped syncing after Jan-2026 (`T-074`), and
+  the `LEFT JOIN` renders the failure as a confident `0%` instead of an error. All four were ✅
+  `verified` here for a quarter — **this KB tracked whether definitions were right, never whether
+  metrics still produced a number.** Live replacement: `M-022` (`card/43551`). → `G-154`, `G-155`
 - **Resolved:** `state` enum and business-customer rule, both from card SQL (`T-001`, `T-020`).
+- **Closed 2026-08-07:** `G-005` (customer masters agree to ~0.013% at session grain — closed by
+  *measurement*, not a ruling) · `G-012` (`ptl_fe_events.user_type` never existed) · `G-041` → `M-021`.
 - **NSM is RECONCILED** (2026-07-30) — card 39117 reproduces Mar/Apr-26 exactly, so the leadership
   figure inherits its defects (`G-141` internal users, `G-142` D3). **Still unverified:** the `<60s`
   treatment for **CBDF/CADF/fulfilment** — three incompatible semantics live in production.
@@ -144,7 +142,10 @@ cancellation**, ruling D5).
   mismatch, not a D3 breach; Business Session Conversion's is **correct** — D6 exempts it (`G-119`).
 - ⚠️ **Strategic:** Project Argus (the cross-vertical Metric Store) **rejected** the hand-rolled,
   no-semantic-layer shape ruling D2 builds on. Treat raw-table self-serve as provisional (`G-132`).
-- **48 substantive gaps** + 74 uncovered metrics + 93 unopened cards → [GAPS.md](./GAPS.md).
-  **BLOCKED** gaps need an owner decision, not more analysis.
-- Reviewed by a blind accuracy checker and a zero-context loadability test. **No number here has
-  been validated against the warehouse — no query has been run.** Nothing is stakeholder-ready.
+- **67 substantive gaps open** (74 rows in §A–§F5, 7 closed) + 60 uncovered metrics (§G) + 93
+  unopened cards (§H) → [GAPS.md](./GAPS.md). *(Corrected 2026-08-07; the prior "48" reconciled to
+  nothing.)* **BLOCKED** gaps need an owner decision, not more analysis.
+- ⚠️ **Rule 1 has been relaxed twice under explicit owner go-ahead** (2026-07-30 card execution,
+  2026-08-07 card execution + read-only warehouse queries). Every fact so sourced says so inline.
+  Definitions here are documentation; **no metric *value* is recorded in this KB** (CONTRIBUTING §7/§9).
+  Nothing is stakeholder-ready.

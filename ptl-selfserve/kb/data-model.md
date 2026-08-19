@@ -1,7 +1,9 @@
 # data-model.md — tables, columns, enums, units
 
 `T-###` rows. Schema and rules: see [CONTRIBUTING.md](./CONTRIBUTING.md). Entry point: [CONTEXT.md](./CONTEXT.md).
-All rows `last_verified: 2026-07-29`.
+All rows `last_verified: 2026-07-29` **except** `T-022`, `T-062`, `T-074`, `T-075`, which carry
+`last_verified 2026-08-07`. Per CONTRIBUTING §5 the file-level date is not bumped — only those four
+were re-checked against source.
 
 **Warehouse:** Snowflake. **Primary DB in card SQL:** `PROD_CURATED`.
 **Ruling D2:** the prototype reads **raw `partload_application`** now; migration to a governed
@@ -40,7 +42,7 @@ All rows `last_verified: 2026-07-29`.
 |---|---|---|---|---|---|
 | **T-020** | **Business customer** = `CASE WHEN c.frequency IN (1,2,3,4) THEN 'Business' ELSE 'Personal' END`, from `prod_curated.oms_public.customers`, joined `orders.customer_mobile = c.mobile`. | `metabase:dashboard/4569` | see card rows | **verified** | Used *identically* by every segmenting card on 4569. Retires the prototype's unconfirmed `frequency IN (1,2,3,4)` flag. |
 | T-021 | Unmatched customers (no row, or `NULL` frequency) fall to **`Personal`** via the `ELSE`. There is no "unknown" bucket. | `metabase:dashboard/4569` | — | verified | Silently biases Personal upward. Material for any business-vs-personal split. |
-| T-022 | `prod_eldoria.core.dim_customers` is **never used** on dashboard 4569 — but **is** referenced on dashboard 4198. The two dashboards disagree on customer source. | `metabase:dashboard/4569`, `metabase:dashboard/4198` | — | unverified | Unresolved cross-dashboard conflict → `G-005`. |
+| T-022 | `prod_eldoria.core.dim_customers` is **never used** on dashboard 4569 — but **is** referenced on dashboard 4198, and on `metabase:card/52812` (joined on `customer_id`, not mobile). Three customer-source patterns are in production. | `metabase:dashboard/4569`, `metabase:dashboard/4198`, `metabase:card/52812` | — | **verified** — *upgraded 2026-08-07* | ✅ **Materiality measured, `G-005` closed.** For the Business/Personal split on VSS sessions, `dim_customers`-on-`customer_id` and `oms_public.customers`-on-`mobile` disagree by **~0.013%** of sessions. They are interchangeable for segmentation at this grain. **Not yet measured on order-grain metrics** — do not generalise the result past sessions → `G-160`. |
 | T-023 | **Internal/test users are excluded — by two different mechanisms with the same outcome.** (a) Card 33519: `LEFT JOIN prod_curated.partload_analytics.ptl_internal_users ON ptl_internal_users.mobile = orders.customer_mobile`, driven by an `is_test` parameter that **defaults to `False`**. (b) The CBDF/CADF family on dashboard 4793 (cards 43237, 42683): **hardcoded** `AND o.customer_mobile NOT IN (SELECT DISTINCT mobile FROM partload_analytics.ptl_internal_users)` — no parameter, always applied. | `metabase:card/33519`, `metabase:card/43237` | 2026-07-03T08:29:00Z · 2025-11-27T09:19:28Z | verified | **The absence of an `is_test` *parameter* is not the absence of *exclusion*** — do not re-exclude. Whether *every* metric card excludes internal users remains unaudited → `G-006`. |
 | T-024 | **City** is `ptl_routes.zone`, not a column on `orders`. Joined `ptl_routes.route_id = orders.route_id AND ptl_routes.is_active = 'True'` (string, not boolean). | `metabase:card/33519` | 2026-07-03T08:29:00Z | verified | — |
 
@@ -78,7 +80,7 @@ All rows `last_verified: 2026-07-29`.
 |---|---|---|---|
 | T-060 | `ptl_routes` | route master — `route_id`, `route_name`, **`zone` (= city)**, `is_active` | verified |
 | T-061 | `ptl_internal_users` | internal/test users, matched by `mobile` | verified |
-| T-062 | `ptl_fe_events` | front-end events — `event_ts`, `user_type` (`'Business'`) | verified |
+| T-062 | `ptl_fe_events` | front-end events. **Actual columns:** `record_metadata`, `variable_attr`, `event_timestamp`, `application_version_code`, `customer_mobile_number`, `customer_id`, `event_id`, `device_id`, `device_platform_name`, `app_session_id`, `device_platform_version`, `device_model`, `device_make`, `arrival_timestamp`, `application_version_name`, `event_name`, `screen_name`. Event payloads live in `variable_attr` as JSON. | **verified** — *corrected 2026-08-07* |
 | T-063 | `valid_combo_ranking` | clubbing combo ranking, `total_distance_km`, `ordered_order_ids` | verified |
 | T-064 | `ALLOCATION_OSRM_v2_DISTANCE` | OSRM combo distances, slot sequences | verified |
 | T-065 | `PTL_VALID_COMBO_LOGS` | combo logs | verified |
@@ -90,7 +92,9 @@ All rows `last_verified: 2026-07-29`.
 | T-070 | `PROD_CURATED.OMS_PUBLIC.customers` | **customer master — `frequency` drives the Business/Personal split (T-020)**, joined on `mobile` | verified | — |
 | T-071 | `PROD_CURATED.GSHEET_SYNC.ptl_offline_orders` | **offline orders — a Google-Sheet sync, not a system of record** | verified | Ruling D3: show BOTH bases (incl./excl. offline), do not pick. `status_code → state` mapping is **UNMAPPED**; unrecognised values become `NULL` → `G-009` |
 | T-072 | `PROD_ELDORIA.CORE.dim_customers` | governed customer dimension | unverified | Referenced on 4198, never on 4569 → `G-005` |
-| T-073 | `PROD_CURATED.GSHEET_SYNC.ptl_vendor_details`, `.ptl_table` | vendor/ops sheets | unverified | Sheet-backed; freshness unknown → `G-019` |
+| T-073 | `PROD_CURATED.GSHEET_SYNC.ptl_vendor_details`, `.ptl_table` | vendor/ops sheets | unverified | Sheet-backed; freshness unknown → `G-019`. **See `T-074` — `ptl_table` is no longer live.** |
+| **T-074** | `PROD_CURATED.GSHEET_SYNC.PTL_TABLE` | ops order sheet — `PICKUP_REACHED_TIMESTAMP`, `DROP_START_TIMESTAMP`, `WD_MARKED`, `DAMAGED_AT` | **verified** — *added 2026-08-07* | 🛑 **SYNC IS DEAD.** No completed order created after **Jan-2026** has a row here. Even within Jan-2026 its timestamp text had already drifted past the two `TRY_TO_TIMESTAMP` patterns its consumers use. Every card reading it does so with `LEFT JOIN`, so the failure is **silent**: flags resolve `NULL` and ratios render `0%` instead of erroring. Kills `M-017` and `M-018` → `G-154`. **`DAMAGED_AT` is free text (`''`/`'NO'`/`'No'`/`'N0'`/`'YES'`), not a boolean** — reconfirms `G-150`. Live successors: `partload_analytics.ptl_app_sheet_backfilled_data` ∪ `gsheet_sync.ptl_app_sheet_data` (see `M-022`). |
+| **T-075** | `PARTLOAD_APPLICATION.VEHICLES.OWNER_ID`, `PARTLOAD_APPLICATION.DRIVERS.OWNER_ID` | the owner foreign key on PTL supply | **verified** — *added 2026-08-07* | ⚠️ **Both columns exist and are 100% `NULL`** (0 populated of 2,750 vehicles and 2,973 drivers). This is stronger than `G-151`'s "may not exist at owner grain": the key is *present and empty*, so no query, card, or dbt model can produce an owner-grain supply metric. Needs instrumentation, not searching. Vehicle grain (`order_vehicles.vehicle_registration_number`) is populated and usable; vendor grain depends on frozen snapshot sheets (`T-073`). → `G-151` |
 
 > **Cross-vertical tables** appearing in 4569's acquisition-thread cards — `pnm_application.orders`,
 > `oms_public.orders`, `courier_application.orders`, `oms_public.vehicles`,
