@@ -161,6 +161,7 @@ warning). Until a fix lands, treat every clubbing number as unfiltered-by-date.
 
 > **Do not delete this entry when the cards are fixed** — close it with the date and the fixing
 > commit/card version, so the KB records that the trap once existed.
+> ask the user for session_id and his preferences to fix the card then use metabase-chart builder skill to fix the cards
 
 ### G-001
 **CBDF/CADF `<60s` residuals — semantics ruled, two card defects remain**
@@ -186,6 +187,7 @@ exclusion to 42683. (3) Amend or drop D5's reconciliation gate, since the two ca
 different ratios by construction.
 
 > Status moved `BLOCKED` → `OPEN`: this no longer needs an owner decision, it needs card edits.
+> ask the user for session_id and his preferences to fix the card then use metabase-chart builder skill to fix the cards
 
 ### G-002
 **`<60s` semantics — ruled. Three metrics, three different denominators, all intended**
@@ -224,7 +226,7 @@ controllable-failure view — but it must be labelled so nobody reads it as an o
 with variants.
 
 > Status moved `BLOCKED` → `OPEN`: semantics are ruled; what remains is making the code match.
-
+> ask the user for session_id and his preferences to fix the card then use metabase-chart builder skill to fix the cards
 ### G-018
 **The partition-pruning anti-pattern is more widespread than first recorded**
 `OPEN` · escalated · P1
@@ -242,6 +244,8 @@ conversation). Recommended fix supplied: keep the column bare and shift the boun
 **Until fixed.** Expect elevated runtime and warehouse cost on 33706 and on 33519's `pickup_date`
 filter path. This is a real cost/latency issue, not a style note.
 
+**Action.** reassess the card, there has been some changes in it .
+
 ### G-117
 **Arithmetic discrepancy in the source review**
 `OPEN` · P1
@@ -251,6 +255,7 @@ of the three numbers is wrong. Per `B-033` this is exactly the kind of figure th
 leadership note.
 
 **Next.** Re-read the Notion review's CADF row and establish which value is authoritative.
+**Answer** Notion is not important here there can be few mismatches.
 
 ---
 
@@ -292,7 +297,7 @@ difference is roughly 7% on the months measured.
 
 **Decision needed.** Two things. (1) Confirm the single-base reading: revenue = **final (weight-revision-adjusted) fare, with discount added back**? (2) Date basis — **`created_at` or `updated_at`**? AOV cannot be pinned without both; the date basis alone moves it ~7%.
 
-**Answer:**
+**Answer:** do not add discount,use final fare weight adjusted on updated_at
 
 ### G-148
 **Card 48984 (#16/#17) diverges from the canonical business-customer rule, and #17 is likely mislabeled**
@@ -311,7 +316,7 @@ whether #17 should be redefined or rebuilt against actual order completion.
 
 **Decision needed.** Only one half remains. The customer-source question is answered by `G-005` (use `oms_public.customers`). The "#17 is mislabeled" claim is **disproven** — clicks and orders are 1:1 (12,135 of 12,136 book-now click order-ids exist in `orders`), so a click numerator is a valid order proxy. **Decide:** accept #17 as-is, or still rebuild it to join order completion explicitly for clarity?
 
-**Answer:**
+**Answer:** accept it as is
 
 ### G-150
 **Six metrics confirmed genuinely absent from Metabase after a real search**
@@ -329,7 +334,7 @@ built?) before spending more search effort.
 
 **Decision needed.** Are these tracked anywhere — a sheet, or simply not built? **Partly answered already:** #36 Damage% appears in the July'26 review at 0.4%, marked "tracked offline", so at least one of the six has a source. Remaining: **#48, #49, #50, #52, #53**.
 
-**Answer:**
+**Answer:** they are all tracked offline
 
 ### G-155
 **Should the 39118 lifetime repeat flag ignore the dimension filters?**
@@ -375,7 +380,7 @@ inferred — must be supplied.
 
 **Decision needed.** **Name an owner per v1 metric** (all 11). This cannot be inferred from code or dashboards — it has to be supplied.
 
-**Answer:**
+**Answer:** it is not needed here but this is different from argus
 
 ### G-016
 **Acronym expansions unconfirmed: `VSS`, `TOF`, `OS`, `OLC`, `WD`**
@@ -389,7 +394,7 @@ from a card *title*, which §4 says is never evidence.
 
 **Decision needed.** Expansions for **VSS**, **TOF**, **OS**, **OLC**, **WD**. `VSS` is the urgent one — it names the top-of-funnel surface in ~8 metrics and is expanded nowhere.
 
-**Answer:**
+**Answer:** vss- vehicleselectionscreen, tof- top of funnel,os-outstation,olc- order life cycle, wd - weight discrepency
 
 ### G-017
 **House formulas use `so`, `mo`, `cac` with no expansion given**
