@@ -316,7 +316,7 @@ index-only treatment for the rest at the build's checkpoint 2. Each has a `G-###
 | 52 | % Organic Allocation (No Manual Ops Intervention) (L1) | **searched, zero hits anywhere in Metabase** → `G-150` |
 | 53 | Reallocation Rate (L1) | **searched, zero hits.** Loose unverified lead: card 48535 "Vehicle Change %" — not confirmed → `G-150` |
 | ~~54~~ | ~~GM% per PTL Order (L0)~~ | **promoted → `M-020`** (canonical card corrected: 37416, not 37413) |
-| 56 | Return Trip % (Bidirectional Routes) (L1) | confirmed-via-metadata |
+| 56 | Return Trip % (Bidirectional Routes) (L1) | **verified 2026-08-20** — card 44691. The 14 % vs 28 % conflict is a denominator-scope difference, not a computation error: "Bidirectional Routes" in this name *is* the denominator, and the published ~28 % is the bidirectional read → `G-156`; two semantics still open → `G-157` |
 | 57 | Monthly Active Owners (MAO) (L0) | **structural gap, see G-151** |
 | 58 | New Owners Onboarded per Month (L1) | **structural gap, see G-151** |
 | 59 | Monthly Active Vehicles (MAV) (L0) | **structural gap, see G-151** |

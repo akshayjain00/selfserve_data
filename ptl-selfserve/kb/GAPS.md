@@ -30,14 +30,15 @@ Coverage inventories (§10, §11) stay as tables; they are genuinely tabular.
 
 ## Dashboard
 
-Last updated **2026-08-14** — 11 owner rulings applied; 6 gaps closed, 4 narrowed, 1 corrected.
+Last updated **2026-08-20** — Return Trips % (card 44691) reconciled; 3 gaps added (`G-156`–`G-158`).
+Previously **2026-08-14** — 11 owner rulings applied; 6 gaps closed, 4 narrowed, 1 corrected.
 
 | Status | Count | Change |
 |---|---:|---|
-| `OPEN` | 45 | −2 |
-| `BLOCKED` — awaiting an owner decision | 11 | −5 |
-| `CLOSED` | 13 | +7 |
-| **Named gaps total** | **69** | — |
+| `OPEN` | 47 | +2 |
+| `BLOCKED` — awaiting an owner decision | 11 | — |
+| `CLOSED` | 14 | +1 |
+| **Named gaps total** | **72** | +3 |
 | Coverage rows — §10 catalogue metrics | 72 | — |
 | Coverage rows — §11 unopened cards | 12 | — |
 
@@ -45,6 +46,7 @@ Last updated **2026-08-14** — 11 owner rulings applied; 6 gaps closed, 4 narro
 
 | id | gap | status |
 |---|---|---|
+| [G-156](#g-156) | Return Trips % 14 % vs 28 % — **reconciled**; denominator scope, fix specified | `OPEN` |
 | [G-018](#g-018) | Partition-pruning anti-pattern on a live revenue card — real cost and latency | `OPEN` |
 | [G-117](#g-117) | Arithmetic discrepancy in the source review's CADF row | `OPEN` |
 | [G-137](#g-137) | Three clubbing cards silently ignore their date/city filters — **cards named, owner accepted for fix** | `OPEN` |
@@ -121,6 +123,9 @@ Last updated **2026-08-14** — 11 owner rulings applied; 6 gaps closed, 4 narro
 | [G-152](#g-152) | Nine batch-2 cards lack a staleness fingerprint | `OPEN` | P3 |
 | [G-153](#g-153) | Catalogue #4/#7/#8 verified but never given `M-###` rows | `OPEN` | P2 |
 | [G-155](#g-155) | Should 39118's lifetime flag ignore dimension filters? | `BLOCKED` | P2 |
+| [G-156](#g-156) | Return Trips % 14% vs 28% — reconciled, denominator scope | `OPEN` | P1 |
+| [G-157](#g-157) | Return Trips %: reverse-route predicate and cutoff-days bound | `CLOSED` | P2 |
+| [G-158](#g-158) | `ptl_routes` joined without `is_active` in 42081 / 48581 | `OPEN` | P2 |
 
 Coverage inventories are indexed separately — see [§10](#10-coverage--74-catalogue-metrics) and
 [§11](#11-coverage--93-dashboard-cards-not-opened).
@@ -129,7 +134,7 @@ Coverage inventories are indexed separately — see [§10](#10-coverage--74-cata
 
 ## Action queue — P1
 
-Five gaps. **None of these need a decision from you** — the calls are made and the detail below is
+Six gaps. **None of these need a decision from you** — the calls are made and the detail below is
 enough to execute. Ordered by how ready they are to fix.
 
 ### G-137
@@ -257,11 +262,62 @@ leadership note.
 **Next.** Re-read the Notion review's CADF row and establish which value is authoritative.
 **Answer** Notion is not important here there can be few mismatches.
 
+### G-156
+**Return Trips % — the 14% vs 28% conflict is a denominator-scope difference, not a computation error**
+`OPEN` · P1 · *card 44691 · dashboard 4198 "Overview"*
+
+**Reconciled 2026-08-20.** The last metric of 74 still marked a conflict. Both numbers are correct;
+they use different denominators. Reconstructed card 44691's SQL in Snowflake and reproduced **both**
+sides on identical inputs (`is_test='False'`, period = Month):
+
+| month | numerator | denom = all 96 active routes | denom = 28 bidirectional routes |
+|---|---:|---:|---:|
+| May-26 | 598 | 4,204 → **14.22 %** | 2,170 → **27.56 %** |
+| Jun-26 | 604 | 3,928 → **15.38 %** | 2,204 → **27.40 %** |
+| Jul-26 | 527 | 4,002 → **13.17 %** | 2,222 → **23.72 %** |
+
+The all-routes column reproduces the previously reported 14.22 / 15.38 / 13.17 exactly, which
+validates the reconstruction. The bidirectional column reproduces the published ~28 %. **The
+published review number is the bidirectional one** — consistent with the catalogue name,
+"Return Trip % (Bidirectional Routes)" (`kb/metrics.md:319`).
+
+**The numerator is identical in both columns** (598 / 604 / 527). Empirically, over all three
+months, *every* batch flagged as a return trip already sits on a bidirectional route — so the route
+filter only ever moves the denominator. A denominator of all 96 routes therefore divides a
+bidirectional-only numerator by an all-routes base. That is the defect.
+
+**Why the dashboard disagrees with the review.** Dashboard 4198's `Return Route Name` parameter
+(`648db78c`) has **no default**, and the card's own `route_name` tag has none either. So the tile on
+4198 renders the **unfiltered ~13–15 %**, while the review quotes ~28 % produced by someone typing
+routes into the filter by hand. The hand-maintained 19-route list is not stored in the card, the
+dashboard, or this repo — it exists only in whoever ran it.
+
+**Fix.** Gate the denominator on `reverse_route_id IS NOT NULL` rather than a typed route list. The
+card already computes reverse pairing internally, so this is self-maintaining as routes launch and
+close, and it removes the drift that made the list stale. Verified: 28 of 96 active routes are
+bidirectional (29.2 %), 0 route names are off the `'City - City'` convention, 1 route's name
+disagrees with its `PICKUP_CITY`/`DROP_CITY` columns.
+
+**Blast radius.** Card 44691 has 21,651 views. Dashboard 4198 had **62 distinct users since
+2026-05-01, 44 in the last 30 days, 25,480 queries in 30 days**, active every one of 112 days. The
+tile will move from ~13 % to ~24 % on apply. **Announce before applying** — this reads as a metric
+jump, not a fix.
+
+**Also fix while in here** (same card, lower stakes): defaults are `start_date=2025-09-01` /
+`end_date=2025-12-31`, so an unparameterised run silently returns 2025.
+
+**Next.** Apply the patch in `kb/patches/44691-return-trips.sql`. It is complete — `G-157` is ruled
+and folded in, and the patch has been executed end-to-end against Snowflake, returning
+27.56 / 27.40 / 23.72 % for May / Jun / Jul 2026. Metabase MCP is read-only for card SQL and the
+stored session token is expired (401), so this is a human paste into the card, not an API write.
+Also clear the 2025 date defaults in the card's parameter sidebar — the SQL cannot reach them.
+
 ---
 
 ## Decisions needed — BLOCKED
 
-Ten gaps, each waiting on one answer. Every block ends with a **Decision needed** line and a blank
+Ten gaps, each waiting on one answer. (`G-157` also sits in this section — **answered 2026-08-20**,
+left in place until the next tidy-up.) Every block ends with a **Decision needed** line and a blank
 **Answer:** for you to fill in — the same pattern you used last round. Nothing here can move until
 the question is answered, so these are the highest-leverage minutes you can spend on this file.
 
@@ -441,6 +497,63 @@ This is a roadmap decision, not an analysis task.
 
 **Answer:**
 
+### G-157
+**Return Trips % — two predicates the card computes and then ignores**
+`CLOSED` · **ruled 2026-08-20 (Devansh)** · P2 · *card 44691 · folded into the `G-156` patch*
+
+Separate from the denominator question (`G-156`, already settled). These two are genuine semantic
+calls, not bugs, and they change the headline number by up to 9 points.
+
+**1. The reverse-route condition is not applied.** `matched_return_routes` joins on
+`prev.vehicle_city = curr.drop_city AND prev.created_at < curr.created_at` — the
+`prev.route_id = curr.reverse_route_id` predicate is absent. So the whole `return_route_id`
+self-join produces a `reverse_route_id` that gates nothing. What the card actually counts is *"the
+same vehicle had a previous batch, and this batch drops in the vehicle's home service zone"* —
+i.e. **the vehicle came home**, not **the vehicle ran the reverse route**. Defensible as a proxy,
+but it is not what the metric name implies.
+
+**2. `return_trip_cutoff_days` is loaded and never used.** It is selected in `return_route_id` and
+carried through `orders_enriched` → `batch_routes` → `final_ctee`, but appears in **no predicate
+anywhere**. So "was Porter able to arrange a return" has no time bound at all. Values are 2 or 3
+days, populated on all 132 rows. Observed gap between the forward and return batch reaches
+**147 days**, with a mean of ~2.2.
+
+**What each choice is worth** (denominator = bidirectional routes, per `G-156`):
+
+| variant | May-26 | Jun-26 | Jul-26 |
+|---|---:|---:|---:|
+| as-is today | 27.56 % | 27.40 % | **23.72 %** |
+| + reverse-route predicate | 19.03 % | 17.56 % | 16.11 % |
+| + cutoff-days bound | 23.41 % | 22.10 % | 18.95 % |
+| + both | 17.88 % | 15.97 % | **14.90 %** |
+
+About 20 % of currently-counted return trips exceed their own route's cutoff; about 32 % are not on
+the true reverse route.
+
+**Independent of the choice:** the metric **declines in July in all four variants**. That drop is
+real and is currently hidden by reporting a flat 28 %.
+
+**Decision needed.** (a) Re-enable `prev.route_id = curr.reverse_route_id`, or keep the
+vehicle-came-home proxy and rename the metric to match what it measures? (b) Apply
+`return_trip_cutoff_days` as a bound on `curr.created_at - prev.created_at`, or drop the column?
+
+**Answer (2026-08-20, Devansh).**
+- **(a) Keep the proxy and the name as-is.** The reverse-route predicate is *not* applied. The
+  metric stays "the vehicle came home". `reverse_route_id` now serves exactly one purpose —
+  scoping the denominator per `G-156`.
+- **(b) Drop the column.** Verbatim: *"there is no logic of route cutoff entirely."*
+  `return_trip_cutoff_days` is removed from all five CTEs rather than left looking like an
+  unimplemented rule.
+
+**Consequence, accepted knowingly.** With (a) declined and (b) dropped, *nothing* bounds the gap
+between the forward and return batch. Pairs like vehicle …4978 — Mumbai→Ratnagiri on 1 Mar 2026,
+then Pune→Mumbai on 26 Jul 2026, **147 days apart on unrelated routes** — keep counting as return
+trips, as do same-direction repeats a week apart. This is the accepted behaviour of the proxy.
+Shipped numbers are therefore the as-is row: **27.56 / 27.40 / 23.72 %**.
+
+**Anyone reopening this** should reread the example table above before re-proposing either
+predicate — both were put to the owner with sizing and declined.
+
 ---
 
 > **The themed sections below carry only the remaining `OPEN` P2/P3 gaps.**
@@ -596,6 +709,36 @@ review reports it (66%, Apr-26).
 **Detail.** `cbdf_pct` carries the `<60s` caveat; `cadf_pct` does not, despite an identical mechanism.
 
 **Next.** Align the caveats.
+
+### G-158
+**`ptl_routes` joined without `is_active` — one card is damaged, one escapes by accident**
+`OPEN` · P2 · *found while working `G-156`*
+
+`PROD_CURATED.PARTLOAD_ANALYTICS.PTL_ROUTES` holds **132 rows for 96 distinct `route_id`s** — up to
+3 rows per route, differing on `IS_ACTIVE`. Filtering `is_active = 'True'` de-duplicates
+**perfectly**: 96 rows, 96 ids, zero dupes. Any join that omits the filter fans out.
+
+| card | name | views | joins `ptl_routes` w/o `is_active` | damaged? |
+|---|---|---:|---|---|
+| **42081** | Completed orders – P50 Allocation Time | 857 | yes, 1 join | **yes** |
+| **48581** | Effective Fulfilment Trend | 25 | yes, 2 joins | no — by accident |
+
+**42081 is wrong.** `COUNT(DISTINCT id)` protects the order counts, but `AVG`, `median` and
+`PERCENTILE_CONT` **do not** — they run over duplicated rows. Measured on Jul-26 completed orders:
+**9,489 rows for 7,618 distinct orders** (24.6 % inflation). Published **P50 15.77 vs 16.33 correct**
+(understated 0.56 min, ~3.4 %); P90 42.90 vs 43.37. Real, but a modest distortion — P2, not P1. Its
+own `array_agg(external_id)` output shows the repeated CRNs. Note 42081 carries a **second**
+fan-out source, `left join gsheet_sync.ptl_table`, not assessed here.
+
+**48581 is fine today.** Same missing filter in both its `total_orders` and `base` CTEs, but every
+aggregate is `COUNT(DISTINCT …)`, so the fan-out cancels. It is protected by accident, not by
+design — the next non-distinct aggregate added to it will break silently.
+
+Card 44691 filters `is_active` on all four of its `ptl_routes` joins and is safe. **Do not remove
+those filters** while applying `G-156`.
+
+**Next.** Add `AND ptl_routes.is_active = 'True'` to the join in 42081 (one line) and to both joins
+in 48581 (defensive). Re-check 42081's published P50 after.
 
 ---
 
@@ -998,7 +1141,7 @@ availability before any SQL work is possible.
 | G-082 | 52 | % Organic Allocation | **searched, zero hits anywhere** → `G-150` |
 | G-083 | 53 | Reallocation Rate | **searched, zero hits**; loose unconfirmed lead card 48535 → `G-150` |
 | ~~G-084~~ | 54 | ~~GM% per PTL Order~~ | **promoted → `M-020`** |
-| G-085 | 56 | Return Trip % | not covered |
+| ~~G-085~~ | 56 | Return Trip % | **covered — card 44691; conflict reconciled 2026-08-20** → `G-156`, `G-157` |
 | **G-151** | 57 | Monthly Active Owners (MAO) | **structural gap** → `G-151` |
 | **G-151** | 58 | New Owners Onboarded | **structural gap** |
 | **G-151** | 59 | Monthly Active Vehicles (MAV) | **structural gap** |
