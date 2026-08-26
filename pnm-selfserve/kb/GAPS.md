@@ -15,7 +15,7 @@ to execute.
 
 | id | gap | next_action | status |
 |---|---|---|---|
-| **PNM-G-002** | **Two PnM sources are untracked in git and therefore uncitable at a SHA** — `iteration-3-p80-orderedits-spec.md` (the sole source for `D8`–`D10`'s design) and `coverage-map/metric-coverage.json` (the only in-repo carrier of the 167-row Argus universe). Their bytes can change with no signal, and both are permanently capped at `unverified` (CONTRIBUTING §4.1) | Commit both to `main`, then re-point `PNM-S-032` and `PNM-S-037` from `local:` to `repo@<sha>:` and re-grade | **OPEN** |
+| ~~**PNM-G-002**~~ | ~~Two PnM sources are untracked in git and therefore uncitable at a SHA — `iteration-3-p80-orderedits-spec.md` and `coverage-map/metric-coverage.json`~~ | — | **CLOSED 2026-08-26** — **the premise was already false when this row was written.** Both files are tracked on `main`: the spec since **2026-07-19** (`83011b2`), **38 days *before*** the KB was built at `3d535b6` (2026-08-26), and the coverage map since **2026-08-26** (`03f1653`). Citations re-pointed `local:` → `repo@<sha>:` at three call sites — `PNM-S-032`, `PNM-S-037` and **`PNM-B-062`**, which this row's `next_action` did not name. ⚠ **The `§4.1` ceiling lifts; the `unverified` grade does not** — `§5` independently caps a design document and a CSV projection, so both stay `unverified` for a different reason. Two live traps recorded at `PNM-S-032`: the **Desktop clone holds an older 2026-07-12 draft** that must never be copied over the tracked board-reviewed revision, and this row previously *instructed* exactly that copy |
 | **PNM-G-003** | **PnM's strongest evidentiary rung cannot itself produce a `verified` row.** The MBR automation is out-of-repo, so it is `local:`-capped. The KB works around this by citing `sqlgen.py`, its in-repo mirror — but the workaround's validity rests entirely on the reconciliation staying true | Place the automation under version control, or record a hash of it per reconciliation run so the mirror claim is checkable | **BLOCKED** — owner |
 | **PNM-G-004** | **The reconciliation covers a bounded slice, and the KB leans on it everywhere.** `V3` covers 2026-05 for leads/orders/derived/tpo; `V4` covers p80 (8 baseline months) and order_edits (Mar/Apr/May). Several metrics were **never individually reconciled** — the three channel conversions, all three order-mix metrics, and all ten TPO stage metrics | Extend the differential reconciliation to more months and to the per-channel and per-stage metrics; record which ids are covered, per month | **OPEN** |
 | **PNM-G-006** | **No freshness check exists for the MBR automation.** It has no SHA readable offline and no `updated_at`. If the owner edits it, this KB has no way to notice | Same action as `PNM-G-003` | **BLOCKED** — owner |
@@ -90,7 +90,7 @@ nothing states that it is **what the business intends**. That gap is the point o
 | **PNM-G-060** | **"Packers & Movers" — the expansion of PnM — appears in no PnM or PTL source file in this repo.** It exists only in the out-of-repo workspace instruction file | Owner to confirm the expansion; add it to a source that lives in the repo | **OPEN** |
 | **PNM-G-061** | **`CRN` is never expanded in any source.** "Customer reference number" is the Gem KB's own gloss, not a cited definition — and the token is load-bearing: `crn LIKE '%PNM%'` is how PnM work is identified in every shared table | Confirm the expansion and, more importantly, **what makes a CRN match `'%PNM%'`** — that predicate is the vertical's boundary | **OPEN** |
 | **PNM-G-062** | **`LMS` is never expanded.** It appears as a coverage-map metric name (`% of orders contribution — LMS`) and a dashboard card label (`[DBT] Orders View(SCF+LMS)`). ⚠ **Partial evidence (2026-08-26):** the governed `lead_channel` dimension describes `source = 4` → `Generic` as **"Generic (LMS/broker/other)"**, so LMS sits inside the Others/Generic bucket — but the acronym itself is still unexpanded | Ask in `#pnm-analytics` for the expansion. This also gates whether `PNM-065` ↔ `pct_orders_others` is a safe mapping ([metrics.md](./metrics.md) §9.3) | **OPEN** |
-| **PNM-G-063** | **`OTA`, `P80` and `TPO` expansions trace only to the untracked coverage map or to code**, never to a governed definition | Fold the expansions into a tracked source once `PNM-G-002` closes | **OPEN** |
+| **PNM-G-063** | **`OTA`, `P80` and `TPO` expansions trace only to the coverage map or to code**, never to a governed definition. ✅ The coverage map is now tracked (`PNM-G-002` closed), so its `next_action`'s precondition is met — but tracking a carrier is not the same as writing a definition, so the gap itself is untouched | Fold the three expansions into a tracked KB source and cite it. **Was never `BLOCKED`** — this row's `next_action` merely said "once `PNM-G-002` closes", and that clause is now satisfied | **OPEN** |
 | **PNM-G-064** | **Cross-vertical metric-name collisions.** "allocation", "conversion", "cancellation" and the `CBDF`/`CADF`/`CAC` family mean **different things** in PnM, PTL and HCV, and all three verticals now keep knowledge bases in this repo. PTL's KB records the same collision from its side | Never cite a bare `M-###` across verticals — the `PNM-` prefix (CONTRIBUTING §3) exists for this. A cross-vertical disambiguation layer is an Argus-level concern | **OPEN** |
 
 ## G. Coverage — what this KB does not cover
@@ -131,9 +131,13 @@ nothing states that it is **what the business intends**. That gap is the point o
 | F. Naming and jargon | 5 | 0 |
 | G. Coverage | 8 | 1 |
 | H. Governed dbt layer vs this catalog | 4 | 0 |
-| **Total rows** | **58** | **8** |
+| **Total rows** | **57** | **8** |
 
-*58 rows exist; **2 are CLOSED** (`PNM-G-052`, `PNM-G-090`), leaving **56 live** — 48 `OPEN`, 8 `BLOCKED`.*
+*57 rows exist; **3 are CLOSED** (`PNM-G-052`, `PNM-G-090`, `PNM-G-002`), leaving **54 live** — 46 `OPEN`, 8 `BLOCKED`.*
+*The group column above sums to 57, and always did. Until 2026-08-26 this file published **four** wrong
+figures from one root cause — a `Total rows` of 58 that never matched its own groups, and the derived
+"58 rows exist / 56 live / 48 `OPEN`" prose (correct at the time: 57 / 55 / 47). **Recount from the
+group column on every edit; never carry a total forward.***
 
 **The eight owner-blocked rows are the ones that cannot be closed by more analysis:** `PNM-G-003`
 and `PNM-G-006` (put the automation under version control), `PNM-G-022` (correct the stale
@@ -141,6 +145,14 @@ and `PNM-G-006` (put the automation under version control), `PNM-G-022` (correct
 final), `PNM-G-027` (expose the vendor stage metric or not), `PNM-G-041` (ratify the
 owner-only-promotes rule so it stops resting on a docstring), and `PNM-G-070` (city/weekly cuts — now
 **materially cheaper**, since a governed `pickup_city_name` dimension exists).
+
+✅ **`PNM-G-002` closed 2026-08-26 — by checking, not by doing.** Both files it called untracked were
+already tracked, the spec since **38 days before** this KB was built. Three citations moved `local:` →
+`repo@<sha>:`, and `PNM-G-063`'s stated precondition is now met. The grade did **not** move — `§4.1`'s
+ceiling and `§5`'s document rule are separate caps, and only the first one lifted. ⚠ **Its
+`next_action` was actively wrong**: it told the reader to copy the spec in from the Desktop clone,
+where the surviving copy is an *older* pre-board-review draft. **A stale `next_action` is a hazard,
+not just noise** — re-check a provenance row's premise before executing it.
 
 ✅ **`PNM-G-090` closed 2026-08-26 by owner ruling** — the two lead metrics measure different
 populations and both stand; ours is renamed to say so. The rename itself is `PNM-G-093`, and until it

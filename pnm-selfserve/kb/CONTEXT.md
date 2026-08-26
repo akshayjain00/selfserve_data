@@ -162,7 +162,7 @@ capped at `unverified`; the KB reaches it through `sqlgen.py`, its in-repo mirro
   shifting types**; this catalog's = the **intra-city** subset, being renamed
   **`leads_overall_intra_city`** to say so (`owner-ruling:2026-08-26`, closed `PNM-G-090`). **Ruled,
   not yet in code** → `PNM-G-093`. Never substitute one for the other.
-- **56 live gaps**, **8 owner-blocked**. The biggest: **no city or weekly cut exists, and that is
+- **54 live gaps**, **8 owner-blocked**. The biggest: **no city or weekly cut exists, and that is
   precisely what city ops will ask for** (`PNM-G-070`).
 - ⚠ **iteration-1's metric catalog is superseded and unannotated.** Six of its definitions are
   actively wrong (`PNM-G-030`…`PNM-G-037`). Do not read it as current.

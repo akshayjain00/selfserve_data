@@ -81,7 +81,7 @@ All rows `last_verified: 2026-08-26`.
 | PNM-B-059 | **OTA** | On-Time Arrival — ⚠ **two conflicting definitions, no owner, section blocked** | `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` §7-Q3 | unverified → `PNM-G-024` |
 | PNM-B-060 | **Detractor** | An NPS classification (`Promoter` / `Neutral` / `Detractor`); also a `raised_by` value whose tickets are excluded from TPO everywhere | `live:INFORMATION_SCHEMA@2026-07-29`, `repo@851886f:pnm-selfserve/selfserve_nlq/sqlgen.py` | **verified** (the filter) |
 | PNM-B-061 | **MTD** | Month-to-date — how an in-progress month is labelled | `repo@851886f:pnm-selfserve/selfserve_nlq/ask.py` | **verified** |
-| PNM-B-062 | **LMS** | ⚠ **expansion stated nowhere.** Appears only as a coverage-map metric name and a dashboard card label | `local:pnm-selfserve/coverage-map/metric-coverage.json` | unverified → `PNM-G-062` |
+| PNM-B-062 | **LMS** | ⚠ **expansion stated nowhere.** Appears only as a coverage-map metric name and a dashboard card label | `repo@03f1653:pnm-selfserve/coverage-map/metric-coverage.json` | unverified → `PNM-G-062` |
 | PNM-B-063 | **Argus** | Porter's cross-vertical Metric Store programme | `repo@851886f:pnm-selfserve/iteration-2-readiness-ledger.md` §6 | unverified |
 
 ## Argus — the metric store this KB will eventually answer to
