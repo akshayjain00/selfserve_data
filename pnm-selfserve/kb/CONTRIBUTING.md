@@ -86,7 +86,8 @@ Use the most durable form available:
 |---|---|---|
 | Repo file (this repo) | `repo@<sha>:<path>` | `repo@851886f:pnm-selfserve/selfserve_nlq/sqlgen.py` |
 | **Governed dbt repo** | `dbt@<sha>:<path>` — `porterin/DE-DBT-SNOWFLAKE` | `dbt@ad4ab4e:models/docs/dim/dim_pnm_opportunity.yml` |
-| Owner ruling | `DECISION_LOG:D<n>` | `DECISION_LOG:D4` |
+| Owner ruling (logged) | `DECISION_LOG:D<n>` | `DECISION_LOG:D4` |
+| Owner ruling (in-session, not yet logged) | `owner-ruling:<YYYY-MM-DD>` — **rung 1, but transient.** Every one of these is a standing request to the owner to log it as a `D<n>`; until then it lives only in this KB | `owner-ruling:2026-08-26` |
 | Verification entry | `DECISION_LOG:V<n>` | `DECISION_LOG:V3` |
 | Metabase card | `metabase:card/<id>` | `metabase:card/47576` |
 | Metabase dashboard | `metabase:dashboard/<id>` | `metabase:dashboard/4076` |

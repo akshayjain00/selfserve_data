@@ -25,9 +25,11 @@ section is `readiness: prototype_only` — see `PNM-B-041`.
 
 ## 1. `leads` — 5 metrics · `prototype_only`
 
-### PNM-M-001 — Leads (overall and by channel) ✅ `verified`
+### PNM-M-001 — Leads, intra-city (overall and by channel) ✅ `verified`
 - **Covers 5 metric ids:** `leads_overall`, `leads_app`, `leads_desktop`, `leads_mobile`, `leads_others`
-- **Definition:** distinct PnM opportunities (booking-funnel leads) created in the month, split by the channel the lead arrived through.
+- **Definition:** distinct **intra-city** PnM opportunities (booking-funnel leads) created in the month, split by the channel the lead arrived through.
+- ⚠ **`leads_overall` is to be renamed `leads_overall_intra_city`** (`owner-ruling:2026-08-26`). **The rename is ruled but not yet shipped** — in code the id is still `leads_overall` → `PNM-G-093`.
+- ⚠ **This is NOT the governed `pnm_overall_leads`.** That metric (`PNM-S-051`, owner-approved 2026-08-11) counts the same leads **across all shifting types** and is therefore **strictly larger**. **Both are correct; they measure different populations.** Never compare or substitute one for the other, and always say which you mean.
 - **Formula:** `leads_overall` = `COUNT(DISTINCT opp_id)`. Each channel variant is the same count restricted to that channel bucket.
 - **Counted on:** month of `opp_created_ts` — the month the lead came in (`PNM-B-020`)
 - **Nano:** **INCLUDED** (`PNM-B-011`)
@@ -223,7 +225,7 @@ High support-edit rates mean customers could not self-serve.
 - **Why:** the original query referenced six columns — `scheduled_pickup_ts`, `vendor_arrived_ts`, and four coordinate columns. **Two were checked by name against the Data Catalog and exist in no catalogued table**; the staging table materialises none of the six. → `PNM-G-043`
 - **source_ref:** `repo@851886f:pnm-selfserve/selfserve_nlq/metrics_registry.py`, `repo@851886f:pnm-selfserve/iteration-2-readiness-ledger.md` §3
 - **confidence: `verified`** (that it is blocked)
-- **A candidate source now exists:** `PNM_EXPERIENCE.OTA_FLAG` (TEXT) and `OTA_BREACH_TAT_MINUTES` (NUM) are both live — but nobody has defined OTA against them, and **the definition itself is disputed**: the Notion glossary says within 30 minutes **and a 500 m radius**; the original pipeline metric said 30 minutes **and 2 km**. → `PNM-G-024`
+- **Two governed candidates now exist, and they agree on the thresholds.** `PNM_EXPERIENCE.OTA_FLAG` (`PNM-T-100`) and the `pnm_ota_capacity` mart (`PNM-T-100a`) both implement **30 minutes + 500 m** — settling the old 500 m-vs-2 km dispute in Notion's favour. ⚠ **They differ on the event**: shifting-started vs a vendor action with GPS. ⚠ `pnm_ota_capacity` also publishes `ota_percentage` **by city and slot**, which no catalog metric can do. **The section stays blocked until the owner rules which event defines PnM's OTA** → `PNM-G-024`
 - ⚠ The registry's stale `base_population` for this section still reads "completed (`status=2`)" — a **numeric** `status` exists on none of the re-pointed tables (`PROD_CURATED…ORDERS.STATUS` is TEXT; the governed `FACT_PNM_ORDERS` has no `status` at all), so the predicate cannot execute as written → `PNM-G-021`, `PNM-T-033`
 - **Until the owner rules, OTA questions get the gap, not a number.**
 

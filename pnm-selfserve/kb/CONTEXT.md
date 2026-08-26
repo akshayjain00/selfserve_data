@@ -155,14 +155,15 @@ capped at `unverified`; the KB reaches it through `sqlgen.py`, its in-repo mirro
   property checks, as it has no baseline**. **16 of the 47 ids were never individually reconciled**
   (3 channel conversions, 3 order-mix, 10 TPO stage metrics) → `PNM-G-004`. **Nothing is promoted.
   Nothing has been opened to stakeholders.**
-- **`ota` is BLOCKED** — its six original columns exist in no table, and the definition itself is
-  disputed: 30 min + **500 m** (Notion) vs 30 min + **2 km** (pipeline). `OTA_FLAG` now exists and
-  encodes an undocumented third rule (`PNM-G-024`).
-- ⚠ **`PNM-G-090` — two things are called "PnM leads" and they differ.** The governed, owner-approved
-  `pnm_overall_leads` counts normal-user leads across **all shifting types**; this catalog's
-  `leads_overall` restricts to **intra-city**. Both carry the owner's name, so CONTRIBUTING §6.2's
-  absolute exception applies: **recorded, not resolved.**
-- **55 live gaps**, **9 owner-blocked**. The biggest: **no city or weekly cut exists, and that is
+- **`ota` is BLOCKED, but narrowed.** Two governed models now implement it and **both use 30 min +
+  500 m**, settling the old 2 km dispute — they differ on the *event* (shifting-started vs a vendor
+  GPS action), and that fork is the owner's to rule (`PNM-G-024`).
+- ⚠ **Two things are called "PnM leads", and both are right.** The governed `pnm_overall_leads` counts
+  normal-user leads across **all shifting types**; this catalog's counts the **intra-city** subset and
+  is being renamed **`leads_overall_intra_city`** to say so (`owner-ruling:2026-08-26`, closing
+  `PNM-G-090`). **The rename is ruled but not yet in the code** → `PNM-G-093`. Never substitute one
+  for the other.
+- **56 live gaps**, **8 owner-blocked**. The biggest: **no city or weekly cut exists, and that is
   precisely what city ops will ask for** (`PNM-G-070`).
 - ⚠ **iteration-1's metric catalog is superseded and unannotated.** Six of its definitions are
   actively wrong (`PNM-G-030`…`PNM-G-037`). Do not read it as current.
