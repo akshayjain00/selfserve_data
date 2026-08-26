@@ -148,7 +148,7 @@ PTL template: `claude/ptl-metric-catalog-map` @ `28703aa`. PnM reference: `claud
   store counterpart at all** and must be proposed; two are **`NOT EQUIVALENT`** to theirs.
 - **Units are rupees, not paise** (`T-030`) — evidenced four ways, still `unverified` without one
   value read (`G-010`).
-- **13 gaps are `BLOCKED — owner`** — they need a person, not more analysis. **4 are mechanical** and
+- **15 gaps are `BLOCKED — owner`** — they need a person, not more analysis. **4 are mechanical** and
   would raise the evidence grade immediately: `G-050`, `G-014`, `G-073`, `G-103`.
 - ⚠️ **One series is now warehouse-validated** (`D-027`, `OWNER:2026-08-14`) - FF % and Allocation %
   at **month x overall** grain, in [business.md](./business.md) §7. **Nothing else is.** No category or
