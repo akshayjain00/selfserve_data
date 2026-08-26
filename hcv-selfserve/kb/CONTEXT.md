@@ -50,8 +50,16 @@ gap row first.**
 | M-012 | MAP | distinct partners with a day of `business_login_hours > 0.5` | `verified` |
 
 **119 distinct HCV metrics: 12 full entries + 107 index rows** ([metrics.md](./metrics.md) §2).
-Derived from **296 source rows** across **four** sources. **12 `M-###` numbers retire 11 *source*
-identities across 25 *source rows*** — MAP is catalogued by no source. Never swap those three units.
+Derived from **three** sources — `nb1882` (54) · `nb4146` (34) · `gsheet:HCV_Metrics_DD` — not four.
+**12 `M-###` numbers retire 11 *source* identities across 25 *source rows*** — MAP is catalogued by
+no source. Never swap those three units.
+
+⚠️ **The `119` and the source-row base are both under an open owner decision** (`G-100`,
+`last_verified 2026-08-27`). This line read *"296 source rows across **four** sources"*; the
+"fourth source" — `coverage-map` — is a transcription of `gsheet:HCV_Metrics_DD` itself, and that
+artifact has **118** rows where §3 counted **90**. So 296 double-counted one source. The corrected
+raw base is **206** (54 + 34 + 118) or **178** as-read at 2026-08-14, and which one the `119` should
+be rebuilt from is the owner's call, not a typo fix.
 
 ### Three facts that prevent most errors
 
@@ -117,7 +125,8 @@ works from any branch.**
 hcv-selfserve/
   hcv_metrics_queries.md   ← the pack, rung 1 — pinned repo@20f6416
   kb/                      ← you are here
-  coverage-map/            ← derived snapshot, NOT a source (`G-082`) · 118 rows, 8 harvested
+  coverage-map/            ← derived PROJECTION, NOT a source · 118 rows, 8 harvested
+                             regenerate with `derive.py`; never hand-edit (~~`G-082`~~, `G-100`)
   kb-build/                ← DESIGN · DECISIONS (D-001..D-028) · BOARD — process trail, not KB content
 ```
 
@@ -139,8 +148,8 @@ PTL template: `claude/ptl-metric-catalog-map` @ `28703aa`. PnM reference: `claud
   store counterpart at all** and must be proposed; two are **`NOT EQUIVALENT`** to theirs.
 - **Units are rupees, not paise** (`T-030`) — evidenced four ways, still `unverified` without one
   value read (`G-010`).
-- **12 gaps are `BLOCKED — owner`** — they need a person, not more analysis. **3 are mechanical** and
-  would raise the evidence grade immediately: `G-050`, `G-014`, `G-073`.
+- **13 gaps are `BLOCKED — owner`** — they need a person, not more analysis. **4 are mechanical** and
+  would raise the evidence grade immediately: `G-050`, `G-014`, `G-073`, `G-103`.
 - ⚠️ **One series is now warehouse-validated** (`D-027`, `OWNER:2026-08-14`) - FF % and Allocation %
   at **month x overall** grain, in [business.md](./business.md) §7. **Nothing else is.** No category or
   distance split; `mbr_mapping_v2` was not rebuilt; revenue and AOV absent pending `T-030`.

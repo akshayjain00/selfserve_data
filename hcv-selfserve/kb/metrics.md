@@ -395,8 +395,12 @@ reason. Per [CONTRIBUTING.md](./CONTRIBUTING.md) §8.5 these are recorded, never
 `gsheet:HCV_Metrics_DD` (**90 rows — counted, not estimated**). Each carries one `G-###` in
 `GAPS.md` class G (`D-010`), sharing a class-level `next_action`.
 
-**Gap ids are allocated mechanically: index row *N* ↔ `G-(200 + N)`.** So row 1 is `G-201`, row 98
+**Gap ids are allocated mechanically: index row *N* ↔ `G-(200 + N)`.** So row 1 is `G-201`, row 107
 is `G-307`. This is checkable by script rather than by hand, and no id can drift.
+
+> Read **`G-100`** before trusting the `90` above. The artifact behind `gsheet:HCV_Metrics_DD` has
+> **118** rows, not 90; rows 1–90 are what the 2026-08-14 build read. The `90` is left in place
+> because the §3 arithmetic below is built on it and correcting it is an owner call, not a typo fix.
 
 > ⚠️ **`source-status` is the source's OWN wording, carried verbatim — `Pending`, `contested`,
 > `Argus P1`, `GAP`. It is NOT a KB confidence value** ([CONTRIBUTING.md](./CONTRIBUTING.md) §4).
@@ -542,40 +546,53 @@ Recorded so they can be overturned, per [CONTRIBUTING.md](./CONTRIBUTING.md) §6
   cross-referenced on row 64, counted once.
 - **`gsheet:88` vs `gsheet:19`** — "HCV CADF %" and "HCV OLC CADF %" describe the same measure from
   two domains. Merged; the Sheet should decide whether the domain split is real.
-- **Sheet column alignment** — all 90 rows carry 27 cells, but `Status` lands at index 22 for 84
-  rows and index 21 for 6. It resolves unambiguously to **`Pending` for all 90**; no other value
-  appears in the sheet.
+- **Sheet column alignment** — the **header** carries 27 columns but the data rows carry **26**, and
+  **6** of them carry **25**, so `Status` lands at cell index 22 for the rest and index 21 for those
+  6. It resolves unambiguously to **`Pending`**; no other value appears in the sheet. *Recounted
+  2026-08-27: the 6 short rows are data rows **4, 25, 48, 50, 53, 54**, and over the artifact's full
+  **118** rows the split is **112 + 6**, not the **84 + 6** recorded for the 90 rows read — which is
+  itself the proof in `G-100`. This bullet previously said "all 90 rows carry 27 cells".*
 
 ### §2c A taxonomy divergence that needs one owner
 
 The Sheet systematically assigns **higher levels** (more L0s) than either inventory, and files
 experience metrics under **Satisfaction** where both Notion docs use **Health**. Both inventories
 independently state their dashboards carry **no Satisfaction metric at all**; the Sheet supplies
-**18**. Level or Doshi category conflict across sources for **20** merged metrics — every value is
-listed in source order above rather than reconciled. **This is a real taxonomy divergence, not a
-data error.** → `G-060`
+**29** — ⚠️ *this read **18** until 2026-08-27; the artifact's `Metric Classification` column holds
+**29** `Satisfaction` rows over all 118 and **17** over rows 1–90, so 18 matched neither reading.
+The divergence is therefore **larger** than recorded, not smaller.* → `G-102`. Level or Doshi
+category conflict across sources for **20** merged metrics — every value is listed in source order
+above rather than reconciled. **This is a real taxonomy divergence, not a data error.** → `G-060`
 
 ---
 
 ### §2d Thread ownership — from `coverage-map`, the only source that carries it
 
-**30 of 118** coverage-map rows name an owning thread. Neither Notion inventory carries this, and the
+**31 of 118** rows name an owning thread — ⚠️ *this read **30** until 2026-08-27; the `coverage-map`
+transcription drops `L4 Tickets` → `Core Platforms`, one of the six misaligned short rows. See
+`G-103`, and read **Core Platforms 7** in the table below, not the 6 the JSON still says.* Neither
+Notion inventory carries this, and the
 Sheet's equivalent column was not brought into §2. **This is the additive half of the coverage map**
 (`D-028`) — and it supplies the named target that 107 class-G gaps otherwise share generically.
 
 | thread | n | metrics |
 |---|---|---|
 | **LFC** | 20 | CBDF · CADF · Customer CADF · Partner CADF · Delay · Fare breach · Wait-time breach · Pickup breach · Drop breach · % order delayed to pickup · Delay time · Avg order rating ×2 · OLC CADF/CAC/PAC · Order-related TPO (Px, Cx) · % orders pickup delay · % orders fare breach |
-| **Core Platforms** | 6 | Notification Undelivery % · Onboarding support requests · Non-order TPO · Sprinklr sessions (partner) · Sprinklr sessions created (Px) · TPO + calls initiated by Cx |
+| **Core Platforms** | 7 | Notification Undelivery % · Onboarding support requests · Non-order TPO · Sprinklr sessions (partner) · Sprinklr sessions created (Px) · TPO + calls initiated by Cx · **L4 Tickets** (`G-103` — absent from the JSON) |
 | **Marketplace** | 3 | Missed Order · Stock Out · Allocation Rate |
 | **Finance** | 1 | **AOV** |
 
 > **`Finance` on AOV independently corroborates `G-033`.** This KB found `metric.porter.average_order_value`
 > to be **Finance-MIS lineage**, owned by `arpanbarnwal@` / `finanalytix@` — reached from the dbt
-> catalog. The coverage map, built from a different document entirely, assigns AOV to the **Finance**
-> thread. **Two independent sources agreeing raises confidence** — though per
-> [CONTRIBUTING.md](./CONTRIBUTING.md) §4, agreement between two *unverified* sources is still
-> `unverified`; here one side is catalog-read, so `G-033`'s AOV finding is strengthened, not closed.
+> catalog. The Argus DD's `Rightful Thread owning the metric` column also assigns AOV to the
+> **Finance** thread. ⚠️ **Corrected 2026-08-27: this said "the coverage map, built from a different
+> document entirely" — it was not a different document.** The coverage map *is* the Argus DD
+> (`G-100`), i.e. the same `gsheet:HCV_Metrics_DD` this KB already grades `assumption` at precedence
+> rung 5. Under [CONTRIBUTING.md](./CONTRIBUTING.md) §4 — *"two documents copying each other is one
+> source, not two"* — **the two-source framing was wrong.** What survives is the one genuine
+> independent leg: the **dbt-catalog read** of `metric.porter.average_order_value`'s Finance-MIS
+> lineage. That still corroborates the Sheet's column, so `G-033`'s AOV finding is strengthened and
+> not closed — but by **one** independent source, not two.
 
 ---
 
@@ -603,9 +620,15 @@ gsheet:HCV_Metrics_DD rows            90   (counted)
 
 **178 − 25 − 57 + 3 = 99** ✓  *(recounted 2026-08-14 — see `D-026`)*
 
-**Delta, 2026-08-18 (`D-028`) — a fourth source arrived.** `coverage-map/metric-coverage.json`
-contributes **118 rows**, of which **110 map to metrics already covered or indexed** and **8 are new
-identities** — all customer/demand-side, a surface none of the first three sources carried:
+**Delta, 2026-08-18 (`D-028`) — recorded at the time as "a fourth source arrived".**
+⚠️ **It was not a fourth source** (`G-100`, 2026-08-27): `coverage-map/metric-coverage.json` is a
+transcription of `gsheet:HCV_Metrics_DD` itself, whose artifact has **118** rows against the **90**
+counted above. The row arithmetic below still lands on the right total and is left intact; the
+*attribution* is what was wrong. `coverage-map/metric-coverage.json`
+contributes **118 rows**, of which **8 are new identities** — all customer/demand-side, being rows
+91–118 of a file this KB had read only to row 90. ⚠️ **The claim that the other "110 map to metrics
+already covered or indexed" is overstated by 20**: only 90 sheet rows were ever indexed, so 98 of
+118 are accounted for and **20 are not** (`G-101`):
 ```
 prior index rows                       99
 + new identities from coverage-map     +8   HCV-103,104,105,106,107,110,113,115
@@ -625,7 +648,14 @@ auditable line by line.
 > ⚠️ **12 full entries ≠ 12 source metric identities.** They retire **11** — **MAP has no metric row
 > in any of the three sources.** It appears only inside `nb4146:M016`'s notes, as the governed-store
 > counterpart cited against DAP. The pack implements it; no inventory catalogues it. So: **12
-> `M-###` numbers, 11 source identities, 26 source rows.** Never state one of those as another.
+> `M-###` numbers, 11 source identities, 25 source rows.** Never state one of those as another.
+
+> **Corrected 2026-08-27: this cell read `26 source rows`.** The figure is load-bearing — it is the
+> `−25` term of the arithmetic block above (`nb1882 ×10 · nb4146 ×9 · gsheet ×6 = 25`), and the chain
+> `178 − 25 − 57 + 3 = 99` closes only on 25. `CONTEXT.md` already said 25. The `gsheet ×6` leg is
+> independently confirmed: exactly six sheet rows in 1–90 are cited by a full entry and by no index
+> row — **27** (`M-002`), **28** (`M-005`), **29** (`M-011`), **33** (`M-001`), **34** (`M-004`),
+> **35** (`M-007`).
 
 ### Partition of the full entries
 

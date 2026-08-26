@@ -118,11 +118,18 @@ target actually demands.
 
 ## §7 Snapshot — reported values
 
-**This section is deliberately empty.**
+**One series is populated; everything else is still absent.** `last_verified 2026-08-27`
 
-No number in this KB has been validated against the warehouse. No query has been run; the pack's
-base table (`T-073`) has not been rebuilt in this engagement; and `T-030` leaves the **unit scaling
-of every revenue and AOV figure unresolved**.
+Fulfilment % and Allocation % at **month × overall** grain are warehouse-validated for May–Jul 2026
+(`B-091`, `D-027`). **Nothing else is.** The pack's base table (`T-073`) has not been rebuilt in this
+engagement, so there is **no category and no distance split**; and `T-030` leaves the **unit scaling
+of every revenue and AOV figure unresolved**, so revenue and AOV are absent. → `G-024`
+
+> ⚠️ **This preamble read "This section is deliberately empty" until 2026-08-27**, having survived
+> `3dc65fd` (2026-08-14), the commit that added `B-091` and the table below. A section summary that
+> contradicts its own detail is the defect class [CONTRIBUTING.md](./CONTRIBUTING.md) §8.5 names —
+> recorded here rather than quietly deleted, because `G-024` was written from the stale wording and
+> still told a reader to go and run a query that had already been run.
 
 | id | statement | source_ref | confidence |
 |---|---|---|---|
@@ -154,10 +161,10 @@ of every revenue and AOV figure unresolved**.
 > artifact disappearing, not fulfilment improving.** Any May-vs-June HCV fulfilment narrative built
 > on the reported series is directionally wrong. → `G-030`, `G-081`
 
-Per `B-090`, when the first snapshot is added it must carry:
+Per `B-090`, **the next snapshot** must carry, as the one above does:
 
 - a blockquoted preamble — point-in-time, source, capture date, and that every value is `unverified`
 - **current and prior period** columns, so movement is readable
 - inline `⚠️` and gap IDs on any figure with an open caveat
 
-→ `G-024`
+→ `G-024` for what is still missing: revenue, AOV, and the category and distance splits.
