@@ -94,3 +94,62 @@ while `PNM-G-025`/`-026`/`-027` and all of group H supply 4 cells, so their `sta
 `next_action`. Identical at `HEAD`, so not this work's doing, and fixing all seven is scope the owner
 did not ask for. `PNM-G-091` was repaired because this workstream rewrote its `next_action`, making
 its well-formedness mine. All 30 rows added here match their header width.
+
+[D-012] 2026-08-27 (orchestrator) — **Blind checker #2's six findings on the dbt-mining diff were all
+accepted and folded in; each was independently re-verified before acting.** — Two were HIGH and one of
+those inverted a claim I had graded `verified`: I wrote that `pnm_ota_capacity` carries no
+`monthly_run` tag "unlike every other `exclude_daily` model in the repo". Enumerating the repo,
+**34 of 35 non-archive `exclude_daily` models carry no `monthly_run`** — it is the norm, and the claim
+asserted the opposite of the evidence. The clause is deleted from `PNM-G-095` and `PNM-T-110`; the
+underlying cadence conflict (yml `daily` vs config `exclude_daily`) was correctly evidenced and
+stands. The grading note now says what was actually enumerated, because three cited files could never
+support a claim quantified over the whole repo.
+
+[D-013] 2026-08-27 (orchestrator) — **`PNM-T-107` was outright wrong and is corrected, not softened.**
+— I wrote that `pnm_support.modification_category_list` is "a plain alias, not a derivation". It **is**
+a derivation: `sr` is the `sr_mod_agg` CTE where `category_list` is `ARRAY_AGG(category) … GROUP BY
+sr_id`. I had read the final select and stopped. Consequence worth keeping: `PNM-T-102`'s
+`IS_MODIFICATION_DONE` tests an `ARRAY_AGG` result for null, so it is `'No'` exactly when an order has
+no modification rows at all. `PNM-S-055` corrected to match.
+
+[D-014] 2026-08-27 (orchestrator) — **"The three OTA definitions differ solely in the distance term"
+was overstated and is now stated precisely.** — Three further divergences exist: `pnm_support` filters
+`user_flag ILIKE 'NORMAL'` while `pnm_ota_capacity` applies no user filter; `pnm_ota_capacity`
+restricts to intra-city / 6 regions / non-nano / completed while `pnm_support` spans all of
+`fact_pnm_orders`; and the 30-minute baseline is `shifting_requirements.shifting_ts_ist` in one against
+`fact_pnm_orders.shifting_ts` in the other, never shown equal. **The non-independence conclusion
+survives all three** — same table, same action filter, same rank — so `PNM-G-024`'s restatement holds;
+only the "solely" claim was wrong. Also corrected: the city `CASE` is written **three** times, not
+twice, and the "outstation" CTE differs from its sibling by more than the distance predicate.
+
+[D-015] 2026-08-27 (orchestrator) — **`PNM-G-098` is materially strengthened by evidence the checker
+surfaced and I re-verified.** — `distance_km` is **not a documented column** on
+`pnm_experience.yml` — it appears only inside `ota_flag`'s own description — while the mart **does**
+document a purpose-built `pickup_km_deviation` = "Distance in km between the planned pickup location
+and the actual ShiftingStarted event location (ST_DISTANCE / 1000)", which `ota_flag` does not use. A
+dedicated proximity column sitting unused beside it is real evidence that `distance_km` is something
+else, which would mean **only one of the three governed definitions tests proximity at all**. Recorded
+as evidence pointing that way, not as a finding — the derivation still has to be read.
+
+[D-016] 2026-08-27 (orchestrator) — **Three files outside the mining diff were stale in ways that
+contradicted it, and were corrected in the same commit.** — `CONTEXT.md` still told readers two
+governed models "both use 30 min + 500 m" and "differ on the *event*"; `metrics.md`'s `ota` section
+said the same thing three ways and told the reader the section stays blocked "until the owner rules
+which event defines PnM's OTA". Both cited `PNM-G-024` while asserting the reading that row now
+disproves — and `metrics.md` is the file a reader consults for definitions. Shipping the corrected gap
+row while leaving these would have left the KB contradicting itself at its two most-read entry points.
+The superseded wording is preserved inline and marked, per the house convention.
+
+[D-017] 2026-08-27 (orchestrator) — **New row `PNM-T-114`: "slot" is not one concept in the governed
+layer.** — `pnm_ota_capacity` buckets hours 4-10 / 11-15 / ELSE; `pnm_support` buckets 6-11 / 12-16 /
+17-21, leaving 22:00-05:59 in no bucket at all. Different boundaries, different casing, neither citing
+the other. Found while verifying `D-014`'s baseline divergence. Material to `PNM-G-070`, because a
+slot cut was part of what made the city cut look cheap.
+
+[D-018] 2026-08-27 (orchestrator) — **My own citation-resolution check produced 13 false failures and
+was rerun before I trusted it.** — The `while read` loop lost `PATH`, so `gh` was simply not found and
+every citation reported FAIL. Rerun from a script file with `PATH` exported inside it: **11 of 11 full
+citations resolve**, the other 2 being deliberately abbreviated in prose. Logged because a verification
+step that fails open would have been read as "the citations are broken" and sent the next session
+chasing nothing. The environment hazard is already recorded in BOARD; this is it biting a checker
+rather than the work.

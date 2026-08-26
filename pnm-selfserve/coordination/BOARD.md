@@ -1,7 +1,7 @@
 # BOARD — current state & handoff
 # Mutable, single-writer (orchestrator). Reference decisions by ID (see D-NNN); do not restate them.
 # Done-test: a fresh zero-context agent can continue from this file alone.
-Updated: 2026-08-27 00:47 IST (orchestrator)
+Updated: 2026-08-27 01:20 IST (orchestrator)
 
 ## Workstream
 Close gaps in the PnM row-addressed knowledge base at `pnm-selfserve/kb/`, and mine the governed dbt
@@ -12,7 +12,7 @@ The completed 2026-07-29 Gem-KB workstream lives at `./gem-kb-build/` with its o
 (see D-001). **Decision ids here are a fresh space.**
 
 ## Status
-**PnM step 1 SHIPPED. PnM step 2 written but UNCOMMITTED, in blind review. HCV in flight.**
+**PnM steps 1 and 2 both SHIPPED and pushed. HCV in flight.** Nothing of PnM's is uncommitted.
 
 ## Mode
 **PARALLEL across verticals, SEQUENTIAL within PnM** — see D-003. Workers touch disjoint trees
@@ -24,29 +24,36 @@ each other before any could be written down.
 - **orchestrator (me)** — read all sources, authored every KB edit, sole writer of DECISIONS / BOARD
 - **blind-checker #1 (done)** — 14 provenance claims on the `PNM-G-002` change → returned 4 defects in
   my draft, all fixed pre-commit; see D-006 and Learnings
-- **blind-checker #2 (running)** — ~40 claims on the dbt-mining diff: every cited SHA/path, the three
-  OTA definitions, `is_test_user` logic, the trust-score table, and the KB's internal count
-  consistency → will gate the step-2 commit
+- **blind-checker #2 (done)** — ~40 claims on the dbt-mining diff. Confirmed the trust-score table
+  exactly (11/11 scores), `is_test_user` logic, all 13 citations, and the gap arithmetic. **Returned 6
+  defects, all accepted and fixed pre-commit** — one of them inverted a claim I had graded `verified`.
+  See D-012…D-018.
 - **hcv-workstream (running)** — audits the never-examined HCV coverage-map artifact
   (`c6f3e837-29fc-4a8a-bdd8-30321ce13dc8`), reconciles HCV's gap counts, premise-checks its
   "untracked" rows, ranks HCV dbt models by trust score, and greps for this session's defect patterns.
   Carries all 7 transferable learnings below. Reports back; commits nothing without saying so.
 
 ## Pending / next
-1. **Fold blind-checker #2's must-fixes into the uncommitted diff, then commit + push.** Four files
-   staged in spirit: `GAPS.md`, `sources.md`, `data-model.md`, `CONTEXT.md`.
-2. **Commit `coordination/` itself** — D-002 settles that it is version-controlled; the filing move and
-   these two files are not yet committed.
-3. Synthesize the HCV worker's report; decide whether HCV needs its own `coordination/` record.
-4. **Remaining §3.1 mining — ~15 models unmined** (`PNM-S-053`). Next by evidentiary yield:
+1. **Synthesize the HCV worker's report** when it returns; decide whether HCV needs its own
+   `coordination/` record.
+2. **`PNM-G-098` is the cheapest open lead** — read `PNM_EXPERIENCE`'s `distance_km` derivation in the
+   mart SQL. If it is not a pickup-proximity measure, then only **one** of the three governed OTA
+   definitions tests proximity at all, and `PNM-G-024`'s framing changes again. Evidence already
+   points that way (D-015).
+3. **Remaining §3.1 mining — ~15 models unmined** (`PNM-S-053`). Next by evidentiary yield:
    `fact_pnm_opportunity` (97.5 A), `dim_pnm_vendor` (95 A), `pnm_gst_daily` (100 A),
    `cge_pnm_paid_lead_attribution` (100 A). **State which ordering you use** (see D-007).
-5. Untouched from the handoff queue: `PNM-G-093` (the `leads_overall` → `leads_overall_intra_city`
+4. Untouched from the handoff queue: `PNM-G-093` (the `leads_overall` → `leads_overall_intra_city`
    rename — five call sites, a live metric id; treat as its own session with blast-radius analysis).
+5. Owner-facing, none blocking: `PNM-G-024` needs a ruling on **whether OTA requires GPS proximity**
+   (narrower than the "which event" question it replaced); `PNM-G-094` and `PNM-G-095` are defects to
+   route to `NI_PNM`; `PNM-G-097`'s duplicate validation files belong to the dbt repo's owners.
 
 ## Shipped
-- **`e7b8f72`** — closed `PNM-G-002`, pushed to `origin/main` (`68d46cb..e7b8f72`). See D-004, D-005,
-  D-006.
+- **`e7b8f72`** — closed `PNM-G-002`, pushed (`68d46cb..e7b8f72`). See D-004, D-005, D-006.
+- **`951057b`** — put `coordination/` under version control, filed the 2026-07-29 workstream to
+  `gem-kb-build/`. See D-001, D-002.
+- **step 2** — the five-model dbt mining, post-blind-check. See D-007…D-018.
 
 ## Shared context (facts the work depends on)
 - **Canonical repo is `~/dev/selfserve` on `main`.** `~/Desktop/AI_V2/...` is DLP-locked: `getcwd()`
@@ -57,6 +64,8 @@ each other before any could be written down.
   it over the tracked one (D-004).
 - **`GAPS.md` now: 63 rows · 3 CLOSED · 8 BLOCKED · 52 OPEN · 60 live.** `CONTEXT.md` restates the live
   figure, so a miscount propagates across files (D-006).
+- ⚠ **"Slot" is not one concept** (`PNM-T-114`, D-017): `pnm_ota_capacity` buckets hours 4-10/11-15/ELSE;
+  `pnm_support` buckets 6-11/12-16/17-21 and leaves 22:00-05:59 in no bucket. Name the model.
 - **Three governed on-time definitions exist, all anchored on shifting-started** (D-008):
   `PNM_EXPERIENCE.OTA_FLAG` (`distance_km < 0.5`), `pnm_ota_capacity` (`ST_DISTANCE(pickup → supervisor
   GPS) <= 500 m`), `pnm_support.on_time_arrival_flag` (**no distance term**). The latter two read the
@@ -98,6 +107,9 @@ each other before any could be written down.
 - **Environment:** `PATH` intermittently drops in compound Bash calls; export
   `PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin`. zsh does not word-split unquoted variables.
   `export -f` does **not** survive into `bash -c` from zsh — write a real script file.
+  ⚠ **This bit a verifier, not just the work** (D-018): a citation-resolution loop lost `PATH`, `gh` was
+  not found, and all 13 citations reported FAIL. A check that fails open reads as "everything is
+  broken". Put the `export` *inside* the script, and re-run a check before believing a total failure.
 - **Never edit `coverage-map/` by hand** — it is a projection: fix the KB, then re-derive. This
   workstream verified no re-derive was needed rather than assuming (`metric-coverage.json` carries no
   gap counts, no `local:` refs, no mention of `iteration-3`).

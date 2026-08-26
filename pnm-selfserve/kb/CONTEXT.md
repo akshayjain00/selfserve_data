@@ -155,20 +155,25 @@ capped at `unverified`; the KB reaches it through `sqlgen.py`, its in-repo mirro
   property checks, as it has no baseline**. **16 of the 47 ids were never individually reconciled**
   (3 channel conversions, 3 order-mix, 10 TPO stage metrics) → `PNM-G-004`. **Nothing is promoted.
   Nothing has been opened to stakeholders.**
-- **`ota` is BLOCKED, but narrowed.** Two governed models now implement it and **both use 30 min +
-  500 m**, settling the old 2 km dispute — they differ on the *event* (shifting-started vs a vendor
-  GPS action), and that fork is the owner's to rule (`PNM-G-024`).
+- **`ota` is BLOCKED, and re-narrowed 2026-08-27.** **THREE** governed models implement it and **all
+  three anchor on the same event** — shifting-started. There is **no event fork**; the earlier
+  "vendor GPS action" reading was wrong (it is a *supervisor* `ShiftingStarted` action). The 30-minute
+  clock is corroborated three ways; **the distance term is what they disagree on** — 500 m proximity,
+  a `distance_km` field, or no distance at all. The owner's question is *whether OTA requires GPS
+  proximity to pickup*, not which event (`PNM-G-024`, `PNM-G-098`).
 - ⚠ **Two things are called "PnM leads", and both are right.** Governed `pnm_overall_leads` = **all
   shifting types**; this catalog's = the **intra-city** subset, being renamed
   **`leads_overall_intra_city`** to say so (`owner-ruling:2026-08-26`, closed `PNM-G-090`). **Ruled,
   not yet in code** → `PNM-G-093`. Never substitute one for the other.
-- **54 live gaps**, **8 owner-blocked**. The biggest: **no city or weekly cut exists, and that is
+- **60 live gaps**, **8 owner-blocked**. The biggest: **no city or weekly cut exists, and that is
   precisely what city ops will ask for** (`PNM-G-070`).
 - ⚠ **iteration-1's metric catalog is superseded and unannotated.** Six of its definitions are
   actively wrong (`PNM-G-030`…`PNM-G-037`). Do not read it as current.
 - ⚠ **`PNM_EXPERIENCE` is "under active construction"**, has grown mid-project more than once, and
   **rebuilds a trailing 3-month window** — re-verify its schema before any run (`PNM-G-007`).
 - **The governed dbt layer entered the sources 2026-08-26** (PR #3330 and neighbours): it settled
-  `PNM-G-024`'s threshold (**500 m, not 2 km**) and `PNM-G-025`'s settling rule, upgraded the `status`
-  enum, and **corrected** `user_flag`. ~20 models unmined → `PNM-G-091`.
+  `PNM-G-024`'s **30-minute clock** and `PNM-G-025`'s settling rule, upgraded the `status` enum, and
+  **corrected** `user_flag`. ⚠ The 500 m holds in only **two of three** definitions, so it is not
+  settled. Five more models mined 2026-08-27; **~15 unmined**, and a ranked discovery loop now exists
+  (`PNM-S-058`) → `PNM-G-091`.
 - **No number in this KB has been validated against the warehouse in this pass. No query was run.**
