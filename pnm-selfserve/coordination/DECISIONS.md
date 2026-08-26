@@ -210,3 +210,10 @@ describe no `.sql`, and 3 HCV models have no validation file at all. Also record
 files → 38 models with **24 of 25 duplicate pairs byte-identical** and **no schema outliers** (all v5),
 so unlike PnM every HCV score is comparable — but only **10 of 38** pass gates. Scoping by filename
 `/hcv|truck/i` misses 4 real HCV models; **scope by model directory.**
+
+[D-025] 2026-08-27 (orchestrator) — **Owner ruled on both open calls: push all three commits, and keep
+the artifact favicon as 📊.** — Pushed `2e78b4e..473111a`; `main` and `origin/main` are in sync and the
+tree is clean of tracked changes. The favicon is now **fixed at 📊 and must stay there** — the standing
+rule is that viewers find a tab by its icon, so a changed favicon reads as a different page. The
+original is not recoverable and is not being chased. **Do not change it again** on any future redeploy
+of `c6f3e837…`.

@@ -1,7 +1,7 @@
 # BOARD — current state & handoff
 # Mutable, single-writer (orchestrator). Reference decisions by ID (see D-NNN); do not restate them.
 # Done-test: a fresh zero-context agent can continue from this file alone.
-Updated: 2026-08-27 01:35 IST (orchestrator)
+Updated: 2026-08-27 01:42 IST (orchestrator)
 
 ## Workstream
 Close gaps in the PnM row-addressed knowledge base at `pnm-selfserve/kb/`, and mine the governed dbt
@@ -12,8 +12,9 @@ The completed 2026-07-29 Gem-KB workstream lives at `./gem-kb-build/` with its o
 (see D-001). **Decision ids here are a fresh space.**
 
 ## Status
-**PnM: shipped and pushed. HCV: two commits landed locally, UNPUSHED, awaiting an owner call.**
-⚠ **The HCV worker republished the live org-shared artifact** `c6f3e837…` — see D-022. Owner-facing.
+**Both lanes SHIPPED and PUSHED.** `main` == `origin/main` at `473111a`; tree clean of tracked changes.
+Nothing is in flight. ⚠ The HCV artifact `c6f3e837…` was republished and **its favicon is now fixed at
+📊 — do not change it again** (D-022, D-025).
 
 ## Mode
 **PARALLEL across verticals, SEQUENTIAL within PnM** — see D-003. Workers touch disjoint trees
@@ -36,22 +37,18 @@ each other before any could be written down.
   Findings accepted at D-019…D-024.
 
 ## Pending / next
-1. **Owner call: push `6c5b4dd` + `21a6eaa`?** They are verified sound (D-019) but are another lane's
-   work on a shared remote. `main` is ahead of `origin/main` by exactly these two.
-2. **Owner call on the artifact favicon** — it changed to 📊 because the original was unrecoverable
-   (D-022). Restorable if the original is known.
-3. HCV has **no `coordination/` record**. Its decision trail lives only in its two commit messages and
+1. HCV has **no `coordination/` record**. Its decision trail lives only in its two commit messages and
    `hcv-selfserve/kb/GAPS.md`. Worth scaffolding one if HCV work continues.
-4. **`PNM-G-098` is the cheapest open lead** — read `PNM_EXPERIENCE`'s `distance_km` derivation in the
+2. **`PNM-G-098` is the cheapest open lead** — read `PNM_EXPERIENCE`'s `distance_km` derivation in the
    mart SQL. If it is not a pickup-proximity measure, then only **one** of the three governed OTA
    definitions tests proximity at all, and `PNM-G-024`'s framing changes again. Evidence already
    points that way (D-015).
-5. **Remaining §3.1 mining — ~15 models unmined** (`PNM-S-053`). Next by evidentiary yield:
+3. **Remaining §3.1 mining — ~15 models unmined** (`PNM-S-053`). Next by evidentiary yield:
    `fact_pnm_opportunity` (97.5 A), `dim_pnm_vendor` (95 A), `pnm_gst_daily` (100 A),
    `cge_pnm_paid_lead_attribution` (100 A). **State which ordering you use** (see D-007).
-6. Untouched from the handoff queue: `PNM-G-093` (the `leads_overall` → `leads_overall_intra_city`
+4. Untouched from the handoff queue: `PNM-G-093` (the `leads_overall` → `leads_overall_intra_city`
    rename — five call sites, a live metric id; treat as its own session with blast-radius analysis).
-7. Owner-facing, none blocking: `PNM-G-024` needs a ruling on **whether OTA requires GPS proximity**
+5. Owner-facing, none blocking: `PNM-G-024` needs a ruling on **whether OTA requires GPS proximity**
    (narrower than the "which event" question it replaced); `PNM-G-094` and `PNM-G-095` are defects to
    route to `NI_PNM`; `PNM-G-097`'s duplicate validation files belong to the dbt repo's owners.
 
