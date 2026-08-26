@@ -85,7 +85,15 @@ table's identity and role — **`verified`**, the shipped SQL reads it. The `liv
 
 *All rows above: `source_ref: repo@851886f:pnm-selfserve/selfserve_nlq/sqlgen.py`.*
 
-> **PNM-T-050** — ⚠ **TEST ORDERS ARE LARGELY NOT EXCLUDED.** `IS_TEST_USER` exists **only** on
+> **PNM-T-050** — ⚠ **TEST-ORDER EXCLUSION IS SPLIT, AND THE SPLIT IS THE POINT.**
+> **CORRECTED 2026-08-26.** Superseded wording: *"Test orders are largely NOT excluded."* That was
+> too strong. The governed dbt docs define `user_flag` as **"a flag to separate test and normal
+> users"** (`PNM-T-082`), so **leads and orders DO exclude test users** via `user_flag ILIKE 'normal'`.
+> **`p80_durations` and `order_edits` still do not** — `PNM_EXPERIENCE` carries neither `user_flag`
+> nor `IS_TEST_USER`, so those two sections have **no test filter of any kind**. State it per section;
+> never as one blanket claim. The original note follows.
+>
+> `IS_TEST_USER` exists **only** on
 > `PNM_ALLOCATION` and `PNM_FARE_MOVEMENT` — neither of which the catalog reads. leads and orders
 > rely on `user_flag ILIKE 'normal'` as their **only** user gate; **`p80_durations` and `order_edits`
 > have no user or test filter at all**, because `PNM_EXPERIENCE` carries neither column.
@@ -114,8 +122,8 @@ table's identity and role — **`verified`**, the shipped SQL reads it. The `liv
 | PNM-T-062 | **`RAISED_BY`** (`HS_TICKETS`) | `Customer`, `Vendor-Owner`, `Vendor-Supervisor`, `Porter Support`, `Detractor`, `Chat` | `repo@851886f:pnm-selfserve/iteration-2-readiness-ledger.md` §3 | unverified |
 | PNM-T-063 | **`SHIFTING_TYPE`** | `intra_city`, `inter_city`, `vehicle_shifting` (+ `labour` on the opportunity dim) | Notion via `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` §3.6 | unverified |
 | PNM-T-064 | **`PACKAGE_NAME`** | `1 RK`, `1 RK/Studio`, `1–5 BHK Small\|Medium\|Big`, `Micro Shifting`, `Nano Shifting`, `Nano Shifting Medium`, `Nano Shifting Large`, `vehicle_shifting_default` | Notion via `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` §3.6 | unverified |
-| PNM-T-065 | **Opportunity `SOURCE`** (NUM) | `0` Website · `1` App · `2` App Home · `3` App Promo · `4` Generic | Notion via `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` §3.6 | unverified |
-| PNM-T-066 | **Opportunity `STATUS`** (NUM) | `0` Open · `1` Prospect · `2` Quoted · `3` Closed · `4` Converted | Notion via `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` §3.6 | unverified |
+| PNM-T-065 | **Opportunity `SOURCE`** (NUM) | value space **`0,1,2,3,4`** is pinned by a merged `accepted_values` test. The *labels* — `0` Website · `1` App · `2` App Home · `3` App Promo · `4` Generic — remain Notion-only | `dbt@ad4ab4e:models/docs/dim/dim_pnm_opportunity.yml` (values) · Notion (labels) | **verified** (value space) / unverified (labels) |
+| PNM-T-066 | **Opportunity `STATUS`** (NUM) | `0` Open (lead in, no contact) · `1` Prospect (sales working it) · `2` Quoted (price shared) · `3` Closed (dropped off) · `4` Converted (order placed) | `dbt@ad4ab4e:models/docs/dim/dim_pnm_opportunity.yml` — a merged **`accepted_values` test** pins 0–4, and the column description carries the labels | **verified** — *upgraded 2026-08-26; was `unverified` on Notion alone* |
 | PNM-T-067 | **`SOURCE_DETAILS`** | free text — e.g. `Desktop Website`, `Mobile Website`, `Inbound Call` | Notion via `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` §3.6 | unverified |
 | PNM-T-068 | **`SERVICE_TYPE`** | `Default`, `Default_Short`, `Lite`, `Standard`, `Premium`, `FourWheeler`, `PTL`, `FTL` | Notion via `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` §3.6 | unverified |
 | PNM-T-069 | **`VENDOR_BUCKET_TYPE`** | `New`, `Bronze`, `Silver`, `Gold`, `GoldPlus` | Notion via `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` §3.6 | unverified |
@@ -132,13 +140,23 @@ table's identity and role — **`verified`**, the shipped SQL reads it. The `liv
 |---|---|---|---|---|
 | PNM-T-080 | `CRN` | Customer reference number on the order; PnM work matches `'%PNM%'` | Notion via `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` §3.7 | unverified |
 | PNM-T-081 | `SR_ID` | Shifting-requirement id — the thread linking a lead to its order | as above | unverified |
-| PNM-T-082 | `USER_FLAG` | User classification for experiments/segmentation; normal traffic is `normal` | as above | unverified |
+| PNM-T-082 | `USER_FLAG` | **"A flag to separate test and normal users."** | `dbt@ad4ab4e:models/docs/dim/dim_pnm_opportunity.yml` | **verified** — ⚠ **CORRECTED 2026-08-26.** Superseded wording: *"User classification used for experiments/segmentation; normal traffic is `normal`"* (Notion). This matters: `user_flag ILIKE 'normal'` **is** a test-user exclusion, so leads and orders **do** exclude test users — see `PNM-T-050` |
 | PNM-T-083 | `SYSTEM_DISPOSITION` | System-assigned lead outcome, e.g. `Not Interested`, `RNR` (ring-no-response), `Quotation Shared` | as above | unverified |
 | PNM-T-084 | `DEALLOCATION_STATUS` | Whether the vendor assignment changed during the order's life | as above | unverified |
 | PNM-T-085 | `DRY_RUN_DISTANCE_KMS` | Distance the vendor travelled before pickup | as above | unverified |
 | PNM-T-086 | `INITIAL_CFT` / `FINAL_CFT` | Item volume in cubic feet at booking vs after modifications | as above | unverified |
 | PNM-T-088 | `PICKUP_CITY_NAME` / `DROP_CITY_NAME` | City name on the order and opportunity dims and on `PNM_EXPERIENCE`, `PNM_SUPPORT`, `PNM_ALLOCATION`, `PNM_FARE_MOVEMENT`. ⚠ **This is the column a city cut would use** — with `PICKUP_GEO_REGION_ID` → `DIM_GEO_REGIONS` (`PNM-T-007`). The data exists; **no city query has been reconciled**, which is why the catalog still refuses (`PNM-G-070`) | `live:INFORMATION_SCHEMA@2026-07-29` | unverified |
 | PNM-T-087 | `OTA_FLAG` / `OTA_BREACH_TAT_MINUTES` | Whether the vendor arrived inside the SLA window, and by how many minutes it was missed — ⚠ **the SLA definition is disputed** | as above | unverified → `PNM-G-024` |
+
+## Governed facts from the dbt layer
+
+| id | statement | source_ref | confidence | note |
+|---|---|---|---|---|
+| **PNM-T-100** | **`PNM_EXPERIENCE.OTA_FLAG`'s actual rule:** `On_Time` when the order is **completed**, **`distance_km < 0.5`**, and **`shifting_started_event <= shifting_ts + 30 minutes`**. `OTA_BREACH_TAT_MINUTES` = `DATEDIFF(minute, shifting_ts + 30 minutes, shifting_started_event_ts)`, populated only for valid breached cases. | `dbt@816fa40:models/docs/mart/pnm_experience.yml` | **verified** | ⚠ **This settles the threshold half of `PNM-G-024`: 500 m, not 2 km.** ⚠ It also keys off **shifting-started**, not vendor arrival — so it is not literally an *arrival* measure. Adopting it as PnM's OTA is still an owner call. |
+| **PNM-T-101** | **`PNM_EXPERIENCE` rebuilds a trailing 3-month window.** Refresh is daily incremental (delete+insert) with `partition_grain: month`, **`partition_lookback: 3`**, `partition_replay_bounds: 3`. | `dbt@816fa40:models/docs/mart/pnm_experience.yml` | **verified** | ⚠ **This explains and bounds `PNM-G-025`:** a month inside the 3-month window can still change, which is exactly the observed p80 drift. **A month's p80 is structurally final once it falls outside the window.** |
+| PNM-T-102 | **Edit-flag derivations:** `IS_MODIFICATION_DONE` = `'Yes'` when `pnm_support.modification_category_list` is not null, else `'No'`. `NO_OF_SUCCESSFUL_EDITS` = count of distinct successful SR modifications in **`Locations` / `ShiftingTime` / `Items` / `AddOns`**, `COALESCE`d to 0. `HAS_SUPPORT_EDIT` = 1 when ≥1 modification came from a source other than the customer app/webview. | `dbt@816fa40:models/docs/mart/pnm_experience.yml` | **verified** | Confirms the four edit categories iteration-1 flagged, and explains why `PNM-M-030` compares to the **string** `'Yes'`. |
+| PNM-T-103 | **`PNM_EXPERIENCE` is owned by `DATA_ANALYTICS` / domain `CENTRAL_ANALYTICS`** (`#data-analytics-team`), **not** NI_PNM — unlike `dim_pnm_opportunity`, which is owned by **HSC** (`#hsc-analytics`) with domain `PNM`. Its grain is one row per `order_id`; `contains_pii: false`. | `dbt@816fa40:models/docs/mart/pnm_experience.yml`, `dbt@ad4ab4e:models/docs/dim/dim_pnm_opportunity.yml` | **verified** | Three different owners across the tables this catalog reads → `PNM-G-092` |
+| PNM-T-104 | ⚠ **`PNM_EXPERIENCE.VENDOR_ID` carries ~111k orphan values as of 2026-07** and is **deliberately not FK-tested** against `dim_pnm_vendor`, to avoid a false-failing test. | `dbt@816fa40:models/docs/mart/pnm_experience.yml` | **verified** | A known, documented data gap. Any vendor-level join off this mart inherits it. |
 
 ## The read-only guard
 

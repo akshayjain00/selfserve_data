@@ -29,8 +29,8 @@ vendor crew and a supervisor, the crew executes, support handles what goes wrong
 
 **"PnM self-serve"** is a closed-world natural-language layer over **the same Snowflake logic that
 feeds the monthly business review** — removing the analyst-in-the-loop for routine metric questions
-without loosening the numbers. It answers one catalogued metric at a time and **refuses everything
-else** (`PNM-B-032`).
+without loosening the numbers. It answers one catalogued metric and **refuses everything else**
+(`PNM-B-032`).
 
 ## The catalog — 47 metrics, 6 sections, all `prototype_only`
 
@@ -57,9 +57,9 @@ else** (`PNM-B-032`).
    routes to [sources.md](./sources.md). (`PNM-B-021`, `PNM-B-022`, `PNM-G-070`)
 4. **`orders_overall` includes orders that were later cancelled.** There is no cancelled filter.
    (`PNM-M-002`)
-5. **Test orders are largely NOT excluded.** `IS_TEST_USER` exists only on two marts the catalog does
-   not read; p80 and order_edits have **no user or test filter at all**. Do not claim otherwise.
-   (`PNM-T-050`, `PNM-G-073`)
+5. **Test-order exclusion is split.** leads and orders **do** exclude test users (`user_flag`);
+   **p80 and order_edits do not** — `PNM_EXPERIENCE` has no user flag at all. State it per section,
+   never as one blanket claim. (`PNM-T-050`, `PNM-T-082`, `PNM-G-073`)
 
 ## Precedence ladder — when sources disagree
 
@@ -67,25 +67,29 @@ else** (`PNM-B-032`).
 1. Owner ruling — DECISION_LOG D1–D10                                    ← strongest
 2. The live-validated MBR automation, where reconciliation demonstrably
    happened (cited in-repo via its mirror, sqlgen.py)
-3. Metabase card SQL, where actually read
-4. Live schema — INFORMATION_SCHEMA / Data Catalog
-5. metrics_registry.py — behavioural fields (built, readiness)
-6. iteration-1 metric catalog (legacy, superseded)
-7. iteration-2 · iteration-3 · HANDOFF · registry prose
-8. Argus DD · Notion MoM / Demand DB / schema guide                      ← weakest
+3. Governed dbt models, tests + semantic models (porterin/DE-DBT-SNOWFLAKE)
+4. Metabase card SQL, where actually read
+5. Live schema — INFORMATION_SCHEMA / Data Catalog
+6. metrics_registry.py — behavioural fields (built, readiness)
+7. iteration-1 metric catalog (legacy, superseded)
+8. iteration-2 · iteration-3 · HANDOFF · registry prose
+9. Argus DD · Notion MoM / Demand DB / schema guide                      ← weakest
 ```
 
 **This ladder is PnM's own — do not import PTL's.** PTL is topped by observed card SQL; **here the top
 two rungs are inverted**, because PnM's load-bearing facts are *business-attribution* decisions no
 query can yield (`D4`'s Nano rule is in no table). PTL asks *"what does this compute?"*; PnM asks
-*"whose population is this?"* — and only the owner answers that.
+*"whose population is this?"* — only the owner answers that.
 
-**Rung 3 is demoted deliberately:** `config.py` calls card **#30311** the "canonical methodology" and
+**Rung 3 was added 2026-08-26** — a merged dbt test is code, not prose. It settled two owner-blocked
+gaps on arrival, and opened `PNM-G-090`.
+
+**Rung 4 is demoted deliberately:** `config.py` calls card **#30311** the "canonical methodology" and
 `D6` overrides it, because #30311 strips Nano from the whole funnel and contradicts `D4`
 (`PNM-S-010`, `PNM-G-022`).
 
-**Assign tier per CLAIM, never per document** — `metrics_registry.py` holds rung-5 and rung-7 claims
-side by side. Where a higher rung outranks a row, **correct the row** and keep the superseded wording
+**Assign tier per CLAIM, never per document** — `metrics_registry.py` holds rung-6 and rung-8 claims
+side by side. Where a higher rung outranks a row, **correct the row**, keeping the superseded wording
 in its `note`. Full rules: [CONTRIBUTING.md](./CONTRIBUTING.md) §6.
 
 **The absolute exception (rungs 1 vs 2 only):** where the automation's SQL contradicts an owner
@@ -94,22 +98,19 @@ Silently picking a side turns a known unknown into an invisible error.
 
 ## Confidence — and the second axis, readiness
 
-- **`verified`** — read directly from underlying SQL, code, or an explicit owner ruling.
-- **`unverified`** — asserted by a source but not confirmed against SQL, or sources conflict.
-- **`assumption`** — inferred by reasoning, stated nowhere.
-
-Downgrading is always allowed; **upgrading needs new cited evidence.** Two unverified sources agreeing
-is still unverified.
+**`verified`** = read from SQL, code, or an owner ruling · **`unverified`** = a source asserts it, or
+sources conflict · **`assumption`** = inferred, stated nowhere. Downgrading is always allowed;
+**upgrading needs new cited evidence**, and two unverified sources agreeing is still unverified
+(CONTRIBUTING §5).
 
 ⚠ **`verified` here means "this is what the prototype computes"** — read from `sqlgen.py` /
 `metrics_registry.py` at a SHA. `V3`/`V4` proved the prototype matches the owner's automation exactly,
 **for the months and metrics actually reconciled**; outside that slice it is extrapolation
 (`PNM-G-004`). **No query was run to build this KB.**
 
-⚠ **`readiness` is a separate axis and neither substitutes for the other.** A metric can be
-`verified` **and** `prototype_only`. **Nothing is `stakeholder_ready`** — all six built sections are
-`prototype_only`, `ota` is `blocked`, and **only the owner promotes** (`PNM-B-040`…`PNM-B-043`,
-CONTRIBUTING §7).
+⚠ **`readiness` is a separate axis; neither substitutes for the other.** A metric can be `verified`
+**and** `prototype_only`. **Nothing is `stakeholder_ready`** — all six built sections are
+`prototype_only`, `ota` is `blocked`, **only the owner promotes** (`PNM-B-040`…`043`, CONTRIBUTING §7).
 
 ## Hard rules
 
@@ -157,10 +158,17 @@ capped at `unverified`; the KB reaches it through `sqlgen.py`, its in-repo mirro
 - **`ota` is BLOCKED** — its six original columns exist in no table, and the definition itself is
   disputed: 30 min + **500 m** (Notion) vs 30 min + **2 km** (pipeline). `OTA_FLAG` now exists and
   encodes an undocumented third rule (`PNM-G-024`).
-- **53 open gaps**, **8 owner-blocked**. The biggest: **no city or weekly cut exists, and that is
+- ⚠ **`PNM-G-090` — two things are called "PnM leads" and they differ.** The governed, owner-approved
+  `pnm_overall_leads` counts normal-user leads across **all shifting types**; this catalog's
+  `leads_overall` restricts to **intra-city**. Both carry the owner's name, so CONTRIBUTING §6.2's
+  absolute exception applies: **recorded, not resolved.**
+- **55 live gaps**, **9 owner-blocked**. The biggest: **no city or weekly cut exists, and that is
   precisely what city ops will ask for** (`PNM-G-070`).
 - ⚠ **iteration-1's metric catalog is superseded and unannotated.** Six of its definitions are
   actively wrong (`PNM-G-030`…`PNM-G-037`). Do not read it as current.
-- ⚠ **`PNM_EXPERIENCE` is "under active construction"** and has grown mid-project more than once —
-  re-verify its schema before any run (`PNM-G-007`).
+- ⚠ **`PNM_EXPERIENCE` is "under active construction"**, has grown mid-project more than once, and
+  **rebuilds a trailing 3-month window** — re-verify its schema before any run (`PNM-G-007`).
+- **The governed dbt layer entered the sources 2026-08-26** (PR #3330 and neighbours): it settled
+  `PNM-G-024`'s threshold (**500 m, not 2 km**) and `PNM-G-025`'s settling rule, upgraded the `status`
+  enum, and **corrected** `user_flag`. ~20 models unmined → `PNM-G-091`.
 - **No number in this KB has been validated against the warehouse in this pass. No query was run.**

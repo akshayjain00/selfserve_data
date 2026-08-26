@@ -242,13 +242,65 @@ contribution · Get-a-Call CTR · CAC-post-trip-started.
 **If asked for any of these, treat them as not in knowledge.** Several have dashboards →
 [sources.md](./sources.md). → `PNM-G-071`
 
-## 9. The 167-row Argus metric universe
+## 9. The 167-row Argus metric universe — and how this catalog maps onto it
 
 `../coverage-map/metric-coverage.json` catalogues **167** PnM metrics from the Argus data dictionary
-(`PNM-001`…`PNM-167` — a **different namespace**, CONTRIBUTING §3). Status there: 140 `pending`,
-25 `partial`, 2 `blocked`; every row is `provenance: stated` and every `resolves_to` is `null`.
+(`PNM-001`…`PNM-167` — a **different namespace**, CONTRIBUTING §3).
 
-**No mapping exists between those 167 ids and this KB's metric ids** → `PNM-G-052`.
-The coverage map is a **projection** of the KB, not a progress tracker — never edit it to say a
-metric shipped; fix the KB and re-derive it. It is **not reproduced here** and is untracked in git
-(`PNM-G-002`).
+**The mapping below was derived 2026-08-26 and closes `PNM-G-052`.** It is built by matching Argus
+metric names to this catalog's ids; every row is a name-level match, not a reconciled one.
+
+### 9.1 Mapped — 42 of 47 catalog metrics reach 41 Argus rows
+
+| Argus id | Argus name | this catalog |
+|---|---|---|
+| `PNM-012` | No. of orders booked (Monthly) | `orders_overall` |
+| `PNM-054`…`058` | Leads — Overall / App / Desktop Website / Mobile Website / Others | `leads_overall`, `leads_app`, `leads_desktop`, `leads_mobile`, `leads_others` |
+| `PNM-059`…`062` | Conversion — Overall / App / Desktop Website / Mobile Website | `conversion_overall`, `conversion_app`, `conversion_desktop`, `conversion_mobile` |
+| `PNM-063`, `064` | % of orders contribution — App / Website | `pct_orders_app`, `pct_orders_website` |
+| `PNM-065` | % of orders contribution — **LMS** | `pct_orders_others` ⚠ see 9.3 |
+| `PNM-152`…`163` | TPO — Overall, Vendor raised, and the 5 stage pairs | `tpo_overall`, `tpo_vendor_raised`, and the 10 stage/`_customer` ids |
+| **`PNM-145`** | P50/P80 trip duration (Shifting Started → Order Completed) | **`p50_trip_duration` AND `p80_trip_duration`** — one Argus row, two catalog metrics |
+| **`PNM-146`** | P80 — Vendor Accepted → Supervisor Assigned | `p80_vendor_accepted_to_sup_assigned` |
+| **`PNM-147`** | P80 — Supervisor Assigned → Trip Started | `p80_sup_assigned_to_trip_started` |
+| **`PNM-148`** | P80 — Trip Started → Shifting Started | `p80_trip_started_to_shifting_started` |
+| **`PNM-149`** | P80 — Shifting Started → Pickup Complete | `p80_shifting_started_to_pickup_complete` |
+| **`PNM-150`** | P80 — Pickup Complete → **Shifting Complete** | `p80_pickup_complete_to_order_complete` ⚠ see 9.3 |
+| **`PNM-039`** | % of orders edited | `pct_orders_edited` |
+| **`PNM-041`** | No. of successful edits | `no_of_successful_edits` |
+| **`PNM-043`** | % of support-edited orders | `pct_support_edited_orders` |
+| **`PNM-045`** | Edit locations adoption | `location_adoption_pct` |
+| **`PNM-051`** | % of orders where a location is modified | `pct_orders_location_modified` ⚠ see 9.3 |
+| **`PNM-046`**, **`047`**, **`048`** | Edit items / add-ons / slot adoption | `items_adoption_pct`, `addons_adoption_pct`, `slot_adoption_pct` |
+| **`PNM-049`** | Number of edits per order | `edits_per_order` |
+| **`PNM-050`** | % of edits after shifting started | `pct_edits_after_shifting_started` |
+
+**Bold rows are new**: the 16 Argus rows that `p80_durations` and `order_edits` reach, which the
+coverage map still shows as `pending` because it predates iteration-3.
+
+### 9.2 Unmapped — 5 catalog metrics reach no Argus row
+
+`orders_app` · `orders_desktop` · `orders_mobile` · `orders_others` — the Argus DD tracks the
+**percentage** contribution per channel (`PNM-063`…`065`), never the raw channel counts.
+`orders_base` — a TPO denominator, not a published metric.
+
+### 9.3 Three things the mapping independently confirms
+
+1. **`PNM-045` and `PNM-051` are two Argus rows for one computation** — "Edit locations adoption" and
+   "% of orders where a location is modified". This is exactly the `location_adoption_pct` /
+   `pct_orders_location_modified` duplicate pair in `PNM-M-030`, so **the duplication originates
+   upstream in the MBR definition set, not in this prototype's code.**
+2. **`PNM-150` is named "Pickup Complete → Shifting Complete" in the Argus DD** — the same misleading
+   label `PNM-M-021` records, against a metric that measures pickup → **order** complete. **The label
+   quirk is inherited, not introduced.**
+3. **Argus has no "Conversion — Others" row**, exactly as this catalog has no `conversion_others`.
+   The absence is mirrored on both sides, which is evidence it is **deliberate** rather than an
+   omission → materially advances `PNM-G-018`.
+
+⚠ **`PNM-065` is the one uncertain mapping.** Argus calls it "% of orders contribution — **LMS**";
+this catalog calls it `pct_orders_others`. The governed `lead_channel` dimension describes
+`source = 4` → `Generic` as **"Generic (LMS/broker/other)"**, which supports the equation — but LMS
+itself is still expanded nowhere (`PNM-G-062`). Treat the mapping as probable, not settled.
+
+**The coverage map is a projection of this KB, not a progress tracker** — never edit it to say a
+metric shipped; fix the KB, then re-derive it.

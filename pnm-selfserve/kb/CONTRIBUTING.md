@@ -84,7 +84,8 @@ Use the most durable form available:
 
 | Source type | Format | Example |
 |---|---|---|
-| Repo file | `repo@<sha>:<path>` | `repo@851886f:pnm-selfserve/selfserve_nlq/sqlgen.py` |
+| Repo file (this repo) | `repo@<sha>:<path>` | `repo@851886f:pnm-selfserve/selfserve_nlq/sqlgen.py` |
+| **Governed dbt repo** | `dbt@<sha>:<path>` — `porterin/DE-DBT-SNOWFLAKE` | `dbt@ad4ab4e:models/docs/dim/dim_pnm_opportunity.yml` |
 | Owner ruling | `DECISION_LOG:D<n>` | `DECISION_LOG:D4` |
 | Verification entry | `DECISION_LOG:V<n>` | `DECISION_LOG:V3` |
 | Metabase card | `metabase:card/<id>` | `metabase:card/47576` |
@@ -140,13 +141,14 @@ extrapolation, not a finding (`PNM-G-004`). **`verified` is not `stakeholder_rea
 1. Owner ruling — DECISION_LOG D1–D10, or an explicit in-session owner ruling   ← strongest
 2. The live-validated MBR automation, where a named reconciliation demonstrably
    happened (cited in-repo via its exact mirror, sqlgen.py)
-3. Metabase card SQL, where actually read
-4. Live schema — INFORMATION_SCHEMA / Data Catalog
-5. metrics_registry.py — behavioural fields (built, readiness, section wiring)
-6. iteration-1 metric catalog (the legacy 49-column pipeline catalogue)
-7. iteration-2 ledger · iteration-3 spec · HANDOFF.md · reference/README.md
+3. **Governed dbt model docs, tests and semantic models** (`porterin/DE-DBT-SNOWFLAKE`, merged to main)
+4. Metabase card SQL, where actually read
+5. Live schema — INFORMATION_SCHEMA / Data Catalog
+6. metrics_registry.py — behavioural fields (built, readiness, section wiring)
+7. iteration-1 metric catalog (the legacy 49-column pipeline catalogue)
+8. iteration-2 ledger · iteration-3 spec · HANDOFF.md · reference/README.md
    · metrics_registry.py prose fields (definition, aliases)
-8. Argus PnM Metrics DD · Notion MoM doc · Notion Demand DB · Notion schema guide  ← weakest
+9. Argus PnM Metrics DD · Notion MoM doc · Notion Demand DB · Notion schema guide  ← weakest
 ```
 
 **This ladder is PnM's own. Do not import PTL's** — theirs is topped by observed card SQL, and the
@@ -167,22 +169,30 @@ settles it).
 contradicting `D4`. A card that lost to a ruling on first contact cannot sit above rulings
 (`PNM-G-022`).
 
-**4 — Live schema.** *No PTL analogue.* Authoritative for **existence and type**, silent on
+**3 — Governed dbt models.** *Added 2026-08-26.* `porterin/DE-DBT-SNOWFLAKE` carries a full governed
+PnM layer — model docs, `accepted_values` and `relationships` tests, and semantic models with
+owner-approved metrics. A merged dbt test is **code**, not prose, so it clears CONTRIBUTING §5's
+`verified` bar for the thing it pins. It sits **below** the automation because the automation is what
+the MBR actually runs, and **above** card SQL because the dbt layer is governed, reviewed and
+CI-gated while a card is not. ⚠ **A governed metric can disagree with this catalog** — `PNM-G-090`
+is the standing example.
+
+**5 — Live schema.** *No PTL analogue.* Authoritative for **existence and type**, silent on
 **definition**. It settles factual disputes — `HS_TICKETS` has no `ORDER_ID`; the six OTA columns
 exist nowhere — but **it can never settle a definitional fork.** It outranks the Notion schema guide,
 which is a stale snapshot contradicted in five places (`PNM-G-023`).
 
-**5 — Registry behavioural fields.** `metrics_registry.py` is *code that runs*: `SECTIONS[…]["built"]`
+**6 — Registry behavioural fields.** `metrics_registry.py` is *code that runs*: `SECTIONS[…]["built"]`
 and `["readiness"]` gate `ask.py` at runtime, so they bind behaviour in a way no document does.
 
-**6 — iteration-1 catalog.** **Doubly weakened**: it documents the legacy 5-file pipeline that `D3`
+**7 — iteration-1 catalog.** **Doubly weakened**: it documents the legacy 5-file pipeline that `D3`
 established could never execute, and `D5` replaced. Its metric names exist nowhere in the shipped
 system. A record of *intent*, never of behaviour.
 
-**7 — Project documents and registry prose.** `HANDOFF.md` self-declares stale in its own header. The
+**8 — Project documents and registry prose.** `HANDOFF.md` self-declares stale in its own header. The
 registry's `definition` strings are *claims about* the SQL, not the SQL.
 
-**8 — Argus DD and Notion.** Authoritative for **which metrics PnM is expected to have** and for
+**9 — Argus DD and Notion.** Authoritative for **which metrics PnM is expected to have** and for
 **published values** — `D6` makes the Notion Demand DB a reconciliation baseline, a *value* authority
 — never for how a metric is computed.
 

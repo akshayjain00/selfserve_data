@@ -28,6 +28,19 @@ All rows `last_verified: 2026-08-26`. Metabase base URL: `https://metabase.prod-
 | PNM-S-007 | **`DECISION_LOG.md`** — D1–D10, V1–V4 | **Rung 1.** The owner's rulings and the verification record | re-read at the SHA | `repo@851886f:pnm-selfserve/DECISION_LOG.md` | **verified** (as a record of rulings) |
 | PNM-S-008 | **`pnm-gem-knowledge.md`** — 86 KB, 9 sections, provenance-tagged | The compiled PnM knowledge base this KB was re-cut from. **Richer in narrative than this KB; this KB is richer in addressability.** Its §5 SQL template library is not reproduced here | re-read at the SHA | `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` | unverified (as a document) |
 
+## The governed dbt layer — `porterin/DE-DBT-SNOWFLAKE`
+
+*Added 2026-08-26. **Rung 3.** A merged dbt test is code, not prose — it clears §5's `verified` bar
+for the thing it pins. This layer did not exist in the KB's sources until now and it settles two
+questions the KB had recorded as owner-blocked.*
+
+| id | source | what it governs | freshness_check | source_ref | confidence |
+|---|---|---|---|---|---|
+| **PNM-S-050** | **`dim_pnm_opportunity.yml`** — model docs + tests. Merged in **PR #3330** (Rashmi Dutta, 2026-08-17), which lifted its trust score 64 (C) → 100 (A) | `status` **`accepted_values` 0–4 with funnel labels** (`PNM-T-066`); `source` accepted_values 0–4; **`relationships` tests** `pickup_geo_region_id` / `drop_geo_region_id` → `dim_geo_regions` (`PNM-T-007`, `PNM-T-035`); `contains_pii: true`; **`user_flag` = "a flag to separate test and normal users"** (`PNM-T-082`) | re-read at the SHA | `dbt@ad4ab4e:models/docs/dim/dim_pnm_opportunity.yml` | **verified** |
+| **PNM-S-051** | **`dim_pnm_opportunity_semantic.yml`** — semantic model + the governed metric **`pnm_overall_leads`**, `approved_by: akshay.jain@theporter.in`, 2026-08-11 | The **Argus-eligible** counterpart of `leads_overall` — ⚠ **and it does not match ours** (`PNM-G-090`). Also exposes governed **`pickup_city_name`** and **`lead_channel`** dimensions (`PNM-G-070`, `PNM-G-011`, `PNM-G-062`) | re-read at the SHA | `dbt@b00ad73:models/semantics/dim_pnm_opportunity_semantic.yml` | **verified** |
+| **PNM-S-052** | **`pnm_experience.yml`** — model docs for the mart p80 and order_edits read | **`ota_flag`'s actual rule** — settles `PNM-G-024`; **`partition_lookback: 3`** (trailing 3-month rebuild) — settles `PNM-G-025`; derivations for `is_modification_done`, `no_of_successful_edits`, `has_support_edit`. Owner is **DATA_ANALYTICS / CENTRAL_ANALYTICS**, not NI_PNM | re-read at the SHA | `dbt@816fa40:models/docs/mart/pnm_experience.yml` | **verified** |
+| PNM-S-053 | **~20 further PnM semantic models and ~25 doc ymls** in the same repo — `dim_pnm_orders`, `fact_pnm_orders`, `fact_pnm_opportunity`, `pnm_customers`, `pnm_support`, `pnm_allocation`, `pnm_fare_movement`, `pnm_ota_capacity`, `pnm_base_query`, `pnm_growth_card`, `mart_pnm_invoices`, vendor/fare/rechurn models | **Not yet mined.** `fact_pnm_orders_semantic.yml` exposes an `order_count` measure but no owner-approved metric that overlaps this catalog; `pnm_experience_semantic.yml` exposes dimensions but no p80 or edit metric | re-read at the SHA | `dbt@main:models/` | unverified → `PNM-G-091` |
+
 ## Metabase — the two cards that matter, and why one is demoted
 
 | id | source | role | freshness_check | source_ref | confidence |
