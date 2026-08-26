@@ -53,7 +53,7 @@ each other before any could be written down.
 - **`e7b8f72`** — closed `PNM-G-002`, pushed (`68d46cb..e7b8f72`). See D-004, D-005, D-006.
 - **`951057b`** — put `coordination/` under version control, filed the 2026-07-29 workstream to
   `gem-kb-build/`. See D-001, D-002.
-- **step 2** — the five-model dbt mining, post-blind-check. See D-007…D-018.
+- **`bdfbe2c`** — the five-model dbt mining, post-blind-check. See D-007…D-018.
 
 ## Shared context (facts the work depends on)
 - **Canonical repo is `~/dev/selfserve` on `main`.** `~/Desktop/AI_V2/...` is DLP-locked: `getcwd()`
