@@ -158,11 +158,10 @@ capped at `unverified`; the KB reaches it through `sqlgen.py`, its in-repo mirro
 - **`ota` is BLOCKED, but narrowed.** Two governed models now implement it and **both use 30 min +
   500 m**, settling the old 2 km dispute — they differ on the *event* (shifting-started vs a vendor
   GPS action), and that fork is the owner's to rule (`PNM-G-024`).
-- ⚠ **Two things are called "PnM leads", and both are right.** The governed `pnm_overall_leads` counts
-  normal-user leads across **all shifting types**; this catalog's counts the **intra-city** subset and
-  is being renamed **`leads_overall_intra_city`** to say so (`owner-ruling:2026-08-26`, closing
-  `PNM-G-090`). **The rename is ruled but not yet in the code** → `PNM-G-093`. Never substitute one
-  for the other.
+- ⚠ **Two things are called "PnM leads", and both are right.** Governed `pnm_overall_leads` = **all
+  shifting types**; this catalog's = the **intra-city** subset, being renamed
+  **`leads_overall_intra_city`** to say so (`owner-ruling:2026-08-26`, closed `PNM-G-090`). **Ruled,
+  not yet in code** → `PNM-G-093`. Never substitute one for the other.
 - **56 live gaps**, **8 owner-blocked**. The biggest: **no city or weekly cut exists, and that is
   precisely what city ops will ask for** (`PNM-G-070`).
 - ⚠ **iteration-1's metric catalog is superseded and unannotated.** Six of its definitions are
