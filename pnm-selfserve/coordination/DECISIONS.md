@@ -153,3 +153,60 @@ citations resolve**, the other 2 being deliberately abbreviated in prose. Logged
 step that fails open would have been read as "the citations are broken" and sent the next session
 chasing nothing. The environment hazard is already recorded in BOARD; this is it biting a checker
 rather than the work.
+
+[D-019] 2026-08-27 (orchestrator) — **The HCV lane's two commits are accepted as sound, after
+independent verification of the claims I could check cheaply.** — `6c5b4dd` and `21a6eaa` touch
+**only** `hcv-selfserve/**`, so `D-003`'s disjoint-tree premise held in practice and neither lane
+blocked the other. `coverage-map/derive.py --check` returns **"in sync"**, which is the material point:
+the projection is now *reproducible* rather than hand-asserted, so the "never edit `coverage-map/` by
+hand" rule is enforced by a script instead of by discipline. Verified independently: 118 rows, status
+mix 112 pending / 6 partial, `north_star` set on all 118, `kb_row` on all 118, and citations
+re-pointed to `metrics.md` (98) + the CSV row-wise (20) — no row still cites the superseded spec line.
+
+[D-020] 2026-08-27 (orchestrator) — **My own recount of HCV's gap rows was wrong and the worker's was
+right.** — I computed 63 rows / 12 without a status cell against its reported 58 / 7. The difference is
+entirely my detector: four of "my" rows are **ID-allocation legend rows** (`G-004`–`G-029`,
+`G-030`–`G-099`, `G-100`–`G-199`, `G-201`–`G-399`) and one is a duplicate closure-log entry for
+`G-082`. `63 − 4 − 1 = 58`. Recorded because `D-006`'s rule cuts both ways: **recount, and then check
+what your counter is actually counting.** A first-cell-id heuristic is not a gap-row detector when the
+file also carries a legend table in the same shape.
+
+[D-021] 2026-08-27 (orchestrator) — **The false-premise gap row is a PATTERN across both verticals, not
+two coincidences.** — PnM's `PNM-G-002` claimed two files were untracked (both tracked for weeks) and
+its `next_action` would have destroyed a board-reviewed document. HCV's `G-024` claimed
+`business.md §7` was "empty — no number warehouse-validated" and told the reader to run the query
+pack; the snapshot had in fact been populated at `3dc65fd` **twelve hours after the gap row was
+written**, so executing it would have re-run a production query — against CONTEXT hard rule 1, which
+forbids exactly that without an owner go-ahead. HCV's headline finding is the same class again:
+`D-028`'s "a fourth source arrived" was false — the same `gsheet` source had been re-read more
+completely, which is also why 8 rows looked like new surface and Finance-on-AOV looked like
+independent corroboration. **Three instances, two verticals, one failure mode: a gap row's premise
+decays and nothing re-checks it.** The rule now generalises beyond PnM.
+
+[D-022] 2026-08-27 (orchestrator) — **The HCV worker republished the live org-shared artifact; this is
+recorded as an owner-facing event, not as a routine step.** — It cites `CONTRIBUTING §10.5` and the
+reasoning is sound (HCV has no `WALKTHROUGH.md`, so the artifact is its only published surface, and
+the drift that rule exists to prevent is exactly what leaving it would preserve). Two facts the owner
+must see rather than discover: the artifact URL `c6f3e837…` **now serves different content**, and its
+**favicon changed to 📊** because the original was not recoverable through a read. The published page
+was byte-identical to the committed HTML beforehand, so there was no artifact-vs-repo drift to fix —
+only KB drift. Flagged for the owner; the favicon is restorable if they know the original.
+
+[D-023] 2026-08-27 (orchestrator) — **HCV's "outstation" finding outranks PnM's OTA finding in
+severity, and the two together justify the cross-vertical rule.** — PnM had three governed definitions
+of one concept diverging on one component (the distance term). HCV has **four** encodings of
+"outstation" diverging on **two components at once** — `LEVEL0_MAPPING='OUTSTATION'` (11 vehicle_ids)
+vs `SERVICEABILITY_SEGMENT='Outstation'` (22, of which 11 are called `'HCV'` by level0), with one model
+adding `travel_distance > 100`. And `hcv_outstation.sql` filters only `level0_mapping <> '2W'` — the
+word "outstation" appears **zero times** in the file named for it. The BOARD learning "when you find
+two, look for a third" is upgraded: **count the components they disagree on, not just the definitions.**
+
+[D-024] 2026-08-27 (orchestrator) — **Two HCV findings are logged as owner-facing defects in the
+governed repo, not as HCV KB gaps.** — (a) `trucks_daily_demand_summary` has **two governed validation
+records that disagree on whether it passes** (`models/docs/mart/…` run 5 PASS 2026-07-01 vs
+`models/docs/…` run 2 FAIL 0/7 ownership 2026-05-04) — the duplicate-validation-file problem
+(`PNM-G-097`) is not merely redundant in HCV, it is **contradictory**. (b) 6 orphan validation docs
+describe no `.sql`, and 3 HCV models have no validation file at all. Also recorded: HCV's 63 validation
+files → 38 models with **24 of 25 duplicate pairs byte-identical** and **no schema outliers** (all v5),
+so unlike PnM every HCV score is comparable — but only **10 of 38** pass gates. Scoping by filename
+`/hcv|truck/i` misses 4 real HCV models; **scope by model directory.**

@@ -1,7 +1,7 @@
 # BOARD — current state & handoff
 # Mutable, single-writer (orchestrator). Reference decisions by ID (see D-NNN); do not restate them.
 # Done-test: a fresh zero-context agent can continue from this file alone.
-Updated: 2026-08-27 01:20 IST (orchestrator)
+Updated: 2026-08-27 01:35 IST (orchestrator)
 
 ## Workstream
 Close gaps in the PnM row-addressed knowledge base at `pnm-selfserve/kb/`, and mine the governed dbt
@@ -12,7 +12,8 @@ The completed 2026-07-29 Gem-KB workstream lives at `./gem-kb-build/` with its o
 (see D-001). **Decision ids here are a fresh space.**
 
 ## Status
-**PnM steps 1 and 2 both SHIPPED and pushed. HCV in flight.** Nothing of PnM's is uncommitted.
+**PnM: shipped and pushed. HCV: two commits landed locally, UNPUSHED, awaiting an owner call.**
+⚠ **The HCV worker republished the live org-shared artifact** `c6f3e837…` — see D-022. Owner-facing.
 
 ## Mode
 **PARALLEL across verticals, SEQUENTIAL within PnM** — see D-003. Workers touch disjoint trees
@@ -28,24 +29,29 @@ each other before any could be written down.
   exactly (11/11 scores), `is_test_user` logic, all 13 citations, and the gap arithmetic. **Returned 6
   defects, all accepted and fixed pre-commit** — one of them inverted a claim I had graded `verified`.
   See D-012…D-018.
-- **hcv-workstream (running)** — audits the never-examined HCV coverage-map artifact
-  (`c6f3e837-29fc-4a8a-bdd8-30321ce13dc8`), reconciles HCV's gap counts, premise-checks its
-  "untracked" rows, ranks HCV dbt models by trust score, and greps for this session's defect patterns.
-  Carries all 7 transferable learnings below. Reports back; commits nothing without saying so.
+- **hcv-workstream (done)** — audited the HCV artifact, reconciled its counts, premise-checked its
+  gap rows, ranked 38 HCV dbt models, found 6 defect-pattern instances. Ran **its own blind checker**,
+  which caught 3 of its errors (including a CSV column misalignment of **two** columns, not one, that
+  dropped a row). Landed `6c5b4dd` + `21a6eaa`, unpushed. Also **republished the artifact** (D-022).
+  Findings accepted at D-019…D-024.
 
 ## Pending / next
-1. **Synthesize the HCV worker's report** when it returns; decide whether HCV needs its own
-   `coordination/` record.
-2. **`PNM-G-098` is the cheapest open lead** — read `PNM_EXPERIENCE`'s `distance_km` derivation in the
+1. **Owner call: push `6c5b4dd` + `21a6eaa`?** They are verified sound (D-019) but are another lane's
+   work on a shared remote. `main` is ahead of `origin/main` by exactly these two.
+2. **Owner call on the artifact favicon** — it changed to 📊 because the original was unrecoverable
+   (D-022). Restorable if the original is known.
+3. HCV has **no `coordination/` record**. Its decision trail lives only in its two commit messages and
+   `hcv-selfserve/kb/GAPS.md`. Worth scaffolding one if HCV work continues.
+4. **`PNM-G-098` is the cheapest open lead** — read `PNM_EXPERIENCE`'s `distance_km` derivation in the
    mart SQL. If it is not a pickup-proximity measure, then only **one** of the three governed OTA
    definitions tests proximity at all, and `PNM-G-024`'s framing changes again. Evidence already
    points that way (D-015).
-3. **Remaining §3.1 mining — ~15 models unmined** (`PNM-S-053`). Next by evidentiary yield:
+5. **Remaining §3.1 mining — ~15 models unmined** (`PNM-S-053`). Next by evidentiary yield:
    `fact_pnm_opportunity` (97.5 A), `dim_pnm_vendor` (95 A), `pnm_gst_daily` (100 A),
    `cge_pnm_paid_lead_attribution` (100 A). **State which ordering you use** (see D-007).
-4. Untouched from the handoff queue: `PNM-G-093` (the `leads_overall` → `leads_overall_intra_city`
+6. Untouched from the handoff queue: `PNM-G-093` (the `leads_overall` → `leads_overall_intra_city`
    rename — five call sites, a live metric id; treat as its own session with blast-radius analysis).
-5. Owner-facing, none blocking: `PNM-G-024` needs a ruling on **whether OTA requires GPS proximity**
+7. Owner-facing, none blocking: `PNM-G-024` needs a ruling on **whether OTA requires GPS proximity**
    (narrower than the "which event" question it replaced); `PNM-G-094` and `PNM-G-095` are defects to
    route to `NI_PNM`; `PNM-G-097`'s duplicate validation files belong to the dbt repo's owners.
 
@@ -103,7 +109,15 @@ each other before any could be written down.
   `ROW_NUMBER()` was meant · a CTE named for one population that filters to another (an "outstation"
   CTE filtering `shifting_type = 'intra_city'`) · hardcoded constant `VALUES` tables with no owner ·
   two near-identical columns for one concept with nothing saying which is authoritative · **multiple
-  governed definitions of one business concept** — when you find two, look for a third.
+  governed definitions of one business concept** — when you find two, look for a third, and **count the
+  components they disagree on**: PnM's three OTA definitions diverge on one, HCV's four "outstation"
+  encodings diverge on two at once (D-023). A model can also be named for a population it does not
+  filter — `hcv_outstation.sql` never mentions "outstation".
+- ⚠ **The false-premise gap row is a cross-vertical PATTERN, not a PnM quirk** (D-021). Three instances
+  in two verticals; one would have destroyed a document, another would have re-run a production query
+  against a hard rule. **Re-check a gap row's premise before executing its `next_action`, in any KB.**
+- **Check what your counter counts.** My HCV recount was wrong because a first-cell-id heuristic also
+  matched the file's ID-allocation legend table (D-020).
 - **Environment:** `PATH` intermittently drops in compound Bash calls; export
   `PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin`. zsh does not word-split unquoted variables.
   `export -f` does **not** survive into `bash -c` from zsh — write a real script file.
