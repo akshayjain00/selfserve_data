@@ -3,3 +3,7 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+# Session/tooling output, not project content
+.checkpoints/
+.playwright-mcp/

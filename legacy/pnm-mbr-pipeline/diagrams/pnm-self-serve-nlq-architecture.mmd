@@ -1,0 +1,36 @@
+graph TD
+    Q["User asks in plain English<br/>e.g. 'TPO for May 2026?'"]
+
+    subgraph L3["Layer 3 — NL resolution (AI, no SQL authority)"]
+        CLAUDE["Claude session<br/>maps question to metric_id + month"]
+    end
+
+    subgraph L2["Layer 2 — Deterministic query engine (logic, no AI)"]
+        ASK["ask.py (CLI)<br/>--metric --month --list --execute"]
+        REG["metrics_registry.py<br/>declarative catalog, 6 sections"]
+        GEN["sqlgen.py<br/>renders SQL, mirrors validated MBR automation"]
+    end
+
+    subgraph L1["Layer 1 — Data layer (read-only)"]
+        ELD[("PROD_ELDORIA core/mart<br/>LEADS_CONVERSION_QUERY")]
+        CUR[("PROD_CURATED raw<br/>TPO_TREND_QUERY, card #47576")]
+    end
+
+    RUN["runner.py<br/>single read-only SELECT<br/>+ pandas derived (aggregate-then-ratio)"]
+    VAL["validator.py<br/>sanity + drift checks"]
+    ANS["Answer + contract footer<br/>flags disclosed, never silently fixed"]
+    LOG[("answers_log/<br/>append-only audit")]
+    NANO["Nano rule: labour-only, LA-owned<br/>IN leads · OUT of orders and tpo"]
+
+    Q --> CLAUDE
+    CLAUDE -->|metric_id + month| ASK
+    ASK --> REG
+    REG --> GEN
+    GEN -->|"dry-run (default): print SQL"| ANS
+    GEN -->|--execute| RUN
+    RUN -->|leads / orders / derived / tpo| ELD
+    RUN -->|tpo| CUR
+    RUN -.applies.-> NANO
+    RUN --> VAL
+    VAL --> ANS
+    ANS --> LOG

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sketch 001 — Answer Surface · PnM Self-Serve</title>
+<link rel="stylesheet" href="../themes/default.css">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding-top: 46px;
+    font-family: var(--font-sans);
+    background: var(--color-bg); color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 100%; transition: max-width .2s ease; margin: 0 auto; }
+
+  /* ---- variant nav ---- */
+  #variant-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
+    background: var(--color-surface); border-bottom: 1px solid var(--color-border);
+    padding: 6px 12px; display: flex; gap: 6px; align-items: center;
+    font-family: var(--font-sans); box-shadow: var(--shadow-sm);
+  }
+  #variant-nav .brand { font-size: var(--text-xs); color: var(--color-text-faint); margin-right: 8px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .variant-tab {
+    border: 1px solid var(--color-border); background: var(--color-surface-2);
+    color: var(--color-text-muted); padding: 5px 12px; border-radius: var(--radius-full);
+    font-size: var(--text-sm); cursor: pointer; transition: all .15s ease;
+  }
+  .variant-tab:hover { border-color: var(--color-border-strong); color: var(--color-text); }
+  .variant-tab.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+
+  .variant { display: none; padding: var(--space-8) var(--space-6) 80px; }
+  .variant.active { display: block; }
+
+  /* ---- shared bits ---- */
+  .ask-bar { display: flex; gap: var(--space-2); align-items: center;
+    background: var(--color-surface); border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-full); padding: 6px 6px 6px 18px; box-shadow: var(--shadow-sm); }
+  .ask-bar input { flex: 1; border: 0; outline: 0; font-size: var(--text-lg); font-family: var(--font-sans);
+    background: transparent; color: var(--color-text); }
+  .ask-bar input::placeholder { color: var(--color-text-faint); }
+  .ask-send { border: 0; background: var(--color-primary); color: #fff; width: 40px; height: 40px;
+    border-radius: var(--radius-full); cursor: pointer; font-size: 1.1rem; transition: background .15s ease; }
+  .ask-send:hover { background: var(--color-primary-hover); }
+
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs);
+    font-weight: 600; padding: 3px 10px; border-radius: var(--radius-full); }
+  .pill.reconciled { background: var(--color-success-soft); color: var(--color-success); }
+  .pill.prototype { background: var(--color-accent-soft); color: var(--color-accent); }
+  .pill.notbuilt  { background: var(--color-danger-soft); color: var(--color-danger); }
+  .pill.blocked   { background: #eceef1; color: var(--color-text-muted); }
+  .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+  .hero-num { font-size: var(--text-hero); font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+  .hero-label { color: var(--color-text-muted); font-size: var(--text-base); margin-top: var(--space-2); }
+
+  .disclosure { border: 1px solid var(--color-border); border-radius: var(--radius-md);
+    background: var(--color-surface); overflow: hidden; }
+  .disclosure + .disclosure { margin-top: var(--space-3); }
+  .disclosure > summary { list-style: none; cursor: pointer; padding: 14px 16px; display: flex;
+    align-items: center; justify-content: space-between; font-size: var(--text-sm); font-weight: 600;
+    color: var(--color-text); user-select: none; }
+  .disclosure > summary::-webkit-details-marker { display: none; }
+  .disclosure > summary .chev { color: var(--color-text-faint); transition: transform .18s ease; }
+  .disclosure[open] > summary .chev { transform: rotate(90deg); }
+  .disclosure .body { padding: 0 16px 16px; }
+
+  pre.sql { margin: 0; background: var(--color-code-bg); color: var(--color-code-text);
+    padding: 16px; border-radius: var(--radius-sm); font-family: var(--font-mono);
+    font-size: var(--text-sm); line-height: 1.55; overflow-x: auto; }
+  pre.sql .kw { color: #7fd1c4; } pre.sql .fn { color: #e6c07b; } pre.sql .cm { color: #6b8494; font-style: italic; }
+
+  .flag-row { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--color-border); font-size: var(--text-sm); }
+  .flag-row:first-child { border-top: 0; }
+  .flag-badge { flex: none; font-size: var(--text-xs); font-weight: 700; padding: 2px 8px; border-radius: var(--radius-sm);
+    height: fit-content; }
+  .flag-badge.nano { background: var(--color-primary-soft); color: var(--color-primary); }
+  .flag-badge.rule { background: #eef1f6; color: var(--color-text-muted); }
+  .flag-badge.verify { background: var(--color-accent-soft); color: var(--color-accent); }
+  .flag-row .ftext { color: var(--color-text-muted); }
+  .flag-row .ftext b { color: var(--color-text); font-weight: 600; }
+
+  .btn { border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text);
+    padding: 8px 14px; border-radius: var(--radius-sm); font-size: var(--text-sm); font-weight: 600; cursor: pointer;
+    transition: all .15s ease; font-family: var(--font-sans); }
+  .btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+  .btn.primary { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+  .btn.primary:hover { background: var(--color-primary-hover); color: #fff; }
+  .btn:disabled { opacity: .55; cursor: default; }
+
+  .exec-note { font-size: var(--text-sm); color: var(--color-success); font-weight: 600; }
+  .muted { color: var(--color-text-muted); } .faint { color: var(--color-text-faint); }
+  .sup { font-size: 0.62em; vertical-align: super; color: var(--color-primary); font-weight: 700; cursor: pointer; }
+
+  /* state cycler (shared demo control) */
+  .statecycle { display: inline-flex; gap: 6px; align-items: center; font-size: var(--text-xs); color: var(--color-text-faint); }
+  .statecycle button { border: 1px solid var(--color-border); background: var(--color-surface); border-radius: var(--radius-sm);
+    padding: 3px 8px; cursor: pointer; font-size: var(--text-xs); }
+  .statecycle button:hover { border-color: var(--color-primary); }
+
+  /* ===== Variant B layout ===== */
+  .b-grid { display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: var(--space-8); align-items: start; }
+  .trust-panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+    padding: var(--space-5); position: sticky; top: 62px; }
+  .trust-panel h4 { margin: 0 0 var(--space-3); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-faint); }
+  .check { display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid var(--color-border); font-size: var(--text-sm); }
+  .check:first-of-type { border-top: 0; }
+  .check .ico { flex: none; width: 18px; text-align: center; }
+  @media (max-width: 860px) { .b-grid { grid-template-columns: 1fr; } .trust-panel { position: static; } }
+
+  /* ===== Variant C conversational ===== */
+  .thread { max-width: 720px; margin: 0 auto; }
+  .msg-user { display: flex; justify-content: flex-end; margin: var(--space-6) 0 var(--space-3); }
+  .msg-user .bubble { background: var(--color-primary); color: #fff; padding: 10px 16px; border-radius: 16px 16px 4px 16px; font-size: var(--text-base); }
+  .answer-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-6); box-shadow: var(--shadow-sm); }
+  .answer-card .a-num { font-size: var(--text-2xl); font-weight: 700; }
+  .fnlist { margin-top: var(--space-4); border-top: 1px dashed var(--color-border); padding-top: var(--space-3); }
+  .fn { display: flex; gap: 8px; font-size: var(--text-sm); color: var(--color-text-muted); padding: 4px 0; }
+  .fn .n { color: var(--color-primary); font-weight: 700; flex: none; }
+  .followup { margin-top: var(--space-8); }
+</style>
+</head>
+<body>
+
+<div id="variant-nav">
+  <span class="brand">Sketch 001 · answer surface</span>
+  <button class="variant-tab active" onclick="showVariant('a', this)">A · Stacked disclosure</button>
+  <button class="variant-tab" onclick="showVariant('b', this)">B · Persistent trust rail</button>
+  <button class="variant-tab" onclick="showVariant('c', this)">C · Conversational thread</button>
+</div>
+
+<!-- =========================== VARIANT A =========================== -->
+<div id="variant-a" class="variant active">
+  <div class="stage" style="max-width:640px;">
+    <div class="ask-bar">
+      <input id="a-q" value="TPO for May 2026" onkeydown="if(event.key==='Enter')aAsk()">
+      <button class="ask-send" onclick="aAsk()" title="Ask">↵</button>
+    </div>
+
+    <div style="margin-top:var(--space-8);">
+      <span class="pill reconciled" id="a-pill"><span class="dot"></span> reconciled</span>
+      <div class="hero-num" style="margin-top:var(--space-4);"><span id="a-num">45,414</span></div>
+      <div class="hero-label"><span id="a-label">tpo base · May 2026</span></div>
+    </div>
+
+    <div style="margin-top:var(--space-6); display:flex; gap:10px; align-items:center;">
+      <button class="btn primary" id="a-exec" onclick="fakeExec('a')">Execute query</button>
+      <span class="faint" style="font-size:var(--text-sm);">dry-run by default · read-only SELECT</span>
+      <span id="a-execnote"></span>
+    </div>
+
+    <div style="margin-top:var(--space-8);">
+      <details class="disclosure">
+        <summary>Show SQL <span class="chev">›</span></summary>
+        <div class="body"><pre class="sql" id="a-sql"></pre></div>
+      </details>
+      <details class="disclosure">
+        <summary>Disclosures <span class="chev">›</span></summary>
+        <div class="body" id="a-flags"></div>
+      </details>
+    </div>
+
+    <div style="margin-top:var(--space-8);" class="statecycle">
+      <span>demo — try a readiness state:</span>
+      <button onclick="setState('a','reconciled')">reconciled</button>
+      <button onclick="setState('a','prototype')">prototype-only</button>
+      <button onclick="setState('a','notbuilt')">not built</button>
+      <button onclick="setState('a','blocked')">blocked</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================== VARIANT B =========================== -->
+<div id="variant-b" class="variant">
+  <div class="stage" style="max-width:960px;">
+    <div class="ask-bar" style="margin-bottom:var(--space-8);">
+      <input id="b-q" value="TPO for May 2026" onkeydown="if(event.key==='Enter')aAsk()">
+      <button class="ask-send" onclick="aAsk()" title="Ask">↵</button>
+    </div>
+    <div class="b-grid">
+      <div>
+        <span class="pill reconciled" id="b-pill"><span class="dot"></span> reconciled</span>
+        <div class="hero-num" style="margin-top:var(--space-4);">45,414</div>
+        <div class="hero-label">tpo base · May 2026</div>
+        <div style="margin-top:var(--space-6); display:flex; gap:10px; align-items:center;">
+          <button class="btn primary" id="b-exec" onclick="fakeExec('b')">Execute query</button>
+          <span class="faint" style="font-size:var(--text-sm);">dry-run · read-only</span>
+          <span id="b-execnote"></span>
+        </div>
+        <details class="disclosure" style="margin-top:var(--space-6);" open>
+          <summary>Rendered SQL <span class="chev">›</span></summary>
+          <div class="body"><pre class="sql" id="b-sql"></pre></div>
+        </details>
+      </div>
+
+      <aside class="trust-panel">
+        <h4>Trust panel</h4>
+        <div class="check"><span class="ico" style="color:var(--color-success)">✓</span>
+          <div><b>Reconciled</b> to the validated MBR automation for 2026-05.</div></div>
+        <div class="check"><span class="ico" style="color:var(--color-primary)">◆</span>
+          <div><b>Nano rule</b> — labour-only (LA-owned): <b>in</b> leads, <b>out</b> of orders &amp; tpo.</div></div>
+        <div class="check"><span class="ico faint">Σ</span>
+          <div><b>Aggregate-then-ratio</b> — numerator ÷ denominator, never averaged.</div></div>
+        <div class="check"><span class="ico" style="color:var(--color-accent)">⚑</span>
+          <div><b>2 verify-flags</b> on tpo: tickets table name, <span class="mono">raised_by</span> column.</div></div>
+        <div class="check"><span class="ico faint">◔</span>
+          <div>Source: <b>PROD_CURATED</b> raw · <span class="faint">TPO_TREND_QUERY / card #47576</span></div></div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<!-- =========================== VARIANT C =========================== -->
+<div id="variant-c" class="variant">
+  <div class="stage thread">
+    <div class="msg-user"><div class="bubble">TPO for May 2026</div></div>
+    <div class="answer-card">
+      <span class="pill reconciled"><span class="dot"></span> reconciled</span>
+      <div style="margin-top:var(--space-3);"><span class="a-num">45,414</span> <span class="muted">tpo base · May 2026</span></div>
+      <p class="muted" style="font-size:var(--text-sm); margin:var(--space-3) 0 0;">
+        Total pickup orders for PnM in May 2026<span class="sup" onclick="scrollFn('c1')">1</span>,
+        computed aggregate-then-ratio<span class="sup" onclick="scrollFn('c2')">2</span>,
+        nano excluded<span class="sup" onclick="scrollFn('c3')">3</span>.
+      </p>
+      <div style="margin-top:var(--space-4); display:flex; gap:10px; align-items:center;">
+        <button class="btn" onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden">⌄ Rendered SQL</button>
+        <span></span>
+      </div>
+      <pre class="sql" id="c-sql" hidden style="margin-top:var(--space-3);"></pre>
+      <div style="margin-top:var(--space-4); display:flex; gap:10px; align-items:center;">
+        <button class="btn primary" id="c-exec" onclick="fakeExec('c')">Execute</button>
+        <span id="c-execnote"></span>
+      </div>
+
+      <div class="fnlist">
+        <div class="fn" id="c1"><span class="n">1</span><span>Source: <b>PROD_CURATED</b> raw · TPO_TREND_QUERY / Metabase card #47576. 2 open verify-flags (tickets table, <span class="mono">raised_by</span>).</span></div>
+        <div class="fn" id="c2"><span class="n">2</span><span>Aggregate-then-ratio: numerator ÷ denominator at the cut, never an average of daily ratios.</span></div>
+        <div class="fn" id="c3"><span class="n">3</span><span>Nano = labour-only (LA-owned): included in leads, excluded from orders &amp; tpo.</span></div>
+      </div>
+    </div>
+
+    <div class="msg-user"><div class="bubble">…and the conversion trend for Q2?</div></div>
+    <div class="answer-card">
+      <span class="pill prototype"><span class="dot"></span> prototype-only</span>
+      <div style="margin-top:var(--space-3);"><span class="a-num">15.2% → 15.4% → 15.9%</span></div>
+      <p class="muted" style="font-size:var(--text-sm); margin:var(--space-3) 0 0;">
+        Conversion = non-nano PnM orders ÷ nano-inclusive PnM leads, re-aggregated per month (Apr–Jun 2026).
+      </p>
+    </div>
+
+    <div class="followup ask-bar">
+      <input placeholder="Ask a follow-up…" onkeydown="if(event.key==='Enter'){alert('(sketch) would append a new answer card');this.value=''}">
+      <button class="ask-send" title="Ask">↵</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================== SKETCH TOOLBAR =========================== -->
+<div id="sketch-tools" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:system-ui;font-size:12px;background:rgba(15,27,36,0.82);color:#fff;padding:8px 12px;border-radius:10px;opacity:0.45;transition:opacity .2s;display:flex;gap:12px;align-items:center;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.45'">
+  <span style="opacity:.6">theme</span>
+  <select onchange="document.querySelector('link[href*=themes]').href='../themes/'+this.value+'.css'" style="background:#0f1b24;color:#fff;border:1px solid #34424d;border-radius:5px;padding:2px 4px;">
+    <option value="default">Default</option>
+  </select>
+  <span style="opacity:.6">viewport</span>
+  <button onclick="setVP(375)" style="background:none;border:1px solid #34424d;color:#fff;border-radius:5px;padding:2px 7px;cursor:pointer;">Phone</button>
+  <button onclick="setVP(768)" style="background:none;border:1px solid #34424d;color:#fff;border-radius:5px;padding:2px 7px;cursor:pointer;">Tablet</button>
+  <button onclick="setVP(0)" style="background:none;border:1px solid #34424d;color:#fff;border-radius:5px;padding:2px 7px;cursor:pointer;">Full</button>
+</div>
+
+<script>
+/* ---- variant switching ---- */
+function showVariant(id, el){
+  document.querySelectorAll('.variant').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.variant-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('variant-'+id).classList.add('active');
+  el.classList.add('active');
+}
+/* ---- viewport constrain ---- */
+function setVP(w){ document.querySelectorAll('.stage').forEach(s=>{ s.style.maxWidth = w? w+'px' : (s.dataset.max||''); }); }
+document.querySelectorAll('.stage').forEach(s=>s.dataset.max = s.style.maxWidth);
+
+/* ---- fake SQL (real shape, mirrors TPO_TREND_QUERY) ---- */
+const SQL = `<span class="cm">-- tpo_base · May 2026 · read-only (dry-run)</span>
+<span class="kw">SELECT</span> <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> order_id) <span class="kw">AS</span> tpo_base
+<span class="kw">FROM</span>   prod_curated.oms_public.tpo_orders
+<span class="kw">WHERE</span>  is_nano = <span class="kw">FALSE</span>                <span class="cm">-- nano → LA, excluded</span>
+  <span class="kw">AND</span>  vertical = <span class="fn">'PnM'</span>
+  <span class="kw">AND</span>  o_created_ts >= <span class="fn">DATEADD</span>(<span class="fn">'minute'</span>, -330, <span class="fn">'2026-05-01'</span>::timestamp_ntz)
+  <span class="kw">AND</span>  o_created_ts <  <span class="fn">DATEADD</span>(<span class="fn">'minute'</span>, -330, <span class="fn">'2026-06-01'</span>::timestamp_ntz);`;
+document.getElementById('a-sql').innerHTML = SQL;
+document.getElementById('b-sql').innerHTML = SQL;
+document.getElementById('c-sql').innerHTML = SQL;
+
+/* ---- flags for variant A ---- */
+document.getElementById('a-flags').innerHTML = `
+  <div class="flag-row"><span class="flag-badge nano">NANO</span><span class="ftext">Labour-only (LA-owned): <b>included in leads</b>, <b>excluded from orders &amp; tpo</b>.</span></div>
+  <div class="flag-row"><span class="flag-badge rule">RATIO</span><span class="ftext">Aggregate-then-ratio — numerator ÷ denominator at the cut, never averaged.</span></div>
+  <div class="flag-row"><span class="flag-badge verify">VERIFY</span><span class="ftext">2 open flags on tpo: <b>tickets</b> table name, <b>raised_by</b> column. Disclosed, not silently fixed.</span></div>
+  <div class="flag-row"><span class="flag-badge rule">SOURCE</span><span class="ftext">PROD_CURATED raw · TPO_TREND_QUERY / card #47576.</span></div>`;
+
+/* ---- fake execute: dry-run -> loading -> success ---- */
+function fakeExec(v){
+  const btn = document.getElementById(v+'-exec');
+  const note = document.getElementById(v+'-execnote');
+  btn.disabled = true; btn.textContent = 'Running…'; note.textContent='';
+  setTimeout(()=>{
+    btn.disabled=false; btn.textContent='Execute query';
+    note.innerHTML = '<span class="exec-note">✓ executed · 1 row · 0.8s · read-only</span>';
+  }, 900);
+}
+
+/* ---- readiness state cycler (variant A demo) ---- */
+const STATES = {
+  reconciled: {cls:'reconciled', txt:'reconciled', num:'45,414', label:'tpo base · May 2026'},
+  prototype:  {cls:'prototype',  txt:'prototype-only', num:'45,414', label:'tpo base · May 2026 · owner sign-off pending'},
+  notbuilt:   {cls:'notbuilt',   txt:'not built yet', num:'—', label:'p80_durations · section not implemented'},
+  blocked:    {cls:'blocked',    txt:'blocked', num:'—', label:'ota · data source undefined'}
+};
+function setState(v, key){
+  const s = STATES[key];
+  const pill = document.getElementById(v+'-pill');
+  pill.className = 'pill '+s.cls; pill.innerHTML = '<span class="dot"></span> '+s.txt;
+  document.getElementById(v+'-num').textContent = s.num;
+  document.getElementById(v+'-label').textContent = s.label;
+}
+
+/* ---- ask bar (fake) ---- */
+function aAsk(){ /* sketch: keeps the same answer; real app would re-render */ }
+
+/* ---- footnote scroll (variant C) ---- */
+function scrollFn(id){ const el=document.getElementById(id); el.style.background='var(--color-primary-soft)';
+  el.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>el.style.background='',1200); }
+</script>
+</body>
+</html>
