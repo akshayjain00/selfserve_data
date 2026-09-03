@@ -660,3 +660,96 @@ spec (weakest, `local:`). Class G extended to `G-201`–`G-399`.
 **`CONTEXT.md` breached its 150-line cap during this merge and was compressed back to 150**, not
 allowed to slip. The cap is a hard rule in `DESIGN.md` §6.2; a cap that yields the first time it is
 inconvenient is not a cap.
+
+### D-029 · 2026-09-03 · Harvest the four `Downloads/hcv` sources — two unregistered dashboards, and three reasons most of it stays `unverified`
+
+**Owner rulings taken this session, before any work:** harvest the new material **first**, then run
+one gate over the finished KB (rather than gating twice); and **parallel harvest, sequential gate** —
+fan-out for the four independent read-only sources, but the step-7 blind checkers run one at a time,
+honouring `D-024`. Four workers were spawned, one per file. Workers returned findings only; none
+wrote to disk, and every judgement below is the orchestrator's.
+
+**Provenance ceiling, applying to all four files.** None is version-controlled, so under
+[CONTRIBUTING.md](../kb/CONTRIBUTING.md) §3 every fact sourced only from them is capped at
+`unverified`. Two new `source_ref` forms are registered by this entry, both at the `local:` rung:
+`local:Downloads/hcv/<file>`. **No `OWNER:<date>` citation was issued from any of the four**, and
+none may be.
+
+| file | additive | duplicate | conflicts | cards cited |
+|---|---:|---:|---:|---:|
+| `dashboard_6248_metric_inventory.md` | 19 metrics + 21 non-metric facts (of 96 ids) | 74 | 11 | 130 |
+| `dashboard_3823_metric_inventory.md` | 6 metrics + tables/defects (of 45 ids) | 39 | 10 | 47 |
+| `colleague_kb_extract_hcv.md` | 20 | 23 | 10 | 0 |
+| `90-colleague-session-extract.md` | 30 | 11 | 6 | 0 |
+
+Counts are stated per file and deliberately **not** summed into a headline figure; the four use
+different units (metric ids, facts, rows) and a carried total would be the `D-026` error again.
+Card ids are disjoint across the two dashboards, so **177 distinct cards, of which 161 are new to
+this KB** — that one is safe to add and was recomputed, not carried.
+
+**The single largest finding: two entire dashboards are unregistered.** `dashboards.md` §3 lists
+only `6406`, `1882`, `4146` and the pack. Neither **`6248`** ("HCV Dashboard - Revamp 1", 10 tabs,
+130 cards, **zero** overlap with this KB's 66 known card ids) nor **`3823`** ("HCV Dashboard
+Eldoria", 7 tabs, 47 cards, 31 unknown) appears anywhere in `kb/`.
+
+**Three findings constrain how any of it may be used. Each one *reduces* what this harvest is worth,
+which is why they are recorded first.**
+
+1. **`colleague_kb_extract_hcv.md` is the pack's own pre-history, not a second source.** Six rows map
+   one-to-one onto committed pack prose and SQL — the `fo_driver_id` instruction (`B-063`), the
+   revenue reconciliation (`M-009` `#L536`), the `mbr_mapping`→`v2` rename (`T-070`), the
+   byte-identical dedup CASE (`B-062`). Where it agrees with this KB that is **one source appearing
+   twice** (§4). `M-009` and `T-070` must **not** be strengthened on it. This is the `G-100` lesson
+   recurring: ask whether two sources share an author before crediting agreement.
+2. **`90-colleague-session-extract.md` documents a different workstream** — the HCV Intercity
+   driver-"skew" A/B experiment, not the metrics pack. Its subject is never named and is nowhere
+   established as this KB's owner, so its six ruling-shaped quotes are **not** `OWNER:` citations.
+   Its two most quotable numbers — a `~38%` driver-clearing rate and a `score >= 0.96` skew
+   threshold — are **assistant assertions inside a transcript** and are not evidence. **`G-032` must
+   not be sized with the 38%.**
+3. **Neither dashboard file contains SQL.** Verified mechanically: zero fenced code blocks in the
+   6248 file's 286 lines; 6 short excerpts in the 3823 file's 173. Every other aggregation is the
+   file's paraphrase. **Not one row supports a `metabase:card/NNNNN` citation**, and **0 of 177
+   cards carries a `source_updated_at`** — under §5 all 177 are gap rows, `G-050`'s problem at ~5x
+   its current 31-card scale.
+
+**Blocked, and it is a connection failure rather than a limit.** The `metabase` MCP server did not
+connect this session (`ENDPOINT_NOT_FOUND` at `metabase-mcp-server.prod-internal.porter.in`). The
+177 `get_card` calls that would fingerprint these cards and lift the strongest rows from `local:`
+to `metabase:card/NNNNN` **could not be attempted**. That is the single binding constraint on this
+harvest's confidence ceiling, and it is externally fixable.
+
+**Cross-worker corroboration — the part that is genuinely stronger than any single file.** Two
+*different* dashboards, harvested independently, assert the same defects:
+
+- **A hardcoded single-order exclusion, `order_id = 172063594`**, sits in production SQL on
+  6248 (cards 50787/50842/50800/50763/50777) **and** on 3823 (28675/28666/28684/28696). New to this
+  KB; the sibling `customer_mobile = '0000000001'` exclusion is already `T-020`.
+- **Tier filter widgets bound to commented-out SQL** on both — 6248 (50830/50807/50797) and 3823
+  (28841/28844/28843, the only place a verbatim excerpt exists: `--[[and TIER_STATUS = {{tier}}]]`).
+  Selecting a Tier on those cards does nothing, and the 3823 file's own view has Tier=Tier 1 set.
+- **A "Same-Period Activation %"** distinct from cumulative activation, in both (6248 `MR061`, 3823
+  `M003`). This KB carries one undifferentiated `Partner Activation %` at §2 row 39.
+- **A 10am-7pm business-hours window on DAP**, in both — and the 3823 worker adds that card 28686's
+  *description* asserts the window while its SQL applies no hour-of-day filter. `G-038` currently
+  records three login thresholds; this is a **fourth qualifier, self-reported as unenforced**.
+
+**`6248` is a copy-lineage sibling of `6406`, and four already-known defects have live clones on it:**
+the `'Reveune'` output-alias typo (6406: 55587/55626/55541 → 6248: 50794), the
+`allocation_time_minutes`-alias-computing-seconds bug of `G-073` (55527 → 50745), the hardcoded
+`DATE(odm.ORDER_TIME) >= '2024-06-05'` floor (55515/55512/55546 → 53029/53032/53031), and the
+`NUM_SELECTED_DRIVERS`/`NUM_RANKED_DRIVERS` merge of `G-057` (55546 → 53031). Its global filter set
+and defaults are identical to 6406's, **including** the `G-053` under-reporting default of
+`14ft, 10ft, 9ft`.
+
+**Explicitly NOT promoted, though it was tempting.** Both dashboard files independently report
+**zero Satisfaction metrics**, which alongside the two Notion inventories would read as four sources
+agreeing. It stays `unverified`. Whether these inventories share an author or a template is unknown,
+and `G-100` is precisely the case where a "two independent sources" framing turned out to be one
+source wearing two hats. Plausibly independent is not evidence.
+
+**Open owner questions this entry does not settle**, carried rather than silently decided:
+whether the skew-experiment material is in scope for this KB at all; and whether the "Chetan" of
+`colleague_kb_extract_hcv.md` is the `chetan.sharma2@theporter.in` this KB already records as
+creator of collection 2127 and owner of `G-013`/`G-053` — the extract gives a first name only, so
+same-person is an **inference**, and accepting it would attach a transcript to two escalated gaps.
