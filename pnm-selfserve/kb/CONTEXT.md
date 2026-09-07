@@ -32,7 +32,7 @@ feeds the monthly business review** — removing the analyst-in-the-loop for rou
 without loosening the numbers. It answers one catalogued metric and **refuses everything else**
 (`PNM-B-032`).
 
-## The catalog — 47 metrics, 6 sections, all `prototype_only`
+## The catalog — 137 metrics, 18 sections, all `prototype_only`
 
 | Section | n | Counted on | Nano | Full detail |
 |---|---|---|---|---|
@@ -42,7 +42,16 @@ without loosening the numbers. It answers one catalogued metric and **refuses ev
 | `tpo` | 13 | **allocation completion** (+330 min → IST) | EXCLUDED | `PNM-M-008`…`PNM-M-011` |
 | `p80_durations` | 7 | `SHIFTING_TS_IST` | EXCLUDED | `PNM-M-020`…`PNM-M-022` |
 | `order_edits` | 10 | `ORDER_CREATED_TS_IST` | EXCLUDED | `PNM-M-030` |
-| `ota` | **0** | — | — | ⛔ **BLOCKED** — `PNM-M-040` |
+| `ota` | 7 | `o_completed_ts` | EXCLUDED | `PNM-M-040` |
+| `gac_ctr` | 1 | `OPPORTUNITIES.created_at` (+5h30m → IST) | n/a | `PNM-M-050` |
+
+**10 more sections, built 2026-09-04** (`DECISION_LOG:D13`, `PNM-G-071` closed — full detail per
+section in `metrics.md` §9-§18, do not re-derive counted-on/Nano rules from memory): `weekend` (1),
+`cac_post_trip` (1), `vendor_earnings_pctl` (6), `allocation` (33, largest group), `wallet` (6),
+`vendor_tpo_top5` (6, a pipeline separate from this catalog's own `tpo`), `addon` (7, deliberately
+**not** Nano-filtered), `completion` (3), `fare` (14, two different month-bases in one section),
+`vendor_earnings_bucket` (5). ⚠ **10 metric ids among these are `--metric`-only** (no NL alias) —
+phrasing unavoidably hits `'p50'`/`'median'`/`'per vendor'` in `UNSUPPORTED_TERMS`.
 
 ## Five facts that prevent most errors
 
@@ -109,28 +118,18 @@ sources conflict · **`assumption`** = inferred, stated nowhere. Downgrading is 
 (`PNM-G-004`). **No query was run to build this KB.**
 
 ⚠ **`readiness` is a separate axis; neither substitutes for the other.** A metric can be `verified`
-**and** `prototype_only`. **Nothing is `stakeholder_ready`** — all six built sections are
-`prototype_only`, `ota` is `blocked`, **only the owner promotes** (`PNM-B-040`…`043`, CONTRIBUTING §7).
+**and** `prototype_only`. **Nothing is `stakeholder_ready`** — all 18 built sections are
+`prototype_only`, **only the owner promotes** (`PNM-B-040`…`043`, CONTRIBUTING §7).
 
 ## Hard rules
 
-1. **Never run a production query without an explicit owner go-ahead.** Dry-run is the default
-   (`PNM-B-034`).
-2. **Never put credentials or personal data in this KB.** Column *names* are schema facts
-   (`CUSTOMER_MOBILE` ✓); values, numbers, names, addresses are not (CONTRIBUTING §10).
-3. **Aggregate-then-ratio.** Ratios are built from raw counts, never by averaging stored ratios
-   (`PNM-B-030`). Divide-by-zero → **NULL** (`PNM-B-031`).
-4. **Never inline a value into a definition.** Values live only in the labelled snapshot in
-   [business.md](./business.md), tagged by data period (CONTRIBUTING §8).
-5. **An in-progress month is MTD and must be labelled so.** Future months are refused
-   (`PNM-B-033`).
-6. **Replicate quirks, disclose them, never silently fix them.** Correcting a semantic is a
-   *definition change* and the owner's call (`PNM-B-038`). The three shipped quirks: "Supervisor
-   Assigned" actually reads `SUPERVISOR_ACCEPTED_TS_IST` (`PNM-M-021`); `location_adoption_pct` and
-   `pct_orders_location_modified` are one number under two names (`PNM-M-030`); the Nano filter form
-   differs by section on purpose (`PNM-B-014`).
-7. **Never edit `../coverage-map/`.** It is a **projection** of this KB, not a progress tracker — its
-   rows cite back into these files. Fix the KB, then re-derive it.
+1. **Never run a production query without an explicit owner go-ahead.** Dry-run is the default (`PNM-B-034`).
+2. **Never put credentials or personal data in this KB.** Column *names* are schema facts (`CUSTOMER_MOBILE` ✓); values, numbers, names, addresses are not (CONTRIBUTING §10).
+3. **Aggregate-then-ratio.** Ratios are built from raw counts, never by averaging stored ratios (`PNM-B-030`). Divide-by-zero → **NULL** (`PNM-B-031`).
+4. **Never inline a value into a definition.** Values live only in the labelled snapshot in [business.md](./business.md), tagged by data period (CONTRIBUTING §8).
+5. **An in-progress month is MTD and must be labelled so.** Future months are refused (`PNM-B-033`).
+6. **Replicate quirks, disclose them, never silently fix them.** Correcting a semantic is a *definition change*, the owner's call (`PNM-B-038`) — e.g. "Supervisor Assigned" actually reads `SUPERVISOR_ACCEPTED_TS_IST` (`PNM-M-021`).
+7. **Never edit `../coverage-map/`.** It is a **projection** of this KB, not a progress tracker — fix the KB, then re-derive it.
 
 ## Source locations
 
@@ -148,32 +147,21 @@ capped at `unverified`; the KB reaches it through `sqlgen.py`, its in-repo mirro
 
 ## State of the work — read before promising anything
 
-- **What was actually reconciled, and what was not.** `V3` matched 12 values for 2026-05
-  (leads, orders, `conversion_overall`, the 8 channel counts, `orders_base`, `tpo_overall`,
-  `tpo_vendor_raised`). `V4` matched p80 against the baseline CSV — **bit-exact on 3 of 8 months**,
-  within ±2.5% on the rest — and validated order_edits by **byte-identity with the automation plus
-  property checks, as it has no baseline**. **16 of the 47 ids were never individually reconciled**
-  (3 channel conversions, 3 order-mix, 10 TPO stage metrics) → `PNM-G-004`. **Nothing is promoted.
-  Nothing has been opened to stakeholders.**
-- **`ota` is BLOCKED, and re-narrowed 2026-08-27.** **THREE** governed models implement it and **all
-  three anchor on the same event** — shifting-started. There is **no event fork**; the earlier
-  "vendor GPS action" reading was wrong (it is a *supervisor* `ShiftingStarted` action). The 30-minute
-  clock is corroborated three ways; **the distance term is what they disagree on** — 500 m proximity,
-  a `distance_km` field, or no distance at all. The owner's question is *whether OTA requires GPS
-  proximity to pickup*, not which event (`PNM-G-024`, `PNM-G-098`).
+- **Reconciliation is bounded, not universal.** `V3`/`V4` matched leads/orders/`tpo`/p80/order_edits
+  against the owner's automation for specific months; the 82 metrics added 2026-09-04 (`DECISION_LOG:
+  D13`) are live-executed and sane but mostly NOT independently reconciled against a second baseline
+  — see each section's block in `metrics.md` §9-§18. → `PNM-G-004`. **Nothing is promoted to
+  stakeholders.**
+- **The catalog now covers every MBR automation group** (`PNM-G-071`, closed 2026-09-04) — 137
+  metrics, 18 sections, mirroring all 15 metric groups the automation runs. `PNM-S-060` (tracked
+  2026-09-04) is the first citable, SHA-pinned copy of that automation's logic.
 - ⚠ **Two things are called "PnM leads", and both are right.** Governed `pnm_overall_leads` = **all
-  shifting types**; this catalog's = the **intra-city** subset, being renamed
-  **`leads_overall_intra_city`** to say so (`owner-ruling:2026-08-26`, closed `PNM-G-090`). **Ruled,
-  not yet in code** → `PNM-G-093`. Never substitute one for the other.
-- **60 live gaps**, **8 owner-blocked**. The biggest: **no city or weekly cut exists, and that is
-  precisely what city ops will ask for** (`PNM-G-070`).
+  shifting types**; this catalog's `leads_overall_intra_city` = the **intra-city** subset
+  (`owner-ruling:2026-08-26`, closed `PNM-G-090`). **Renamed in code 2026-09-04, closed `PNM-G-093`.**
+- **64 gap rows, 12 live** (52 `CLOSED`, 5 owner-blocked, 7 `OPEN`) — see [GAPS.md](./GAPS.md) for the
+  current breakdown; do not trust this count without re-checking, it was true 2026-09-07.
 - ⚠ **iteration-1's metric catalog is superseded and unannotated.** Six of its definitions are
-  actively wrong (`PNM-G-030`…`PNM-G-037`). Do not read it as current.
-- ⚠ **`PNM_EXPERIENCE` is "under active construction"**, has grown mid-project more than once, and
-  **rebuilds a trailing 3-month window** — re-verify its schema before any run (`PNM-G-007`).
-- **The governed dbt layer entered the sources 2026-08-26** (PR #3330 and neighbours): it settled
-  `PNM-G-024`'s **30-minute clock** and `PNM-G-025`'s settling rule, upgraded the `status` enum, and
-  **corrected** `user_flag`. ⚠ The 500 m holds in only **two of three** definitions, so it is not
-  settled. Five more models mined 2026-08-27; **~15 unmined**, and a ranked discovery loop now exists
-  (`PNM-S-058`) → `PNM-G-091`.
-- **No number in this KB has been validated against the warehouse in this pass. No query was run.**
+  actively wrong (`PNM-G-030`…`PNM-G-037`, all closed via annotation at `PNM-S-030`). Do not read
+  iteration-1 as current.
+- ✅ **`PNM_EXPERIENCE` is in final shape and form** (`owner-ruling:2026-09-07`, `PNM-G-007` closed) —
+  no longer "under active construction." Still rebuilds a trailing 3-month window (`PNM-B-074`).

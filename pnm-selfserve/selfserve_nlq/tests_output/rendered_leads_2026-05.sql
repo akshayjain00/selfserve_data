@@ -16,7 +16,7 @@ WITH leads_base AS (
 )
 SELECT
     DATE '2026-05-01'                                                AS month,
-    COUNT(DISTINCT opp_id)                                              AS leads_overall,
+    COUNT(DISTINCT opp_id)                                              AS leads_overall_intra_city,
     COUNT(DISTINCT CASE WHEN channel = 'App'             THEN opp_id END) AS leads_app,
     COUNT(DISTINCT CASE WHEN channel = 'Desktop Website' THEN opp_id END) AS leads_desktop,
     COUNT(DISTINCT CASE WHEN channel = 'Mobile Website'  THEN opp_id END) AS leads_mobile,

@@ -266,7 +266,7 @@ check is per source type instead:
 |---|---|
 | In-repo file at a SHA | Re-read at the SHA. Free, deterministic, offline — a SHA cannot drift |
 | MBR automation (out-of-repo) | **No check exists.** → `PNM-G-006` |
-| `PROD_ELDORIA.MART.PNM_EXPERIENCE` | `INFORMATION_SCHEMA.COLUMNS` pre-flight — **the mart is under active construction and its schema has grown mid-project more than once.** Re-verify before any run → `PNM-G-007` |
+| `PROD_ELDORIA.MART.PNM_EXPERIENCE` | Declared final shape 2026-09-07 (`owner-ruling`, `PNM-G-007` closed) — historically grew mid-project once, so this row exists for reference, not a live risk |
 | Metabase cards | `get_card` → compare `updated_at`. Not yet fingerprinted here → `PNM-G-008` |
 | Notion schema guide | Snapshot-dated; already contradicted in five places → `PNM-G-023` |
 

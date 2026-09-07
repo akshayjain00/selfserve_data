@@ -338,12 +338,12 @@
       <div class="card iter">
         <span class="st done">✓ Done</span>
         <h3>2 · Thin prototype</h3>
-        <p class="muted">Build leads, orders, conversion/mix and TPO; dry-run tested 31/31; first readiness ledger. Nothing opened to anyone.</p>
+        <p class="muted">Build leads, orders, conversion/mix and TPO; dry-run tested 31/31 at the time; first readiness ledger. Nothing opened to anyone.</p>
       </div>
       <div class="card iter">
-        <span class="st next">◷ Next</span>
+        <span class="st done">✓ Done</span>
         <h3>3 · Refine &amp; extend</h3>
-        <p class="muted">Validate on real data, add the last sections, final ledger + which bundles are stakeholder-ready, and a verdict on formalizing as a skill.</p>
+        <p class="muted">Validated on real data (`DECISION_LOG:V3`–`V5`), added p80_durations, order_edits and ota. Dry-run tested 62/62 as of 2026-09-04 [PNM-G-053]. Still all `prototype_only` — stakeholder promotion remains the owner's call.</p>
       </div>
     </div>
   </section>
@@ -357,13 +357,13 @@
       <table>
         <thead><tr><th>Section</th><th>State</th><th>Why</th></tr></thead>
         <tbody>
-          <tr><td class="sec">leads</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Built &amp; dry-run tested; awaits real-data validation + orders-source decision.</td></tr>
-          <tr><td class="sec">orders</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Same, plus undocumented status codes.</td></tr>
+          <tr><td class="sec">leads</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Built, dry-run tested, and live-reconciled exact vs the owner's automation (`DECISION_LOG:V3`, 2026-05).</td></tr>
+          <tr><td class="sec">orders</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Same — reconciled exact.</td></tr>
           <tr><td class="sec">derived</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Conversion &amp; order-mix; inherits leads + orders.</td></tr>
-          <tr><td class="sec">tpo</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Ticket source adapted (approved); still waits on the orders-source decision.</td></tr>
-          <tr><td class="sec">ota</td><td><span class="pill blocked">blocked</span></td><td class="muted">Query needs columns that don't exist anywhere — needs a real data-source definition.</td></tr>
-          <tr><td class="sec">p80_durations</td><td><span class="pill notbuilt">not built</span></td><td class="muted">Iteration 3 — cleanest remaining; has a baseline CSV to validate against.</td></tr>
-          <tr><td class="sec">order_edits</td><td><span class="pill notbuilt">not built</span></td><td class="muted">Iteration 3 — pending a ruling on its source table.</td></tr>
+          <tr><td class="sec">tpo</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Ticket source adapted (approved) and reconciled exact.</td></tr>
+          <tr><td class="sec">ota</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Built 2026-09-04 on Metabase card #37409, per owner ruling (`DECISION_LOG:D11`/`V5`) — no longer blocked.</td></tr>
+          <tr><td class="sec">p80_durations</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Built and validated against the baseline CSV — bit-exact on settled months (`DECISION_LOG:V4`).</td></tr>
+          <tr><td class="sec">order_edits</td><td><span class="pill proto">prototype-only</span></td><td class="muted">Built on `PROD_ELDORIA.MART.PNM_EXPERIENCE` (`DECISION_LOG:D8`/`V4`).</td></tr>
         </tbody>
       </table>
     </div>
@@ -371,28 +371,28 @@
 
   <!-- DECISION -->
   <section class="reveal">
-    <div class="eyebrow">The one gate for iteration 3</div>
-    <h2 style="margin-top:10px">Open decision: which orders source?</h2>
+    <div class="eyebrow">Resolved 2026-07-08 [PNM-G-053]</div>
+    <h2 style="margin-top:10px">Orders source: decided — Option A</h2>
     <div class="card decision" style="margin-top:18px">
-      <p style="font-size:.96rem">The pipeline reads order columns from a raw table that doesn't have them; the real, assembled source is the governed dbt model. Everything in iteration 3 keys off this — presented with confidence, per your standing rule.</p>
+      <p style="font-size:.96rem">The raw table this pipeline originally targeted never carried the needed order columns. <code>DECISION_LOG:D3</code> settled this: re-point to the governed <code>PROD_ELDORIA</code> dbt models. Implemented and shipped in <code>sqlgen.py</code> — every section built since keys off this.</p>
       <div style="margin-top:16px">
         <div class="opt">
           <span class="lbl">A</span>
           <div>
-            <strong>Re-point to the eldoria dbt models.</strong>
-            <p class="muted" style="font-size:.9rem">Makes the numbers real, matches card #30311, and unblocks Argus eligibility. A definition change — remap column names + status semantics, then validate.</p>
-            <div class="bar"><i style="width:85%"></i></div>
+            <strong>Re-point to the eldoria dbt models. — Chosen.</strong>
+            <p class="muted" style="font-size:.9rem">Made the numbers real, matches the governed layer, and made this domain Argus-eligible. Live-reconciled exact against the owner's automation (`DECISION_LOG:V3`).</p>
+            <div class="bar"><i style="width:100%"></i></div>
           </div>
-          <span class="conf hi">~85%</span>
+          <span class="conf hi">Done</span>
         </div>
         <div class="opt">
           <span class="lbl">B</span>
           <div>
-            <strong>Stay bug-for-bug on the raw tables.</strong>
-            <p class="muted" style="font-size:.9rem">Faithful to the original intent, but won't execute — only a record of a pipeline that almost certainly never ran.</p>
-            <div class="bar"><i style="width:15%;background:var(--idle)"></i></div>
+            <strong>Stay bug-for-bug on the raw tables. — Rejected.</strong>
+            <p class="muted" style="font-size:.9rem">Would never have executed — the raw table never carried the columns the original pipeline needed.</p>
+            <div class="bar"><i style="width:0%;background:var(--idle)"></i></div>
           </div>
-          <span class="conf lo">~15%</span>
+          <span class="conf lo">Not taken</span>
         </div>
       </div>
     </div>
@@ -415,7 +415,7 @@
   </section>
 
   <footer class="reveal">
-    Prototype on branch <code>claude/pnm-metrics-catalog-map-vg251i</code> · sections built: leads, orders, derived, tpo · dry-run only, no production data touched, no stakeholder access opened. Full detail in <code>HANDOFF.md</code> and the iteration ledgers.
+    Prototype on branch <code>claude/pnm-metrics-catalog-map-vg251i</code> · sections built: leads, orders, derived, tpo, p80_durations, order_edits, ota [updated 2026-09-04, PNM-G-053] · dry-run only, no production data touched, no stakeholder access opened. Full detail in <code>HANDOFF.md</code> and the iteration ledgers.
   </footer>
 
 </div>

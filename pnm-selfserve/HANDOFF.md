@@ -41,7 +41,7 @@ All our work lives under `pnm-selfserve/`.
 
 ```
 selfserve_nlq/
-  metrics_registry.py   ① the menu: 25 metrics, verbatim ⚠ flags, quirks, evidence,
+  metrics_registry.py   ① the menu: 54 metrics [2026-09-04, PNM-G-050], verbatim ⚠ flags, quirks, evidence,
                             section readiness, ORDERS_SOURCE_DECISION, alias resolver
   sqlgen.py             ② the kitchen: one read-only SELECT per section, staging inlined
                             as CTEs, assert_read_only guard
