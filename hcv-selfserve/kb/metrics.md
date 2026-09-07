@@ -391,12 +391,17 @@ reason. Per [CONTRIBUTING.md](./CONTRIBUTING.md) §8.5 these are recorded, never
 
 ## §2 Index — every other HCV metric
 
-**107 rows.** One per un-promoted metric, deduped across `nb1882` (54), `nb4146` (34) and
+**129 rows.** One per un-promoted metric, deduped across `nb1882` (54), `nb4146` (34) and
 `gsheet:HCV_Metrics_DD` (**90 rows — counted, not estimated**). Each carries one `G-###` in
 `GAPS.md` class G (`D-010`), sharing a class-level `next_action`.
 
-**Gap ids are allocated mechanically: index row *N* ↔ `G-(200 + N)`.** So row 1 is `G-201`, row 107
-is `G-307`. This is checkable by script rather than by hand, and no id can drift.
+> **Rows 108-129 were added by `D-029`** from the two dashboard inventories: **16** from
+> `dash6248`, **5** from `dash3823`, and **1** (row 121) cross-confirmed on both. All are
+> `local:`-backed and therefore capped at `unverified` (`CONTRIBUTING.md` §3); none of their
+> 177 cards is fingerprinted. Rows 100-107 came from `D-028`.
+
+**Gap ids are allocated mechanically: index row *N* ↔ `G-(200 + N)`.** So row 1 is `G-201`, row 129
+is `G-329`. This is checkable by script rather than by hand, and no id can drift.
 
 > Read **`G-100`** before trusting the `90` above. The artifact behind `gsheet:HCV_Metrics_DD` has
 > **118** rows, not 90; rows 1–90 are what the 2026-08-14 build read. The `90` is left in place
@@ -519,6 +524,28 @@ to base · `R4` genuinely different SQL kept distinct.
 | 105 | TPO + Calls initiated by Cx | cov | `cov:HCV-110` · thread **Core Platforms** | L0 | Satisfaction | "pending; not-started; Argus NA" | R4 |
 | 106 | Top Cancellation Reason | cov | `cov:HCV-113` | L1 | Satisfaction | "pending; not-started; Argus P2" | R4 |
 | 107 | Reallocation | cov | `cov:HCV-115` | L1 | Usage | "pending; not-started; Argus P2" | R4 |
+| 108 | HCV Demand by Business Type (CRN-keyed) | 6248 | `dash6248:M001c` | L2 | Health | — | R4 |
+| 109 | HCV Completed Orders by Business Type (CRN-keyed) | 6248 | `dash6248:M002b` | L2 | Outcome | — | R4 |
+| 110 | HCV Power-User Cohort Size | 6248 | `dash6248:M024` | L2 | Adoption | trailing-90d order-frequency cohort, not the acquisition cohort of row 90 | R4 |
+| 111 | HCV Power-User Booking Sessions | 6248 | `dash6248:M025` | L3 | Usage | fixed `End_date-90d → End_date-60d` window | R4 |
+| 112 | HCV Power-User Session Conversion % | 6248 | `dash6248:MR024` | L2 | Usage | built SUM/SUM, not average-of-ratios | R4 |
+| 113 | HCV Category-Acquisition Customers | 6248 | `dash6248:M035` | L2 | Adoption | category is a required single-select, not a groupable dimension | R4 |
+| 114 | HCV Category-Acquisition Orders | 6248 | `dash6248:M036` | L2 | Outcome | acquisition month only | R4 |
+| 115 | HCV Category-Acquisition Order Share % | 6248 | `dash6248:MR034` | L3 | Outcome | — | R4 |
+| 116 | HCV Orders per Newly-Acquired Customer | 6248 | `dash6248:MR035` | L3 | Usage | dashboard label "Wallet Share" — a **third** site of the mislabel row 79 records on `1882` | R4 |
+| 117 | HCV Category-Acquisition Revenue | 6248 | `dash6248:M037` | L2 | Outcome | `actual_trip_fare` — a **fourth** revenue column name | R4 |
+| 118 | HCV Revenue per Newly-Acquired Customer | 6248 | `dash6248:MR036` | L3 | Outcome | labelled "Average Transaction"; it is an ARPU variant, not an AOV variant | R4 |
+| 119 | HCV Customers by New/Repeat Status (base count) | 6248 | `dash6248:M032` | L2 | Adoption | classified on **lifetime** history, unfiltered by the dashboard date window; row 80 indexes only the share | R4 |
+| 120 | HCV Orders by New/Repeat Status (base count) | 6248 | `dash6248:M033` | L2 | Usage | — | R4 |
+| 121 | HCV Same-Period Activation % | 6248·3823 | `dash6248:MR061` · `dash3823:M003` | L2 | Adoption | **cross-confirmed on two independent dashboards**; row 39 carries one undifferentiated Activation % | R4 |
+| 122 | HCV Cancellation Reason Orders | 6248 | `dash6248:M125` | L2 | Health | SO = no driver + **zero** dispatch batches; MO = no driver + **≥1** batch. Taxonomy new to this KB | R4 |
+| 123 | HCV Cancellation Reason Rate % | 6248 | `dash6248:MR124` | L3 | Health | — | R4 |
+| 124 | HCV Cross-Sell Retention Cohort | 6248 | `dash6248:M043` | L2 | Adoption | `trucks.customer_retention_master_table` × `FACT_ORDERS` — a different source pairing from row 91 | R4 |
+| 125 | HCV Hourly Demand (absolute) | 3823 | `dash3823:M014` | L3 | Health | **no order-status filter** — broadest of the three Demand definitions on 3823; row 1 covers only the share | R4 |
+| 126 | HCV App Sessions | 3823 | `dash3823:M030` | L3 | Usage | higher-funnel than booking sessions, which require a fare-quotation request | R4 |
+| 127 | HCV Orders per App Session | 3823 | `dash3823:M031` | L3 | Usage | — | R4 |
+| 128 | HCV Customers by Lifecycle Segment | 3823 | `dash3823:M034` | L2 | Adoption | `new_to_category` / `repeat_customer` / `reactivated_customer` | R4 |
+| 129 | HCV Orders by Lifecycle Segment | 3823 | `dash3823:M035` | L2 | Usage | row 80 covers only the order **share** | R4 |
 
 ### §2a Merges a reader may contest
 

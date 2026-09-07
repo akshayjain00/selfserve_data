@@ -1,7 +1,7 @@
 # HCV KB build — board
 
 **Living document.** Overwrite freely; the durable record is [DECISIONS.md](./DECISIONS.md).
-Last updated 2026-08-14T06:05+0530. Spec: [DESIGN.md](./DESIGN.md) (v2).
+Last updated 2026-09-07. Spec: [DESIGN.md](./DESIGN.md) (v2).
 
 **Goal:** `hcv-selfserve/kb/` — a base-context knowledge base for HCV that a cold reader can load
 and trust.
@@ -36,12 +36,20 @@ return findings; they never write the shared record.
 
 ## Roster — workers in flight
 
-**Status as of 2026-08-14T06:40+0530.** Step-3 workers all reported. **Step-7 gate now running: three
-BLIND checkers** — spec-conformance (DESIGN vs kb/), accuracy (sources vs claims), adversarial
-blind-spot hunt. None was given the orchestrator's reasoning; that is the point of a blind gate.
+**Status as of 2026-09-07.** ⚠️ **This section was 24 days stale** — it described a step-7 gate as
+"now running" that had in fact died on a session limit (`D-024`) and never restarted.
 
-Earlier roster, spawned for step 3 under
-`D-016`. Findings are recorded in `D-017`–`D-023`. Next: the orchestrator writes all 12 `metrics.md` blocks.
+**Current roster: the `D-029` harvest — four workers, ALL REPORTED, findings folded in.** Owner ruled
+**parallel harvest, sequential gate**, so the three blind checkers below run **one at a time**.
+
+| worker | source | returned |
+|---|---|---|
+| ~~H1~~ | `dashboard_6248_metric_inventory.md` | ✅ 19 additive metrics + 21 facts · 74 dup · 11 conflicts · 130 cards |
+| ~~H2~~ | `dashboard_3823_metric_inventory.md` | ✅ 6 additive + tables/defects · 39 dup · 10 conflicts · 47 cards |
+| ~~H3~~ | `colleague_kb_extract_hcv.md` | ✅ 20 additive · 23 dup · 10 conflicts — **and the finding that it is the pack's own pre-history** |
+| ~~H4~~ | `90-colleague-session-extract.md` | ✅ 30 additive · 11 dup · 6 conflicts · 9 gap movements — **different workstream**, scoped by `D-030` |
+
+Earlier roster, spawned for step 3 under `D-016`; findings in `D-017`–`D-023`.
 
 | Worker | Metrics (`D-015` numbering) | Open question it carries |
 |---|---|---|
@@ -74,8 +82,8 @@ Steps map 1:1 onto DESIGN.md §14.
 | 4 | `dashboards.md` — registers first, then cards (§6.8) | **done** |
 | 5 | `GAPS.md` — 45 explicit rows across classes A–H + 98 class-G | **done** |
 | 6 | `CONTEXT.md` — entry point, 145/150 lines, written last (§6.2) | **done** |
-| 7 | Verification gate (§15) | ⚠️ **PARTIAL** — mechanical **16/16 PASS**; blind checkers re-running **one at a time** after `D-024` |
-| 8 | `WALKTHROUGH.md` + published artifact (§6.9) | **BLOCKED on step 7** (`D-024`) — do not start |
+| 7 | Verification gate (§15) | ⚠️ **PARTIAL** — mechanical re-run **PASS** 2026-09-07; **Checker A completed** (42 findings, `b210da4`); **B and C never ran** (`D-024`). Re-spawning sequentially |
+| 8 | `WALKTHROUGH.md` + published artifact (§6.9) | **BLOCKED on step 7** — but **no longer blocked on Metabase** (`D-030` ruling 3) |
 
 ## Sources
 
@@ -164,8 +172,14 @@ Things this build discovered that a future session (or the PnM/PTL equivalents) 
 
 ---
 
-## Mechanical pass — 16/16, re-runnable
+## Mechanical pass — re-runnable
 
+⚠️ **The counts below were superseded twice** — by `D-026` (25 / 99 / 111) and again by the `D-029`
+harvest. **Current, re-verified 2026-09-07:** `CONTEXT.md` **150/150 — at cap, having been found at
+158 and compressed back**; §2 index numbered **1..129 exactly, contiguous, no duplicates**;
+**12 + 129 = 141**; class G spans `G-201`..`G-329`; `derive.py --check` **in sync**.
+
+Original 2026-08-14 wording, kept for the trail:
 `CONTEXT.md` ≤150 (145) · cross-refs resolve, no orphans · every KB file routed from CONTEXT ·
 12 entries each with `store_ref` + verbatim SQL · partition 9+3=12 · index numbered 1..98 exactly ·
 178−26−57+3=98 · 12+98=110 · no bare `M0##` outside quotes · no bare `pack:§` without `repo@` ·
@@ -183,7 +197,10 @@ gap status vocabulary conforms.
 |---|---|---|
 | 2026-08-14 | Blind coherence audit of DESIGN/DECISIONS/BOARD v1 | 28 defects — 5 design-changing, 7 contradictions, rest ambiguity/underspecification. All accepted except the `M001`–`M047` id-range flag (explicable: lettered children) |
 | 2026-08-14 | Blind coverage audit vs `ptl-selfserve/kb/` | *"Reproduces the reference's rules but not its shapes."* 14 classes of missing structure; highest rework cost = flat ID allocation (`D-008`) |
-| — | Blind accuracy check of the built KB | pending, step 7 |
+| 2026-08-26 | Blind conformance check (Checker A) | **42 findings** — 7 fixed, 5 deferred, 1 flagged for recount (`b210da4`) |
+| 2026-09-07 | Mechanical re-run after the `D-029` harvest | **PASS** — 150/150 lines, 1..129 contiguous, `derive.py` in sync. ⚠️ Found `CONTEXT.md` had silently regressed to **158 lines**, breaching a hard cap |
+| — | Blind accuracy check (Checker B) | **never ran** — died on the `D-024` session limit |
+| — | Adversarial check (Checker C) | **never ran** — same |
 | — | Zero-context loadability test | pending, step 7 |
 
 ---

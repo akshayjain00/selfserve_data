@@ -753,3 +753,43 @@ whether the skew-experiment material is in scope for this KB at all; and whether
 `colleague_kb_extract_hcv.md` is the `chetan.sharma2@theporter.in` this KB already records as
 creator of collection 2127 and owner of `G-013`/`G-053` — the extract gives a first name only, so
 same-person is an **inference**, and accepting it would attach a transcript to two escalated gaps.
+
+### D-030 · 2026-09-03 · Three owner rulings on the `D-029` harvest — scope, identity, and gate timing
+
+**Ruling 1 — the skew-experiment material is in scope ONLY where it collides with an open gap.**
+`90-colleague-session-extract.md` documents the HCV Intercity driver-"skew" A/B experiment, a
+different workstream. Four items are harvested because each moves a gap this KB already carries;
+everything else in that file is **out of scope and deliberately not taken**, including the `ic_*`
+baseline metric family, both Statsig experiments, the skew-attribution metrics and the allocation
+audit-log table. Taking those would widen the KB's remit from metric definition to experiment
+analytics, which is a different engagement.
+
+| harvested | moves |
+|---|---|
+| Six dated category x city ramp events (25 May - 10 Jul 2026) + the 18 Aug quant-to-qual cohort change | **`G-021`** — BLOCKED, `next_action` was literally *"Ask ProdOps for a dated intervention log."* This is one, at `local:` grade, for one intervention class. It **narrows** `G-021`; it does not answer it, because these are allocation-experiment ramps, not the pricing / city-launch / campaign classes the gap names |
+| `est_trip_distance_km >= 100` on `order_fares.travel_distance` @ `fare_type=1`, with **no column** encoding outstation | **`G-104`** — escalates. A **fifth** live definition, and evidence the ambiguity is currently producing published numbers rather than being latent |
+| `logged-in(>30 min)` as a fourth threshold statement | **`G-038`** — sizes. Numerically equals the pack's `> 0.5 business_login_hours`, so it either corroborates from an independent practitioner or is a fourth ungoverned restatement; the corpus does not say which column he means. **Not resolved** |
+| `QUALIFY ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY IFF(is_current,1,0) DESC, updated_at DESC, id DESC) = 1` | **`G-056`** — supplies a candidate remedy for the `group by all` fan-out, and independently evidences the premise that `order_fares` holds multiple rows per order |
+
+**Ruling 2 — `OWNER:2026-09-03`: the "Chetan" of `colleague_kb_extract_hcv.md` is
+`chetan.sharma2@theporter.in`**, already recorded here as creator of Metabase collection 2127 and
+named owner on `G-013` and `G-053`. The identification was an inference the worker correctly
+refused to make; the owner has now confirmed it.
+
+> **Scope of this ruling, stated narrowly on purpose.** It settles **identity only**. It does
+> **not** lift any content of that extract above `unverified` — the `local:` ceiling of §3 is
+> untouched, and one identity ruling must not be used to launder a whole transcript into `verified`.
+> What it buys is a **named `next_action` target** where §8.2 warns that unnamed ones turn `GAPS.md`
+> into a complaint list: the extract's seven open decisions (`CX-D01`-`CX-D07`) now route to a
+> person, and `G-024` / `G-020` (both BLOCKED - owner) gain one too.
+
+**Ruling 3 — the gate runs now; fingerprinting follows later.** The `metabase` MCP failure
+(`D-029`) means all 177 cards stay `local:` / `unverified` with no `source_updated_at`, recorded as
+`G-050`-class gaps rather than as blanks. The gate is **not** held for an external fix with no ETA.
+Checker B's standing brief already reads *"Metabase (**metadata only**)"*, so it will meet the same
+wall independently and record it — which is a legitimate gate finding, not a blocker. Step 8 is
+therefore no longer gated on Metabase.
+
+**Superseded:** the sequencing half of `D-029` assumed fingerprinting would be available during the
+harvest. It was not. The harvest-then-one-gate order stands; the confidence ceiling it achieves is
+lower than assumed, and that is now recorded rather than discovered later.

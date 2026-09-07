@@ -127,6 +127,7 @@ fact be filed near its kin.
 | `nb1882:M###` · `nb4146:M###` | The Notion inventories (§2.4) | medium |
 | `gsheet:HCV_Metrics_DD#<row>` | The Sheet, snapshot-dated | weak |
 | `cov:HCV-###` | `coverage-map/metric-coverage.json` — a derived snapshot, **not** a source of truth (`D-028`) | weak |
+| `dash6248:<id>` · `dash3823:<id>` | The two dashboard inventories harvested in `D-029`. They **describe** card SQL rather than transcribing it — 0 fenced code blocks in the 6248 file, 6 short excerpts in the 3823 file — so they never support a `metabase:card/NNNNN` citation | **weakest** (`local:`-backed) |
 | `spec:2026-08-07-hcv-metric-mapping-design` | The Argus mapping design doc the coverage map cites. **Outside this repo — cite as `local:` until committed** | **weakest** |
 | `local:<path>` | Anything not version-controlled | **weakest** |
 

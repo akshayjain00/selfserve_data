@@ -74,6 +74,8 @@ conflict (`D-012`). Read 2026-08-14.
 | **HCV Demand Dashboard** | `6406` | 1 tab · **21 question cards** (+5 text cards) | **12 of 21** | **Go-forward demand source** (`D-014`) |
 | HCV Dashboard | `1882` | 5 tabs · **54 metrics** · card count unknown | **3 cards** | Legacy demand; `nb1882` inventory |
 | HCV Deep Dive | `4146` | 3 tabs · **34 metrics** · card count unknown | **2 cards** | Ops/supply funnel; `nb4146` inventory |
+| **HCV Dashboard - Revamp 1** | `6248` | 10 tabs · **130 cards** · 96 metric ids | **0 cards** | Unregistered until `D-029`. **Copy-lineage sibling of `6406`** — see the note below |
+| **HCV Dashboard Eldoria** | `3823` | 7 tabs · **47 dashcards** (43 question + 4 text) · 45 metric ids | **0 cards** | Unregistered until `D-029`. Hosts 16 cards this KB had attributed to the `1882`/`4146` families |
 | **Query pack** | — | 8 sections · 12 metrics | **all** | Top of the precedence ladder — §6 |
 
 > ⚠️ **This is a stated boundary, not implied coverage.** On `6406`, **9 of 21 cards were not
@@ -83,6 +85,25 @@ conflict (`D-012`). Read 2026-08-14.
 > **The card counts for `1882` and `4146` are unknown to this KB.** Their *metric* counts come from
 > the Notion inventories; neither dashboard was opened via `get_dashboard`. Any statement about
 > their card-level coverage would be a guess. → `G-052`
+
+---
+
+> ⚠️ **`6248` and `3823` were harvested from inventories, not opened.** Neither dashboard was read
+> via `get_dashboard`, and **not one of their 177 cards was fingerprinted** — the `metabase` MCP
+> failed to connect (`D-029`, `D-030`). **0 of 177 carry a `source_updated_at`**, so under §5 every
+> one is a gap row, not a blank. → `G-084` (6248), `G-085` (3823)
+>
+> ⚠️ **`6248` is a copy-lineage sibling of `6406`.** Four defects this KB already tracks on `6406`
+> have live clones on `6248` cards nobody has opened: the `'Reveune'` alias typo (55587/55626/55541
+> → **50794**), `G-073`'s seconds-under-a-minutes-alias (55527 → **50745**), the hardcoded
+> `DATE(odm.ORDER_TIME) >= '2024-06-05'` floor (55515/55512/55546 → **53029/53032/53031**), and
+> `G-057`'s `NUM_SELECTED_DRIVERS`/`NUM_RANKED_DRIVERS` merge (55546 → **53031**). Its global filter
+> defaults are byte-identical to `6406`'s, **including** the `G-053` under-reporting default. → `G-086`
+>
+> ⚠️ **Card-to-dashboard attribution in §1 is incomplete, not wrong.** `3823` hosts 16 cards this KB
+> labelled "the `1882` family" / "the `4146` families" — 28688, 28691, 28692, 28693, 37311, 28673,
+> 28669, 28678, 28841, 28843, 28844, 28845, 28681, 38998, 39084, 28677. Cards are shareable across
+> dashboards, so the family labels are a partial view rather than an error. → `G-087`
 
 ---
 
