@@ -61,27 +61,28 @@ All rows `last_verified: 2026-08-26`.
 | id | statement | source_ref | confidence | note |
 |---|---|---|---|---|
 | **PNM-B-040** | **Readiness is per section**, inherited by every metric in it: `prototype_only` · `stakeholder_ready` · `blocked` · `not_built`. | `repo@851886f:pnm-selfserve/selfserve_nlq/metrics_registry.py` | **verified** | Full semantics: CONTRIBUTING §7. |
-| **PNM-B-041** | **Nothing is `stakeholder_ready`. All six built sections are `prototype_only`; `ota` is `blocked`.** | `repo@851886f:pnm-selfserve/selfserve_nlq/metrics_registry.py`, `repo@851886f:pnm-selfserve/iteration-2-readiness-ledger.md` §4 | **verified** | Reconciling exactly with the automation does **not** promote a section. |
-| **PNM-B-042** | **Only the owner promotes readiness**, by editing `metrics_registry.py` deliberately. No AI session may promote anything. | `repo@851886f:pnm-selfserve/selfserve_nlq/metrics_registry.py` (module docstring) | unverified | ⚠ **Registry *prose*, which is rung 7** — not an owner ruling. `DECISION_LOG:D1` covers dry-run and production writes, **not promotion**, so it cannot support this row. The rule is stated only in a docstring and is honoured by convention, not enforced by code → `PNM-G-041` |
+| **PNM-B-041** | **Nothing is `stakeholder_ready`. All eight built sections are `prototype_only`.** | `repo@<pending>:pnm-selfserve/selfserve_nlq/metrics_registry.py`, `repo@851886f:pnm-selfserve/iteration-2-readiness-ledger.md` §4 | **verified** | Reconciling exactly with the automation does **not** promote a section. ⚠ **Superseded wording (was "All six built sections … `ota` is `blocked`"):** `ota` was built 2026-09-04 (`DECISION_LOG:D11`, `PNM-G-024`); `gac_ctr` was built the same day (`DECISION_LOG:D12`, `PNM-G-071`) — 8 sections now, none `stakeholder_ready`. |
+| **PNM-B-042** | **Only the owner promotes readiness**, by editing `metrics_registry.py` deliberately. No AI session may promote anything. | `owner-ruling:2026-09-07`, `DECISION_LOG:D18` (ratifies what `metrics_registry.py`'s module docstring had only asserted as prose) | **verified** | ✅ **Ratified 2026-09-07** (`PNM-G-041`, closed) — the rule is now an owner ruling in its own right, rung 1, not registry prose (was rung 7). Still enforced by convention, not by code — no runtime check blocks a manual edit — but the *authority* behind the rule is no longer in question |
 | PNM-B-043 | **`verified` ≠ `stakeholder_ready`.** A metric can be `verified` (its SQL was read) and still `prototype_only` (not safe for leadership). Reporting one when asked for the other is a defect. | `repo@851886f:pnm-selfserve/selfserve_nlq/metrics_registry.py` | **verified** | CONTRIBUTING §7. |
 
 ## Glossary
 
 | id | term | expansion | source_ref | confidence |
 |---|---|---|---|---|
-| PNM-B-050 | **PnM** | Packers & Movers — ⚠ **stated in no in-repo source** | `local:ProdOps/CLAUDE.md` | unverified → `PNM-G-060` |
+| PNM-B-050 | **PnM** | Packers & Movers | `owner-ruling:2026-09-04` (confirmed in-session, `PNM-G-060` closed) | **verified** |
 | PNM-B-051 | **MBR** | Monthly Business Review | `repo@851886f:pnm-selfserve/HANDOFF.md` | unverified |
 | PNM-B-052 | **TPO** | **Tickets Per Order** — support tickets ÷ orders. A quality/pain measure: **higher is worse** | `repo@851886f:pnm-selfserve/selfserve_nlq/metrics_registry.py` | **verified** |
 | PNM-B-053 | **LA** | Labour Assist — the business group that owns Nano bookings | `DECISION_LOG:D4` | **verified** |
 | PNM-B-054 | **Nano** | Labour-only help, no vehicle or vendor allocated | `DECISION_LOG:D4` | **verified** |
 | PNM-B-055 | **SR** | Shifting Requirement — `SR_ID` threads a lead to its order | `repo@851886f:pnm-selfserve/iteration-1-metric-catalog-and-architecture.md` | unverified |
-| PNM-B-056 | **CRN** | Customer Reference Number on the order; PnM orders match `'%PNM%'` — how PnM work is identified in shared tables | `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` §3.7 | unverified → `PNM-G-061` |
+| PNM-B-056 | **CRN** | Customer Reference Number on the order; PnM orders match `'%PNM%'` — how PnM work is identified in shared tables | `owner-ruling:2026-09-04` (confirmed in-session, `PNM-G-061` closed) | **verified** |
 | PNM-B-057 | **Opportunity / lead** | A customer requirement before commitment; becomes an *order* on booking | `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` §1 | unverified |
 | PNM-B-058 | **P80** | 80th percentile — **80% of moves were faster; the slowest 20% were slower.** Not an average: it describes the bad tail, which is why ops uses it | `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` §2.5 | unverified |
-| PNM-B-059 | **OTA** | On-Time Arrival — ⚠ **two conflicting definitions, no owner, section blocked** | `repo@df25d22:pnm-selfserve/pnm-gem-knowledge.md` §7-Q3 | unverified → `PNM-G-024` |
+| **PNM-B-074** | **A `p80_durations` number is final at M+3, not before.** `PNM_EXPERIENCE` rebuilds a trailing 3-month window (`partition_lookback: 3`, `PNM-T-101`) — the table keeps full history, but only the most recent 3 months are still being re-processed/corrected on each daily refresh. A month's p80 is **provisional** while inside that window (can still shift — observed drift up to 0.84%) and **permanently settled** once it ages out (bit-exact from then on, not because old data is deleted, but because the rebuild stops touching it). Applies to all `p80_durations` metrics — counted on the month of `SHIFTING_TS_IST` (`PNM-B-020`), same basis this window applies to. | `owner-ruling:2026-09-07`, `DECISION_LOG:D19` (ratifies what `PNM-T-101`'s mined dbt config had only implied) | **verified** | ✅ **Ratified 2026-09-07** (`PNM-G-025`, closed). ⚠ The 3-month window is a **mart config that can change** — re-check `PNM-T-101` at the SHA before relying on this if it's been a while |
+| PNM-B-059 | **OTA** | On-Time Arrival — the order's `ShiftingStarted` supervisor action occurred within 30 min AND 2 km of pickup. ⚠ **Superseded wording (was "two conflicting definitions, no owner, section blocked"):** built 2026-09-04 via `DECISION_LOG:D11`, closing `PNM-G-024`. Three OTHER governed definitions still exist and still disagree (`PNM-T-100`/`100a`/`105`) — this is the one the catalog runs, not a claim they were reconciled | `owner-ruling:2026-09-04`, `repo@<pending>:pnm-selfserve/selfserve_nlq/sqlgen.py` (`ota_sql`) | **verified** |
 | PNM-B-060 | **Detractor** | An NPS classification (`Promoter` / `Neutral` / `Detractor`); also a `raised_by` value whose tickets are excluded from TPO everywhere | `live:INFORMATION_SCHEMA@2026-07-29`, `repo@851886f:pnm-selfserve/selfserve_nlq/sqlgen.py` | **verified** (the filter) |
 | PNM-B-061 | **MTD** | Month-to-date — how an in-progress month is labelled | `repo@851886f:pnm-selfserve/selfserve_nlq/ask.py` | **verified** |
-| PNM-B-062 | **LMS** | ⚠ **expansion stated nowhere.** Appears only as a coverage-map metric name and a dashboard card label | `repo@03f1653:pnm-selfserve/coverage-map/metric-coverage.json` | unverified → `PNM-G-062` |
+| PNM-B-062 | **LMS** | Lead Management System — sits inside the `Others`/`Generic` channel bucket (governed `lead_channel` dimension describes `source = 4` as "Generic (LMS/broker/other)") | `owner-ruling:2026-09-04` (confirmed in-session, `PNM-G-062` closed) | **verified** |
 | PNM-B-063 | **Argus** | Porter's cross-vertical Metric Store programme | `repo@851886f:pnm-selfserve/iteration-2-readiness-ledger.md` §6 | unverified |
 
 ## Argus — the metric store this KB will eventually answer to
@@ -102,7 +103,7 @@ All rows `last_verified: 2026-08-26`.
 
 | Metric | 2026-05 | Match vs the validated automation |
 |---|---|---|
-| `leads_overall` | 336,338 | exact |
+| `leads_overall_intra_city` | 336,338 | exact (id renamed 2026-09-04, `PNM-G-093`; value is the `V3` anchor, unchanged by the rename) |
 | `orders_overall` | 51,277 | exact |
 | `conversion_overall` | 15.25% | exact |
 | orders app / desktop / mobile / others | 40,775 / 1,413 / 7,554 / 1,535 | exact |

@@ -737,13 +737,15 @@
   "classification": "Adoption",
   "argus_phase": "Not set",
   "cross_thread": "None recorded",
-  "status": "pending",
-  "blocker": "not-started",
-  "blocker_note": "Catalogued in the Argus DD; definition not aligned with STL and business owner still pending.",
+  "status": "partial",
+  "blocker": "reconciliation",
+  "blocker_note": "Built 2026-09-04 (DECISION_LOG:D12): mirrors the MBR automation's gac_ctr_metrics CTE exactly, off PROD_CURATED.PNM_APPLICATION.OPPORTUNITIES + OPPORTUNITIES_LATEST_LSM_SCORE. Confirmed Snowflake-only (owner-ruling:2026-09-04) - the 'system: Amplitude' tag above is stale/not the operative source. Live-reconciled exact for 2026-05 (10.54%). Section remains PROTOTYPE-ONLY.",
   "provenance": "stated",
-  "source": "ProdOps/01_reference_readonly/migrated_context/PnM_Metrics_DD.csv:32",
-  "resolves_to": null,
-  "kb_row": null
+  "source": "pnm-selfserve/kb/metrics.md",
+  "resolves_to": [
+   "gac_ctr_pct"
+  ],
+  "kb_row": "PNM-M-050"
  },
  {
   "id": "PNM-032",
@@ -2581,12 +2583,14 @@
   "classification": "Satisfaction",
   "argus_phase": "Not set",
   "cross_thread": "LFC",
-  "status": "blocked",
-  "blocker": "source-unavailable",
-  "blocker_note": "OTA remains BLOCKED, but narrowed 2026-08-26: the governed dbt docs define ota_flag as completed + distance_km < 0.5 + shifting_started <= shifting_ts + 30min, settling the 500m-vs-2km threshold dispute (PNM-T-100). Still needs an owner ruling to ADOPT it - the rule keys off shifting-started, not vendor arrival. See PNM-G-024.",
+  "status": "partial",
+  "blocker": "reconciliation",
+  "blocker_note": "Built 2026-09-04: owner ruled 30 min AND 2 km (Metabase card #37409, owner-ruling:2026-09-04), settling PNM-G-024 by adopting a source outside the three governed dbt definitions (PNM-T-100/100a/105), not by choosing among them. Verified live for 7 months (2025-10 to 2026-04): 86.93%-91.49%. Section remains PROTOTYPE-ONLY.",
   "provenance": "stated",
-  "source": "pnm-selfserve/kb/GAPS.md",
-  "resolves_to": null,
+  "source": "pnm-selfserve/kb/metrics.md",
+  "resolves_to": [
+   "ota_pct"
+  ],
   "kb_row": "PNM-M-040"
  },
  {
@@ -2605,12 +2609,15 @@
   "classification": "Satisfaction",
   "argus_phase": "Not set",
   "cross_thread": "LFC",
-  "status": "blocked",
-  "blocker": "source-unavailable",
-  "blocker_note": "OTA remains BLOCKED, but narrowed 2026-08-26: the governed dbt docs define ota_flag as completed + distance_km < 0.5 + shifting_started <= shifting_ts + 30min, settling the 500m-vs-2km threshold dispute (PNM-T-100). Still needs an owner ruling to ADOPT it - the rule keys off shifting-started, not vendor arrival. See PNM-G-024.",
+  "status": "partial",
+  "blocker": "reconciliation",
+  "blocker_note": "Built 2026-09-04: owner ruled 30 min AND 2 km (Metabase card #37409, owner-ruling:2026-09-04), settling PNM-G-024. Verified live for 7 months (2025-10 to 2026-04): ota_delay_gt_60_mins_pct 3.6%-6.0%. Section remains PROTOTYPE-ONLY.",
   "provenance": "stated",
-  "source": "pnm-selfserve/kb/GAPS.md",
-  "resolves_to": null,
+  "source": "pnm-selfserve/kb/metrics.md",
+  "resolves_to": [
+   "ota_delay_gt_60_mins_pct",
+   "ota_delay_gt_60_mins_orders"
+  ],
   "kb_row": "PNM-M-040"
  },
  {

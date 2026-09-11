@@ -11,7 +11,7 @@ bug-for-bug fidelity with quirks disclosed.*
 
 | File | Role |
 |---|---|
-| `metrics_registry.py` | The menu: 25 queryable metrics across leads / orders / derived / tpo, with definitions, verbatim ⚠ VERIFY flags, quirks, evidence, section readiness. Plus a deterministic alias resolver that refuses unsupported dimensions/grains. |
+| `metrics_registry.py` | The menu: 54 queryable metrics [2026-09-04, `PNM-G-050`] across leads / orders / derived / tpo / p80_durations / order_edits / ota, with definitions, verbatim ⚠ VERIFY flags, quirks, evidence, section readiness. Plus a deterministic alias resolver that refuses unsupported dimensions/grains. |
 | `sqlgen.py` | One read-only SELECT per section; staging logic inlined as CTEs (3 documented adaptations: no CREATE, staging-table reference → inline CTE, broken named-colon binds → validated literals). `assert_read_only` guard. |
 | `ask.py` | CLI. Dry-run default (prints exact SQL + trust footer, executes nothing). `--execute` runs the single SELECT via SF_* env vars; every executed answer appended to `answers_log/answers.jsonl`. |
 | `run_tests.py` | 24 answerable questions + 7 refusal cases; writes `tests_output/dry_run_report.md` + one rendered SQL per section for owner review. |

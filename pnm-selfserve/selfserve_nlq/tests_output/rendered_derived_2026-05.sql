@@ -39,7 +39,7 @@ orders_base_raw AS (
 leads_monthly AS (
 SELECT
     DATE '2026-05-01'                                                AS month,
-    COUNT(DISTINCT opp_id)                                              AS leads_overall,
+    COUNT(DISTINCT opp_id)                                              AS leads_overall_intra_city,
     COUNT(DISTINCT CASE WHEN channel = 'App'             THEN opp_id END) AS leads_app,
     COUNT(DISTINCT CASE WHEN channel = 'Desktop Website' THEN opp_id END) AS leads_desktop,
     COUNT(DISTINCT CASE WHEN channel = 'Mobile Website'  THEN opp_id END) AS leads_mobile,
@@ -58,7 +58,7 @@ FROM orders_base_raw
 )
 SELECT
     l.month,
-    l.leads_overall, l.leads_app, l.leads_desktop, l.leads_mobile, l.leads_others,
+    l.leads_overall_intra_city, l.leads_app, l.leads_desktop, l.leads_mobile, l.leads_others,
     o.orders_overall, o.orders_app, o.orders_desktop, o.orders_mobile, o.orders_others
 FROM leads_monthly l
 CROSS JOIN orders_monthly o
