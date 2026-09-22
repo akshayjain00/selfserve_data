@@ -1,4 +1,4 @@
-# Dry-run test report — 2026-09-04
+# Dry-run test report — 2026-09-22
 
 ## Answerable questions (resolution + SQL render)
 
@@ -67,18 +67,78 @@
 - **PASS** `pct_orders_with_surge` 2026-05 — "Percent orders with surge in May 2026?"
 - **PASS** `revenue_pct_goldplus` 2026-05 — "Vendor earnings goldplus in May 2026?"
 
+## City-cut answerable questions (PNM-G-070, leads only)
+
+- **PASS** `leads_overall_intra_city` in Bangalore, 2026-05 — "How many leads did we get in Bangalore in May 2026?"
+- **PASS** `leads_app` in Delhi, 2026-05 — "App leads in Delhi in May 2026?"
+- **PASS** `leads_others` in Ahemdabad, 2026-05 — "Leads from other channels in Ahemdabad in May 2026?"
+
+## Week-cut answerable questions (PNM-G-070, leads only)
+
+- **PASS** `leads_overall_intra_city`, week of 2026-05-04 — "How many leads were there in the week of 2026-05-04?"
+- **PASS** `leads_overall_intra_city`, week of 2026-04-27 (spans two months) — "How many leads were there in the week of 2026-04-27?"
+
+## City-cut answerable questions, orders/derived/p80_durations/order_edits (PNM-G-070, D23)
+
+- **PASS** `orders_overall` in Bangalore, 2026-05 — "Orders in Bangalore in May 2026?"
+- **PASS** `conversion_overall` in Bangalore, 2026-05 — "What was the conversion rate in Bangalore in May 2026?"
+- **PASS** `p80_trip_duration` in Bangalore, 2026-05 — "What was the p80 trip duration in Bangalore in May 2026?"
+- **PASS** `pct_orders_edited` in Bangalore, 2026-05 — "percent orders edited in Bangalore in May 2026?"
+
+## Week-cut answerable questions, orders/derived/p80_durations/order_edits/tpo (PNM-G-070, D23)
+
+- **PASS** `orders_overall`, week of 2026-05-04 — "Orders in the week of 2026-05-04?"
+- **PASS** `conversion_overall`, week of 2026-05-04 — "What was the conversion rate in the week of 2026-05-04?"
+- **PASS** `p80_trip_duration`, week of 2026-05-04 — "What was the p80 trip duration in the week of 2026-05-04?"
+- **PASS** `pct_orders_edited`, week of 2026-05-04 — "percent orders edited in the week of 2026-05-04?"
+- **PASS** `tpo_overall`, week of 2026-05-04 — "What was TPO in the week of 2026-05-04?"
+
+## Day-cut answerable questions — universal grain generalization (PNM-G-070, D25)
+
+- **PASS** `leads_overall_intra_city`, day 2026-05-15 — "How many leads did we get on 2026-05-15?"
+- **PASS** `allocation_pct`, day 2026-05-15 — "What was the allocation percentage on 2026-05-15?"
+- **PASS** `weekend_order_share_pct`, day 2026-05-15 — "Weekend order contribution on 2026-05-15?"
+- **PASS** `tpo_overall`, day 2026-05-15 — "What was TPO on 2026-05-15?"
+
+## Day fallback for `fare` (the one section day/week can't reach), with --month given (D25)
+
+- **PASS** `aov` (monthly, day filter dropped) — "Average order value on 2026-05-15?"
+
+## Trend answerable questions — multi-row week/day breakdown (PNM-G-070 trend close-out, D27)
+
+- **PASS** `orders_overall` weekly trend, 2026-05 — "Weekly orders trend for May 2026?"
+- **PASS** `leads_overall_intra_city` dayly trend, 2026-05 — "Daily leads trend for May 2026?"
+- **PASS** `conversion_overall` weekly trend, 2026-05 — "What was the conversion rate per week in May 2026?"
+- **PASS** `tpo_overall` weekly trend, 2026-05 — "TPO by week for May 2026?"
+- **PASS** `allocation_pct` weekly trend, 2026-05 — "Weekly allocation percentage for May 2026?"
+- **PASS** `revenue_pct_goldplus` weekly trend, 2026-05 — "Vendor earnings goldplus per week in May 2026?"
+
+## Trend fallback for `fare` (no trend variant at all), with --month given (D27)
+
+- **PASS** `aov` (monthly, trend dropped) — "Average order value per week in May 2026?"
+
+## Graceful city/week fallback for unsupported sections (PNM-G-070, D22)
+
+- **PASS** `tpo_overall` (monthly, filter dropped) — "TPO in Bangalore in May 2026?"
+
+## Week fallback with no --month — nothing to compute, must still refuse (D22/D23)
+
+- **PASS** "Average order value in the week of 2026-05-04?" (no --month)
+
 ## Refusal cases (must NOT answer)
 
-- **PASS** [question] "City-wise leads in Bangalore in May 2026?" (2026-05) — resolver said: "question mentions 'city' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
-- **PASS** [question] "Weekly orders trend for May 2026?" (2026-05) — resolver said: "question mentions 'weekly' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
-- **PASS** [question] "median tickets per order in May 2026?" (2026-05) — resolver said: "question mentions 'median' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
-- **PASS** [question] "Vendor wise TPO in May 2026?" (2026-05) — resolver said: "question mentions 'vendor wise' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
-- **PASS** [question] "median trip duration in May 2026?" (2026-05) — resolver said: "question mentions 'median' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
-- **PASS** [question] "p50 trip duration in May 2026?" (2026-05) — resolver said: "question mentions 'p50' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
-- **PASS** [question] "p90 trip duration in May 2026?" (2026-05) — resolver said: "question mentions 'p90' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
-- **PASS** [question] "trip duration by vendor in May 2026?" (2026-05) — resolver said: "question mentions 'by vendor' — the catalog is monthly, PnM-wide only (no city/vendor cuts, no weekly/daily grain, no medians/percentiles for these sections)"
+- **PASS** [question] "City-wise leads in Bangalore in May 2026?" (2026-05) — resolver said: "question mentions 'city-wise' — the catalog is monthly, PnM-wide only (no vendor cuts, no quarterly grain, no medians/percentiles for these sections) — for that, see PNM-S-020"
+- **PASS** [question] "Quarterly orders for May 2026?" (2026-05) — resolver said: "question mentions 'quarterly' — the catalog is monthly, PnM-wide only (no vendor cuts, no quarterly grain, no medians/percentiles for these sections) — for that, see PNM-S-020"
+- **PASS** [question] "median tickets per order in May 2026?" (2026-05) — resolver said: "question mentions 'median' — the catalog is monthly, PnM-wide only (no vendor cuts, no quarterly grain, no medians/percentiles for these sections) — for that, see PNM-S-021"
+- **PASS** [question] "Vendor wise TPO in May 2026?" (2026-05) — resolver said: "question mentions 'vendor wise' — the catalog is monthly, PnM-wide only (no vendor cuts, no quarterly grain, no medians/percentiles for these sections) — for that, see PNM-S-021"
+- **PASS** [question] "median trip duration in May 2026?" (2026-05) — resolver said: "question mentions 'median' — the catalog is monthly, PnM-wide only (no vendor cuts, no quarterly grain, no medians/percentiles for these sections)"
+- **PASS** [question] "p50 trip duration in May 2026?" (2026-05) — resolver said: "question mentions 'p50' — the catalog is monthly, PnM-wide only (no vendor cuts, no quarterly grain, no medians/percentiles for these sections)"
+- **PASS** [question] "p90 trip duration in May 2026?" (2026-05) — resolver said: "question mentions 'p90' — the catalog is monthly, PnM-wide only (no vendor cuts, no quarterly grain, no medians/percentiles for these sections)"
+- **PASS** [question] "trip duration by vendor in May 2026?" (2026-05) — resolver said: "question mentions 'by vendor' — the catalog is monthly, PnM-wide only (no vendor cuts, no quarterly grain, no medians/percentiles for these sections)"
 - **PASS** [metric_unknown] "totally_made_up_metric" (2026-05) — 'totally_made_up_metric' correctly absent from the catalog — gate() would refuse (this tool never improvises metrics)
 - **PASS** [future_month] "tpo_overall" (2027-01) — 2027-01 correctly detected as future
+- **PASS** [question] "Leads in Bangalore or Delhi in May 2026?" (2026-05) — resolver said: "ambiguous city — question mentions more than one of ['Bangalore', 'Delhi']"
+- **PASS** [question] "Leads in the week of 2026-05-05?" (2026-05) — resolver said: "'2026-05-05' is not a Monday — weeks are named by their Monday start date, e.g. 'week of 2026-05-04'"
 
 ## New-section structural checks (all sections built after iteration-3)
 
@@ -125,4 +185,4 @@
 - **PASS** fare (14 metrics) — every metric id produced
 - **PASS** vendor_earnings_bucket (5 metrics) — every metric id produced
 
-## Summary: 110 passed, 0 failed
+## Summary: 140 passed, 0 failed

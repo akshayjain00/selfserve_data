@@ -61,9 +61,14 @@ phrasing unavoidably hits `'p50'`/`'median'`/`'per vendor'` in `UNSUPPORTED_TERM
 2. **Every section counts on a different date.** A move booked in April and executed in May is in
    **April's** order count and **May's** duration figures. Both are right. **Always state the basis.**
    (`PNM-B-020`)
-3. **The catalog is monthly and PnM-wide. It cannot be cut by city or by week.** The columns exist and
-   the dashboards do it, but no city/weekly query was ever reconciled — so the catalog refuses and
-   routes to [sources.md](./sources.md). (`PNM-B-021`, `PNM-B-022`, `PNM-G-070`)
+3. **The catalog is monthly by default, but city/week/day/trend cuts are no longer refused for most
+   sections.** City: `leads`/`orders`/`derived`/`p80_durations`/`order_edits` answer one named city
+   (`tpo`'s deprioritized, not built). Week/day/trend: every built section except `fare` answers a
+   single week, a single day, or a full week-by-week/day-by-day trend, in place of the month — same
+   query, narrower or regrouped, not a new definition (all self-consistency verified, not
+   Metabase-reconciled — `DECISION_LOG:D21`/`D23`/`D25`/`D27`). `fare` is the one exception
+   throughout (a pre-aggregated month-grain source column, see `sqlgen.py fare_sql`'s docstring).
+   (`PNM-B-021`, `PNM-B-022`, `PNM-G-070` — closed 2026-09-22, session-ruling)
 4. **`orders_overall` includes orders that were later cancelled.** There is no cancelled filter.
    (`PNM-M-002`)
 5. **Test-order exclusion is split.** leads and orders **do** exclude test users (`user_flag`);
@@ -158,8 +163,8 @@ capped at `unverified`; the KB reaches it through `sqlgen.py`, its in-repo mirro
 - ⚠ **Two things are called "PnM leads", and both are right.** Governed `pnm_overall_leads` = **all
   shifting types**; this catalog's `leads_overall_intra_city` = the **intra-city** subset
   (`owner-ruling:2026-08-26`, closed `PNM-G-090`). **Renamed in code 2026-09-04, closed `PNM-G-093`.**
-- **64 gap rows, 12 live** (52 `CLOSED`, 5 owner-blocked, 7 `OPEN`) — see [GAPS.md](./GAPS.md) for the
-  current breakdown; do not trust this count without re-checking, it was true 2026-09-07.
+- **64 gap rows, 11 live** (53 `CLOSED`, 4 owner-blocked, 7 `OPEN`) — see [GAPS.md](./GAPS.md) for the
+  current breakdown; do not trust this count without re-checking, it was true 2026-09-22.
 - ⚠ **iteration-1's metric catalog is superseded and unannotated.** Six of its definitions are
   actively wrong (`PNM-G-030`…`PNM-G-037`, all closed via annotation at `PNM-S-030`). Do not read
   iteration-1 as current.
