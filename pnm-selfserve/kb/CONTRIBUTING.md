@@ -272,6 +272,40 @@ check is per source type instead:
 
 A stale row is not wrong — it is **unchecked**. Mark it `unverified`, open a `PNM-G-###`, re-extract.
 
+### §9.1 Extending the closed-world guard past a blanket refusal
+
+Until 2026-09-22, `UNSUPPORTED_TERMS` in `metrics_registry.py` was a single flat list: any city name,
+any weekly/daily phrasing, refused everywhere, no exceptions. `PNM-G-070`'s `leads` city/week pilot
+needed a real exception — city ops genuinely can ask "leads in Bangalore" — without silently opening
+that door for every other section too. The pattern that resulted, and that any future city/week
+extension should reuse:
+
+1. **Split unconditional terms from conditional ones.** Breakdown/trend phrasing (`city-wise`,
+   `weekly trend`, `region`, `zone`) stays an unconditional block — no section ever answers a
+   `GROUP BY`. A *specific* named value (one city, one week) is conditional instead.
+2. **Add a per-section capability flag** (`SECTIONS[name]["supports_city"]` /
+   `["supports_week"]`), default absent = `False`. A flag may only be set `True` once that
+   section's cut has actually been built and verified — the flag is the record of "this was
+   checked," not a wish.
+3. **Gate after metric-matching, not before, and prefer a graceful fallback to a bare refusal
+   (`DECISION_LOG:D22`).** Extract the conditional value first (city name, week date), resolve the
+   metric normally, *then* check the matched section's flag in `ask.py gate()` (not `resolve()` —
+   `resolve()` stays pure text-matching). A value extracted but unsupported for that section does
+   NOT refuse outright: it is dropped and the section's plain monthly figure is answered instead
+   (a week additionally needs `--month` to fall back to, or there truly is nothing to compute), with
+   a caveat naming the section's `metabase_fallback` dashboard (`sources.md`) where the real cut can
+   be checked today.
+4. **A conditional value must still be independently reconciled** (§6, §7) before its flag flips —
+   the guard change is architecture, not evidence. `PNM-G-070`'s `leads` pilot used self-consistency
+   (city/week splits sum to the already-reconciled whole-month total) since no MBR-automation query
+   existed to mirror for either dimension; `DECISION_LOG:D23` reused the same method for
+   `orders`/`derived`/`p80_durations`/`order_edits` (city + week) and `tpo` (week only) — see
+   `metrics_registry.py`'s `DIMENSIONS` registry for where each section's city/week column actually
+   lives (`None` where it genuinely doesn't exist, e.g. `tpo`'s city) before assuming one can be
+   added; a percentile section (`p80_durations`) can only self-consistency-check the *population*
+   split, never the percentile value itself — say so explicitly, don't imply the same evidentiary
+   strength as a COUNT-based section.
+
 ---
 
 ## §10 Never put in this KB

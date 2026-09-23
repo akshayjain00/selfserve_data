@@ -22,10 +22,62 @@ card #30311 content, Data Catalog metadata) that bear on a flag — they are
 inputs to the owner's decision, not resolutions.
 """
 
+import re
+from datetime import date, timedelta
+
 CONFIG_WIDE_FLAGS = [
     'config.py TABLES header: "# Verify these against Snowflake before running for the first time."',
     'config.py TABLES header: "# Canonical methodology: Metabase card #30311."',
 ]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Generic city/week dimension registry (PNM-G-070/`DECISION_LOG:D23`) — the
+# single source of truth for WHERE each section's city and week-truncation
+# columns actually live, so extending a section's cut is a registry entry +
+# a live self-consistency check, not a fresh guess each time. Grounded in
+# what's already documented (`data-model.md PNM-T-088`: PICKUP_CITY_NAME exists
+# on the order/opportunity dims and on PNM_EXPERIENCE) and re-confirmed live
+# via INFORMATION_SCHEMA + a population self-consistency check, 2026-09-22
+# (`DECISION_LOG:D23`). `city_column`/`week_column` are `None` where the
+# section's own source tables genuinely carry neither — sqlgen must never
+# invent a filter for those. A section's SECTIONS[...] "supports_city"/
+# "supports_week" flag is the actual gate (whether the entry below has been
+# LIVE-VALIDATED, not just column-exists) — this registry only says where the
+# column would come from if/when that validation happens.
+DIMENSIONS = {
+    "leads": {
+        "city_column": "DIM_PNM_OPPORTUNITY.PICKUP_CITY_NAME",
+        "week_column": "FACT_PNM_OPPORTUNITY.opp_created_ts",
+    },
+    "orders": {
+        "city_column": "DIM_PNM_ORDERS.PICKUP_CITY_NAME",
+        "week_column": "FACT_PNM_ORDERS.o_created_ts",
+    },
+    "derived": {
+        "city_column": "inherits leads + orders (same filter applied to both CTEs)",
+        "week_column": "inherits leads + orders (same filter applied to both CTEs)",
+    },
+    "p80_durations": {
+        "city_column": "PNM_EXPERIENCE.PICKUP_CITY_NAME",
+        "week_column": "PNM_EXPERIENCE.SHIFTING_TS_IST",
+    },
+    "order_edits": {
+        "city_column": "PNM_EXPERIENCE.PICKUP_CITY_NAME",
+        "week_column": "PNM_EXPERIENCE.ORDER_CREATED_TS_IST",
+    },
+    "tpo": {
+        # SHIFTING_REQUIREMENTS.GEO_REGION_ID -> DIM_GEO_REGIONS.GEO_REGION_ID
+        # (data-model.md PNM-T-007) is a resolvable path, not a direct column —
+        # confirmed to EXIST live 2026-09-22, but its FK reliability is
+        # unconfirmed and it has not been joined/validated. None here, not a
+        # guess: sqlgen has no tpo city filter to invoke. DEPRIORITIZED
+        # 2026-09-22 (session-ruling, PNM-G-070) — TPO-by-city judged rarely
+        # asked, not worth the FK-validation cost right now. Not ruled
+        # infeasible, just not next; revisit if demand shows up.
+        "city_column": None,
+        "week_column": "DATEADD(minute, 330, ORDER_ALLOCATION_INFOS.completed_ts)",
+    },
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CROSS-CUTTING BLOCKER discovered post-iteration-2 review (2026-07-07), affects
@@ -95,6 +147,14 @@ SECTIONS = {
     "leads": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_city": True,
+        "supports_week": True,
+        "supports_day": True,
+        # Not needed as a city/week/day fallback (leads already answers all three
+        # for real) — kept for the OTHER refusal paths this flag now also feeds
+        # (trend/vendor/stat term refusals, PNM-G-070 close-out continuation):
+        # "leads by city" or "daily leads trend" still refuse, and now point here.
+        "metabase_fallback": "PNM-S-020",
         "month_basis": "calendar month of opp_created_ts (lead creation month)",
         "base_population": (
             "intra-city (dim_pnm_opportunity.shifting_type='intra_city', nulls allowed), normal-user "
@@ -118,6 +178,10 @@ SECTIONS = {
     "orders": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_city": True,
+        "supports_week": True,
+        "supports_day": True,
+        "metabase_fallback": "PNM-S-020",
         "month_basis": "calendar month of o_created_ts (order creation month)",
         "base_population": (
             "intra-city (dim_pnm_orders.shifting_type='intra_city'), normal-user orders from "
@@ -139,11 +203,20 @@ SECTIONS = {
             "2026-07-08): FACT_PNM_ORDERS INNER JOIN MART.PNM_CUSTOMERS (customer_mobile) LEFT JOIN "
             "DIM_PNM_ORDERS + FACT/DIM_PNM_OPPORTUNITY (via sr_id). No cancelled filter, no first-order-"
             "per-SR dedup (per-order_id instead), nano excluded — all straight from the validated query.",
+            "City + week cut, shipped 2026-09-22 (PNM-G-070/DECISION_LOG:D23), via DIM_PNM_ORDERS."
+            "PICKUP_CITY_NAME / FACT_PNM_ORDERS.o_created_ts (DIMENSIONS registry). Self-consistency "
+            "verified live: the 14-city + 0-NULL split summed to 51,276, exact match to the same day's "
+            "live PnM-wide total (100% city coverage, unlike leads' 5.7% NULL rate); the May-only portion "
+            "of each week (incl. the Apr27-May3 boundary week) also summed to 51,276 exact.",
         ],
     },
     "derived": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_city": True,
+        "supports_week": True,
+        "supports_day": True,
+        "metabase_fallback": "PNM-S-020",
         "month_basis": "calendar month; ratio of same-month leads and orders aggregates",
         "base_population": (
             "inherits the leads population (nano-INCLUDED) and the orders population (nano-EXCLUDED); "
@@ -162,11 +235,23 @@ SECTIONS = {
             "Inherits the mirrored leads + orders populations (owner decision A, 2026-07-08). "
             "ConversionPercentage = orders/opportunities, same month, computed from raw counts. "
             "Reconcile against the MBR note / Notion Demand DB, not card #30311.",
+            "City + week cut, shipped 2026-09-22 (PNM-G-070/DECISION_LOG:D23) — not independently "
+            "re-verified as its own query: the SAME city/week filter is applied to both the leads_cte "
+            "and orders_cte that already back leads' and orders' own validated cuts, and the ratio is "
+            "computed from those raw counts exactly as the unfiltered derived metrics already are.",
         ],
     },
     "tpo": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_week": True,
+        "supports_day": True,
+        # NOT supports_city — DIMENSIONS["tpo"]["city_column"] is deliberately None
+        # (SHIFTING_REQUIREMENTS.GEO_REGION_ID -> DIM_GEO_REGIONS is a resolvable
+        # path but unvalidated, PNM-T-108/PNM-G-070) AND deprioritized 2026-09-22
+        # (session-ruling: TPO-by-city judged rarely asked — see DECISION_LOG:D24).
+        # Falls back to the plain monthly figure + PNM-S-021 caveat instead (D22).
+        "metabase_fallback": "PNM-S-021",
         "month_basis": (
             "calendar month of ALLOCATION COMPLETION (order_allocation_infos.completed_ts + 330m -> IST) "
             "— not order creation month"
@@ -193,11 +278,19 @@ SECTIONS = {
             "joined on crn, bucketed by order_status_when_ticket_created, vendor via raised_by ILIKE 'Vendor%'.",
             "This supersedes the earlier eldoria fact_pnm_orders.o_completed_ts approximation and the guessed "
             "pnm_application.tickets — both replaced by the validated PROD_CURATED sourcing.",
+            "Week cut (orders_base only), shipped 2026-09-22 (PNM-G-070/DECISION_LOG:D23): self-consistency "
+            "verified live — DISTINCT crn per week (incl. the Apr27-May3 boundary week's May-only portion) "
+            "summed to 45,414, exact match to the same-query live monthly total (also exact match to the "
+            "already-reconciled orders_base anchor in business.md). Only orders_base (a COUNT) was re-summed "
+            "this way; the tpo_* ratio metrics inherit the same week filter on both CTEs but were never "
+            "independently re-summed even for the month cut — ratios are not additive, same as `derived`.",
         ],
     },
     "ota": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_week": True,
+        "supports_day": True,
         # [board-fix 2026-09-04] REPLACED, not appended — the old blocked_reason's six-column
         # premise (scheduled_pickup_ts, vendor_arrived_ts, 4 coordinate cols) is moot: Card
         # #37409 computes OTA from entirely different, existing columns (see evidence). The
@@ -258,6 +351,8 @@ SECTIONS = {
     "gac_ctr": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_week": True,
+        "supports_day": True,
         "month_basis": "calendar month of OPPORTUNITIES.created_at, shifted +5h30m to IST",
         "base_population": (
             "intra-city opportunities (PROD_CURATED.PNM_APPLICATION.OPPORTUNITIES.shifting_type"
@@ -290,6 +385,8 @@ SECTIONS = {
     "weekend": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_week": True,
+        "supports_day": True,
         "month_basis": "calendar month of PNM_EXPERIENCE.shifting_ts_ist",
         "base_population": (
             "orders with a vendor assigned (vendor_id IS NOT NULL), PnM crn (crn ILIKE 'PNM%'), "
@@ -314,6 +411,8 @@ SECTIONS = {
     "cac_post_trip": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_week": True,
+        "supports_day": True,
         "month_basis": "calendar month of PNM_EXPERIENCE.SHIFTING_TS_IST",
         "base_population": "intra-city, non-Nano orders from PROD_ELDORIA.MART.PNM_EXPERIENCE",
         "source_desc": (
@@ -336,6 +435,8 @@ SECTIONS = {
     "vendor_earnings_pctl": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_week": True,
+        "supports_day": True,
         "month_basis": "calendar month of PNM_FARE_MOVEMENT.order_updated_at_ist",
         "base_population": (
             "completed, non-Nano intracity orders from PROD_ELDORIA.MART.PNM_FARE_MOVEMENT, "
@@ -361,6 +462,8 @@ SECTIONS = {
     "allocation": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_week": True,
+        "supports_day": True,
         "month_basis": "calendar month of PNM_ALLOCATION.shifting_ts_ist",
         "base_population": "intra-city orders (shifting_type='intra_city') from PROD_ELDORIA.MART.PNM_ALLOCATION",
         "source_desc": (
@@ -388,6 +491,8 @@ SECTIONS = {
     "wallet": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_week": True,
+        "supports_day": True,
         "month_basis": "calendar month of VENDOR_WALLET_WITHDRAWAL.CREATED_AT (withdrawals) / PAYMENT_LINKS.created_at (recharges)",
         "base_population": (
             "vendor owners with a PnM vendor_id (in PROD_ELDORIA.CORE.DIM_PNM_VENDOR) whose "
@@ -419,6 +524,8 @@ SECTIONS = {
     "vendor_tpo_top5": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_week": True,
+        "supports_day": True,
         "month_basis": "calendar month of allocation completion (RAW.pnm_application_order_allocation_infos.completed_ts_ist)",
         "base_population": (
             "distinct PnM crns with an active completed allocation in the month, NON-Nano, "
@@ -453,6 +560,8 @@ SECTIONS = {
     "addon": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_week": True,
+        "supports_day": True,
         "month_basis": "calendar month of PNM_EXPERIENCE.ORDER_CREATED_TS_IST",
         "base_population": "intra-city orders from PROD_ELDORIA.MART.PNM_EXPERIENCE",
         "source_desc": (
@@ -478,6 +587,8 @@ SECTIONS = {
     "completion": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_week": True,
+        "supports_day": True,
         "month_basis": "calendar month of PNM_EXPERIENCE.shifting_ts_ist",
         "base_population": "non-Nano, intra-city orders from PROD_ELDORIA.MART.PNM_EXPERIENCE",
         "source_desc": (
@@ -503,6 +614,12 @@ SECTIONS = {
     "fare": {
         "built": True,
         "readiness": "prototype_only",
+        # NOT supports_week/supports_day (PNM-G-070 close-out, DECISION_LOG:D25) —
+        # order_created_month is PRE-AGGREGATED to month grain on the governed mart
+        # itself, not a per-row timestamp this layer truncates; see fare_sql's own
+        # docstring for why grain-swapping it would silently return zero rows
+        # rather than error. Every other built section got both flags; this is the
+        # one deliberate exception, not an oversight.
         "month_basis": (
             "calendar month of PNM_FARE_MOVEMENT.order_created_month (counts/surge/timing metrics) "
             "OR order_updated_at_ist (AOV/coupon %) — two DIFFERENT month bases in one section, "
@@ -536,6 +653,8 @@ SECTIONS = {
     "vendor_earnings_bucket": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_week": True,
+        "supports_day": True,
         "month_basis": "calendar month of PNM_EXPERIENCE.order_completed_ts_ist",
         "base_population": "completed, non-Nano, intra-city orders from PROD_ELDORIA.MART.PNM_EXPERIENCE",
         "source_desc": (
@@ -566,6 +685,10 @@ SECTIONS = {
     "p80_durations": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_city": True,
+        "supports_week": True,
+        "supports_day": True,
+        "metabase_fallback": "PNM-S-021",
         # [board-fix] corrected from the stale stub value "o_completed_ts".
         "month_basis": "calendar month of SHIFTING_TS_IST (shifting/execution month)",
         "base_population": (
@@ -601,11 +724,23 @@ SECTIONS = {
             "reference/p80_durations_baseline_2025-10_to_2026-05.csv IS this automation's output; its 7 "
             "non-MONTH columns map 1:1 to the 7 metric ids. Source = PROD_ELDORIA.MART.PNM_EXPERIENCE (D8); "
             "the earlier stub's month_basis (o_completed_ts) is corrected to SHIFTING_TS_IST.",
+            "City + week cut, shipped 2026-09-22 (PNM-G-070/DECISION_LOG:D23) via PNM_EXPERIENCE."
+            "PICKUP_CITY_NAME / SHIFTING_TS_IST. ⚠ Self-consistency verified at the POPULATION level "
+            "only, not the metric value: the 14-city + 0-NULL row-count split summed to 45,208, exact "
+            "match to the live monthly row count (also exact for the May-only portion of every week, "
+            "incl. the Apr27-May3 boundary). Percentiles are NOT additive across a split the way counts "
+            "are — a city/week cut changes which orders feed PERCENTILE_CONT, and that population change "
+            "is what's verified; the resulting p80 VALUE itself has no independent cross-check the way "
+            "leads/orders counts do.",
         ],
     },
     "order_edits": {
         "built": True,
         "readiness": "prototype_only",
+        "supports_city": True,
+        "supports_week": True,
+        "supports_day": True,
+        "metabase_fallback": "PNM-S-021",
         # [board-fix] corrected from the stale stub value "o_created_ts"; stale
         # sr_modifications / order_modifications verify_flags + evidence REPLACED (not appended).
         "month_basis": "calendar month of ORDER_CREATED_TS_IST (order creation month)",
@@ -642,6 +777,12 @@ SECTIONS = {
             "PROD_ELDORIA.MART.PNM_EXPERIENCE (D8) — SUPERSEDES the earlier stub that sourced this section "
             "from PROD_CURATED.pnm_application.sr_modifications / order_modifications; those flags and "
             "evidence are REMOVED (not appended) so the footer no longer discloses the wrong tables.",
+            "City + week cut, shipped 2026-09-22 (PNM-G-070/DECISION_LOG:D23) via PNM_EXPERIENCE."
+            "PICKUP_CITY_NAME / ORDER_CREATED_TS_IST. City split summed to 43,558, exact match to the "
+            "live monthly row count (May-only week portions, incl. the Apr27-May3 boundary, also exact). "
+            "`no_of_successful_edits` (a SUM) is genuinely additive and is covered by that same count "
+            "self-consistency; every pct_* metric is a ratio of counts, same caveat as `derived` — not "
+            "independently summable across a city/week split, only the underlying population is verified.",
         ],
     },
 }
@@ -1130,37 +1271,146 @@ METRICS = {
 }
 
 
-# Dimensions/grains the catalog does NOT support. If a question mentions one,
-# refuse outright — substring alias matching must never silently answer a
-# narrower question with a PnM-wide monthly number.
+# Dimensions/grains the catalog does NOT support anywhere. If a question mentions
+# one of these, refuse outright — substring alias matching must never silently
+# answer a narrower question with a PnM-wide monthly number. This is the
+# unconditional list: breakdown/trend requests ("city-wise", "weekly trend") and
+# dimensions no section has ever validated (region/zone/vendor/percentiles).
+# Single NAMED cities and single specific WEEKS are handled separately below
+# (CITIES, WEEK_RE) since PNM-G-070 gave `leads` a validated cut for both —
+# they are conditional on the matched metric's section, not a blanket refusal.
 UNSUPPORTED_TERMS = [
-    # geography (catalog is PnM-wide; city list from Metabase card #30311 pickers)
-    "city", "cities", "citywise", "city-wise", "region", "zone", "cluster", "tier",
-    "bangalore", "mumbai", "delhi", "hyderabad", "pune", "chennai", "kolkata",
-    "surat", "lucknow", "coimbatore", "indore", "nagpur", "jaipur", "ahmedabad", "ahemdabad",
-    # grains (catalog is monthly only)
-    "weekly", "daily", "per week", "per day", "by week", "by day", "quarterly", "quarter",
+    # geography breakdowns (never supported, any section)
+    "city-wise", "citywise", "region", "zone", "cluster", "tier",
+    # weekly/daily TREND phrasing moved to TREND_RE below (PNM-G-070 trend
+    # close-out, DECISION_LOG:D27) — no longer refused, answered as a
+    # multi-row trend instead. quarterly/quarter were never asked for and
+    # stay blocked — no quarter grain exists anywhere in this catalog.
+    "quarterly", "quarter",
     # statistics not in the catalog for these sections
     "median", "p50", "p90", "p99", "average of",
     # entities the catalog can't cut by
     "vendor wise", "vendorwise", "by vendor", "per vendor",
 ]
 
+# A trend/breakdown-over-time request: "weekly orders trend", "daily leads
+# trend", "orders per day", "TPO by week" — PNM-G-070 trend close-out,
+# DECISION_LOG:D27. Distinct from WEEK_RE/DAY_RE, which name ONE specific
+# period; this always returns multiple rows, one per grain unit within the
+# requested month. Checked ONLY when the question doesn't already name a
+# specific week/day (WEEK_RE/DAY_RE take precedence — "leads on 2026-05-15"
+# is a single day, not "daily", even though both mention a day concept).
+TREND_DAY_TERMS = ("daily", "per day", "by day")
+TREND_WEEK_TERMS = ("weekly", "per week", "by week")
+
+# A bare "city"/"cities" with no specific named city is still a breakdown
+# request ("leads by city") and stays refused — checked separately from
+# UNSUPPORTED_TERMS so the message can say so precisely.
+GENERIC_CITY_TERMS = ["city", "cities"]
+
+# Recognized cities: question-term (lowercase) -> exact stored PICKUP_CITY_NAME
+# value. Confirmed live 2026-09-22 against PROD_ELDORIA.CORE.DIM_PNM_OPPORTUNITY
+# for May 2026 — 14 real cities, sum + NULL bucket = the reconciled whole-month
+# leads total exactly (PNM-G-070). Note "Ahemdabad" is the actual stored
+# spelling, not "Ahmedabad" — both question-forms map to it.
+CITIES = {
+    "bangalore": "Bangalore", "mumbai": "Mumbai", "delhi": "Delhi",
+    "hyderabad": "Hyderabad", "pune": "Pune", "chennai": "Chennai",
+    "kolkata": "Kolkata", "surat": "Surat", "lucknow": "Lucknow",
+    "coimbatore": "Coimbatore", "indore": "Indore", "nagpur": "Nagpur",
+    "jaipur": "Jaipur", "ahmedabad": "Ahemdabad", "ahemdabad": "Ahemdabad",
+}
+
+# A single specific week, named by its Monday start date: "week of 2026-05-04"
+# or "week starting 2026-05-04". Deliberately narrow — no fuzzy "last week"
+# relative parsing in this pilot (PNM-G-070). The date must itself be a Monday;
+# resolve() refuses otherwise rather than silently snapping to one.
+WEEK_RE = re.compile(r"week (?:of|starting) (\d{4}-\d{2}-\d{2})")
+
+# A single specific day: "on 2026-05-15" (PNM-G-070 close-out, DECISION_LOG:D25).
+# Deliberately narrow, same "on" the two match — no overlap with WEEK_RE's "week
+# of/starting" prefix, and no fuzzy "yesterday"/"today" relative parsing, same
+# discipline as WEEK_RE. Any calendar date is valid (unlike week_start, no
+# Monday constraint) — validated for realness (e.g. rejects Feb 30), not shape.
+DAY_RE = re.compile(r"\bon (\d{4}-\d{2}-\d{2})\b")
+
+
+def _week_span(week_start: str) -> str:
+    """'2026-05-04' -> 'May 4-10, 2026' | 'Apr 27-May 3, 2026' if it spans two months."""
+    start = date.fromisoformat(week_start)
+    end = start + timedelta(days=6)
+    if start.month == end.month:
+        return f"{start.strftime('%b %-d')}-{end.strftime('%-d, %Y')}"
+    return f"{start.strftime('%b %-d')}-{end.strftime('%b %-d, %Y')}"
+
 
 def resolve(question: str):
     """Deterministic, transparent resolver used by tests and as a convenience
     for exact phrasings. Richer natural-language mapping is the Claude session's
     job (reading --list); this function only does normalized alias/id matching
-    and REFUSES on no match, ambiguity, or unsupported dimensions — it never guesses.
+    and REFUSES on no match or ambiguity — it never guesses.
 
-    Returns (metric_id, None) on success, (None, reason) on refusal.
+    Returns (metric_id, city, week_start, day, trend, None) on success —
+    city/week_start/day/trend are None when not applicable/requested. Returns
+    (None, None, None, None, None, reason) on refusal. `trend`, when set, is
+    'week' or 'day' — a request for a MULTI-ROW breakdown across the whole
+    requested month (PNM-G-070 trend close-out, DECISION_LOG:D27), distinct
+    from week_start/day which name ONE specific period. **Does NOT check
+    per-section city/week/day/trend support** — a value extracted here may
+    name a section with no validated cut; `ask.py gate()` is where that
+    support check (and its graceful monthly-fallback + Metabase-dashboard
+    caveat, PNM-G-070/`DECISION_LOG:D22`) actually happens, so this function
+    stays pure text-matching and testable on its own. week_start, when set, is
+    the Monday-start date string; a week spanning two calendar months is still
+    returned in full (PNM-G-070 ruling), not clipped or refused — callers
+    should label it via _week_span(). day, when set, is a single 'YYYY-MM-DD'.
     """
     q = " ".join(question.lower().replace("?", " ").replace(",", " ").split())
-    for term in UNSUPPORTED_TERMS:
-        if term in q:
-            return None, (f"question mentions {term!r} — the catalog is monthly, "
-                          "PnM-wide only (no city/vendor cuts, no weekly/daily grain, "
-                          "no medians/percentiles for these sections)")
+
+    city = None
+    matched_cities = {v for k, v in CITIES.items() if k in q}
+    if len(matched_cities) > 1:
+        return None, None, None, None, None, f"ambiguous city — question mentions more than one of {sorted(matched_cities)}"
+    if matched_cities:
+        city = next(iter(matched_cities))
+
+    week_start = None
+    week_m = WEEK_RE.search(q)
+    if week_m:
+        week_start = week_m.group(1)
+        try:
+            d = date.fromisoformat(week_start)
+        except ValueError:
+            return None, None, None, None, None, f"{week_start!r} is not a valid date"
+        if d.weekday() != 0:
+            return None, None, None, None, None, (f"{week_start!r} is not a Monday — weeks are named by their "
+                                                    "Monday start date, e.g. 'week of 2026-05-04'")
+
+    day = None
+    day_m = DAY_RE.search(q)
+    if day_m:
+        day = day_m.group(1)
+        try:
+            date.fromisoformat(day)
+        except ValueError:
+            return None, None, None, None, None, f"{day!r} is not a valid date"
+
+    # A trend request only makes sense when no SPECIFIC period was already
+    # named — "leads on 2026-05-15" (day) or "week of 2026-05-04" (week_start)
+    # wins over "daily"/"weekly" wording that might also appear.
+    trend = None
+    if not day and not week_start:
+        if any(t in q for t in TREND_DAY_TERMS):
+            trend = "day"
+        elif any(t in q for t in TREND_WEEK_TERMS):
+            trend = "week"
+
+    # Metric matching runs BEFORE the term-refusal checks below (moved up from its
+    # original position, PNM-G-070 close-out continuation) purely so an
+    # UNSUPPORTED_TERMS/GENERIC_CITY_TERMS refusal can still name the dashboard
+    # for the section the question was headed toward — it does not change which
+    # refusal wins when several apply (a vendor/stat word still refuses before
+    # "no metric matches" ever gets evaluated, same order as before).
     hits = []
     for mid, spec in METRICS.items():
         # A metric with no aliases is intentionally NOT NL-exposed (reachable only via
@@ -1172,11 +1422,36 @@ def resolve(question: str):
         best = max((len(k) for k in keys if k in q), default=0)
         if best:
             hits.append((best, mid))
+    guessed_fallback = None
+    if hits:
+        best_hits = sorted(hits, reverse=True)
+        best_len = best_hits[0][0]
+        best_mids = {m for ln, m in best_hits if ln == best_len}
+        if len(best_mids) == 1:
+            guessed_section = METRICS[next(iter(best_mids))]["section"]
+            guessed_fallback = SECTIONS.get(guessed_section, {}).get("metabase_fallback")
+
+    for term in UNSUPPORTED_TERMS:
+        if term in q:
+            hint = f" — for that, see {guessed_fallback}" if guessed_fallback else ""
+            return None, None, None, None, None, (f"question mentions {term!r} — the catalog is monthly, "
+                          "PnM-wide only (no vendor cuts, no quarterly grain, "
+                          f"no medians/percentiles for these sections){hint}")
+    if not city:
+        for term in GENERIC_CITY_TERMS:
+            if term in q:
+                hint = f" — for a city breakdown, see {guessed_fallback}" if guessed_fallback else ""
+                return None, None, None, None, None, (f"question mentions {term!r} with no specific city named — "
+                              f"the catalog answers one named city at a time, not a city breakdown{hint}")
+
     if not hits:
-        return None, "no catalog metric matches this question"
+        return None, None, None, None, None, "no catalog metric matches this question"
     hits.sort(reverse=True)
     top_len = hits[0][0]
     top = [mid for ln, mid in hits if ln == top_len]
     if len(top) > 1:
-        return None, f"ambiguous between {sorted(top)} — ask with a specific metric id"
-    return top[0], None
+        return None, None, None, None, None, f"ambiguous between {sorted(top)} — ask with a specific metric id"
+    mid = top[0]
+    # Per-section city/week/day/trend support is NOT checked here — `ask.py gate()`
+    # does it, with a graceful monthly fallback instead of a bare refusal (D22).
+    return mid, city, week_start, day, trend, None

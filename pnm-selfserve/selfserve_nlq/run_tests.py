@@ -20,6 +20,7 @@ from datetime import date
 from pathlib import Path
 
 from metrics_registry import METRICS, SECTIONS, resolve
+from ask import gate, gate_trend
 import sqlgen
 
 OUT = Path(__file__).parent / "tests_output"
@@ -155,10 +156,127 @@ METRIC_ONLY = ["p50_trip_duration", "p80_vendor_accepted_to_sup_assigned",
                "p50_withdrawal_amount", "p50_recharge_amount",
                "median_fare_increase_amt", "median_fare_decrease_amt"]
 
+# (question, month, expected_metric_id, expected_city) — city-cut answerable
+# cases, leads only (PNM-G-070). Values pre-flighted live against May 2026.
+ANSWERABLE_CITY = [
+    ("How many leads did we get in Bangalore in May 2026?", "2026-05", "leads_overall_intra_city", "Bangalore"),
+    ("App leads in Delhi in May 2026?",                      "2026-05", "leads_app",                 "Delhi"),
+    ("Leads from other channels in Ahemdabad in May 2026?",  "2026-05", "leads_others",               "Ahemdabad"),
+]
+
+# (question, expected_metric_id, expected_week_start, expect_spans_two_months)
+# — week-cut answerable cases, leads only (PNM-G-070). The first is a clean
+# within-May week; the second is the confirmed boundary week (Apr 27-May 3).
+ANSWERABLE_WEEK = [
+    ("How many leads were there in the week of 2026-05-04?", "leads_overall_intra_city", "2026-05-04", False),
+    ("How many leads were there in the week of 2026-04-27?", "leads_overall_intra_city", "2026-04-27", True),
+]
+
+# (question, month, expected_metric_id, expected_city) — city-cut answerable,
+# the four sections that gained a REAL validated cut 2026-09-22 (PNM-G-070/
+# DECISION_LOG:D23, not leads' original pilot). One question per section is
+# enough here since each reuses leads'/orders' own already-live-verified
+# population self-consistency check — see metrics_registry.py SECTIONS[...]
+# ["evidence"] for the actual verification, not re-litigated per NL phrasing.
+ANSWERABLE_CITY_OTHER = [
+    ("Orders in Bangalore in May 2026?",                       "2026-05", "orders_overall",    "Bangalore"),
+    ("What was the conversion rate in Bangalore in May 2026?", "2026-05", "conversion_overall", "Bangalore"),
+    ("What was the p80 trip duration in Bangalore in May 2026?", "2026-05", "p80_trip_duration", "Bangalore"),
+    ("percent orders edited in Bangalore in May 2026?",        "2026-05", "pct_orders_edited",  "Bangalore"),
+]
+
+# (question, expected_metric_id, expected_week_start) — week-cut answerable,
+# the five sections that gained a real validated WEEK cut 2026-09-22 (`tpo`
+# included — it has no city cut, but its own timestamp column does support
+# week; PNM-G-070/D23).
+ANSWERABLE_WEEK_OTHER = [
+    ("Orders in the week of 2026-05-04?",                         "orders_overall",      "2026-05-04"),
+    ("What was the conversion rate in the week of 2026-05-04?",   "conversion_overall",  "2026-05-04"),
+    ("What was the p80 trip duration in the week of 2026-05-04?", "p80_trip_duration",   "2026-05-04"),
+    ("percent orders edited in the week of 2026-05-04?",          "pct_orders_edited",   "2026-05-04"),
+    ("What was TPO in the week of 2026-05-04?",                   "tpo_overall",         "2026-05-04"),
+]
+
+# (question, expected_metric_id, expected_day) — day-cut answerable, the
+# universal generalization (PNM-G-070 close-out, DECISION_LOG:D25): every
+# built section except `fare` answers a single day the same way it answers a
+# week — same query, narrower DATE_TRUNC grain. Covers a spread across the
+# pilot sections (leads) and several of the 2026-09-04 sections that were
+# NEVER part of PNM-G-070's original city/week scope, to prove the mechanism
+# generalizes beyond the 6 sections that got hand-built city/week support.
+ANSWERABLE_DAY_OTHER = [
+    ("How many leads did we get on 2026-05-15?",             "leads_overall_intra_city", "2026-05-15"),
+    ("What was the allocation percentage on 2026-05-15?",    "allocation_pct",           "2026-05-15"),
+    ("Weekend order contribution on 2026-05-15?",             "weekend_order_share_pct",  "2026-05-15"),
+    ("What was TPO on 2026-05-15?",                            "tpo_overall",              "2026-05-15"),
+]
+
+# (question) — `fare` is the one section day/week can't reach (its
+# order_created_month column is pre-aggregated to month grain, not a
+# per-row timestamp — see fare_sql's docstring, DECISION_LOG:D25). With a
+# --month also given this must gracefully fall back, not refuse.
+DAY_FALLBACK_WITH_MONTH = [
+    ("Average order value on 2026-05-15?", "2026-05", "aov"),
+]
+
+# (question, month, expected_metric_id, expected_grain) — TREND answerable
+# (PNM-G-070 trend close-out, DECISION_LOG:D27): a multi-row breakdown across
+# the whole month, one row per week/day, for any section that supports that
+# grain (same supports_week/supports_day flags as the single-period path).
+# Covers a spread including sections never in PNM-G-070's original scope, and
+# `derived`/`tpo` (multi-CTE joins) and `vendor_earnings_bucket` (the one with
+# a window function that needed PARTITION BY period, not just a filter change).
+TREND_ANSWERABLE = [
+    ("Weekly orders trend for May 2026?",         "2026-05", "orders_overall",        "week"),
+    ("Daily leads trend for May 2026?",            "2026-05", "leads_overall_intra_city", "day"),
+    ("What was the conversion rate per week in May 2026?", "2026-05", "conversion_overall", "week"),
+    ("TPO by week for May 2026?",                  "2026-05", "tpo_overall",           "week"),
+    ("Weekly allocation percentage for May 2026?", "2026-05", "allocation_pct",        "week"),
+    ("Vendor earnings goldplus per week in May 2026?", "2026-05", "revenue_pct_goldplus", "week"),
+]
+
+# (question, month, expected_metric_id) — `fare` is the one section with no
+# trend variant at all (same reason it has no week/day variant — see
+# fare_sql's docstring). With --month given, a trend request on it must
+# gracefully fall back to the single monthly row, not refuse.
+TREND_FALLBACK_WITH_MONTH = [
+    ("Average order value per week in May 2026?", "2026-05", "aov"),
+]
+
+# (question, month, expected_metric_id, expected_metabase_id) — graceful fallback
+# cases (PNM-G-070/DECISION_LOG:D22/D23): a city/week question against a section
+# with NO validated cut does not refuse outright — resolve() extracts the city/
+# week same as always, but gate() (not resolve()) is where support is checked, and
+# it falls back to the section's plain monthly figure (dropping the filter) with
+# a caveat naming the Metabase dashboard, as long as a --month is available to
+# fall back to. `orders`/`derived`/`p80_durations`/`order_edits` (city+week) and
+# `tpo` (week) all gained REAL validated cuts in D23 — the only fallback case left
+# anywhere in the catalog is `tpo`'s CITY (its source tables carry no city column
+# at all, unlike the others; metrics_registry.py DIMENSIONS["tpo"]["city_column"]
+# is None by design, not an oversight).
+GRACEFUL_FALLBACK = [
+    ("TPO in Bangalore in May 2026?", "2026-05", "tpo_overall", "PNM-S-021"),
+]
+
+# (question) — the one case that must STILL refuse outright: a week question
+# against a section with NO week support at all (not just an unvalidated one)
+# and no --month given to fall back to. After D25's universal grain generalization
+# every built section except `fare` supports week/day — `fare` is the one deliberate
+# exception (its `order_created_month` filter is pre-aggregated to month grain on
+# the source mart, see fare_sql's docstring) and has no metabase_fallback
+# configured, so the refusal correctly names no dashboard.
+WEEK_FALLBACK_NO_MONTH_REFUSAL = [
+    "Average order value in the week of 2026-05-04?",
+]
+
 # (question/metric, month, kind, expected refusal substring)
 REFUSALS = [
     ("City-wise leads in Bangalore in May 2026?",  "2026-05", "question", "city"),
-    ("Weekly orders trend for May 2026?",          "2026-05", "question", "weekly"),
+    # "weekly"/"daily" trend phrasing moved OFF this list (PNM-G-070 trend
+    # close-out, DECISION_LOG:D27) — no longer refused, see TREND_ANSWERABLE
+    # below. "quarterly" was never asked for and stays genuinely refused —
+    # no quarter grain exists anywhere in this catalog.
+    ("Quarterly orders for May 2026?",             "2026-05", "question", "quarterly"),
     ("median tickets per order in May 2026?",      "2026-05", "question", "median"),
     ("Vendor wise TPO in May 2026?",               "2026-05", "question", "vendor"),
     # p80_durations guard cases: percentile/stat cuts the catalog does not expose
@@ -172,6 +290,10 @@ REFUSALS = [
     # section is now built:True, so no id can hit that refusal path anymore.
     ("totally_made_up_metric",                     "2026-05", "metric_unknown", "not in the catalog"),
     ("tpo_overall",                                "2027-01", "future_month", "future"),
+    # Two named cities in one question — ambiguous, must refuse rather than guess.
+    ("Leads in Bangalore or Delhi in May 2026?",   "2026-05", "question", "ambiguous city"),
+    # A week-start that isn't a Monday must refuse, not silently snap to one.
+    ("Leads in the week of 2026-05-05?",           "2026-05", "question", "not a Monday"),
 ]
 
 
@@ -193,6 +315,41 @@ def check_sql(sql: str, month: str) -> list[str]:
     return problems
 
 
+def check_sql_week(sql: str, week_start: str) -> list[str]:
+    """Mirrors check_sql() for a week-cut query (PNM-G-070, leads only): checks
+    read-only, the week-start literal substituted, and only allow-listed tables —
+    there is no month literal to check since week_start replaces it entirely."""
+    problems = []
+    try:
+        sqlgen.assert_read_only(sql)
+    except ValueError as e:
+        problems.append(f"read-only check failed: {e}")
+    if f"'{week_start}'" not in sql:
+        problems.append("requested week not substituted")
+    tables = set(re.findall(r"PROD_(?:CURATED|ELDORIA)\.[A-Za-z_]+\.[A-Za-z_]+", sql))
+    unexpected = tables - EXPECTED_TABLES
+    if unexpected:
+        problems.append(f"unexpected tables: {unexpected}")
+    return problems
+
+
+def check_sql_day(sql: str, day: str) -> list[str]:
+    """Mirrors check_sql_week() for a day-cut query (PNM-G-070 close-out,
+    DECISION_LOG:D25)."""
+    problems = []
+    try:
+        sqlgen.assert_read_only(sql)
+    except ValueError as e:
+        problems.append(f"read-only check failed: {e}")
+    if f"'{day}'" not in sql:
+        problems.append("requested day not substituted")
+    tables = set(re.findall(r"PROD_(?:CURATED|ELDORIA)\.[A-Za-z_]+\.[A-Za-z_]+", sql))
+    unexpected = tables - EXPECTED_TABLES
+    if unexpected:
+        problems.append(f"unexpected tables: {unexpected}")
+    return problems
+
+
 def main(today: date | None = None):
     """`today` pins the report's notion of "now" so the artifact is reproducible —
     PNM-G-054: without it, is_month_in_progress() silently used the real current
@@ -207,7 +364,7 @@ def main(today: date | None = None):
 
     lines.append("## Answerable questions (resolution + SQL render)\n")
     for q, month, expect in ANSWERABLE:
-        got, why = resolve(q)
+        got, _city, _week, _day, _trend, why = resolve(q)
         problems = []
         if got != expect:
             problems.append(f"resolved to {got!r} (reason: {why}), expected {expect!r}")
@@ -224,11 +381,263 @@ def main(today: date | None = None):
         lines.append(f"- **{status}** `{expect}` {month}{mtd_note} — \"{q}\""
                      + (f"  ⚠ {problems}" if problems else ""))
 
+    lines.append("\n## City-cut answerable questions (PNM-G-070, leads only)\n")
+    for q, month, expect, expect_city in ANSWERABLE_CITY:
+        got, got_city, got_week, _day, _trend, why = resolve(q)
+        problems = []
+        if got != expect:
+            problems.append(f"resolved to {got!r} (reason: {why}), expected {expect!r}")
+        if got_city != expect_city:
+            problems.append(f"resolved city {got_city!r}, expected {expect_city!r}")
+        if got_week is not None:
+            problems.append(f"unexpectedly extracted a week: {got_week!r}")
+        if not problems:
+            sql = sqlgen.render(METRICS[got]["section"], month, city=got_city)
+            problems += check_sql(sql, month)
+            if f"'{expect_city}'" not in sql:
+                problems.append("city not substituted into the rendered SQL")
+        status = "PASS" if not problems else "FAIL"
+        passed, failed = passed + (status == "PASS"), failed + (status == "FAIL")
+        lines.append(f"- **{status}** `{expect}` in {expect_city}, {month} — \"{q}\""
+                     + (f"  ⚠ {problems}" if problems else ""))
+
+    lines.append("\n## Week-cut answerable questions (PNM-G-070, leads only)\n")
+    for q, expect, expect_week, expect_spans in ANSWERABLE_WEEK:
+        got, got_city, got_week, _day, _trend, why = resolve(q)
+        problems = []
+        if got != expect:
+            problems.append(f"resolved to {got!r} (reason: {why}), expected {expect!r}")
+        if got_week != expect_week:
+            problems.append(f"resolved week {got_week!r}, expected {expect_week!r}")
+        if got_city is not None:
+            problems.append(f"unexpectedly extracted a city: {got_city!r}")
+        if not problems:
+            sql = sqlgen.render(METRICS[got]["section"], None, week_start=got_week)
+            problems += check_sql_week(sql, got_week)
+            spans = sqlgen.week_spans_two_months(got_week)
+            if spans != expect_spans:
+                problems.append(f"week_spans_two_months={spans}, expected {expect_spans}")
+        status = "PASS" if not problems else "FAIL"
+        passed, failed = passed + (status == "PASS"), failed + (status == "FAIL")
+        lines.append(f"- **{status}** `{expect}`, week of {expect_week}"
+                     + (" (spans two months)" if expect_spans else "")
+                     + f" — \"{q}\"" + (f"  ⚠ {problems}" if problems else ""))
+
+    lines.append("\n## City-cut answerable questions, orders/derived/p80_durations/order_edits (PNM-G-070, D23)\n")
+    for q, month, expect, expect_city in ANSWERABLE_CITY_OTHER:
+        got, got_city, got_week, got_day, got_trend, why = resolve(q)
+        problems = []
+        if got != expect:
+            problems.append(f"resolved to {got!r} (reason: {why}), expected {expect!r}")
+        if got_city != expect_city:
+            problems.append(f"resolved city {got_city!r}, expected {expect_city!r}")
+        if not problems:
+            section_name = METRICS[got]["section"]
+            spec, _sn, eff_city, eff_week, eff_day, caveats, gate_why = gate(
+                got, month, city=got_city, week_start=got_week, day=got_day)
+            if spec is None:
+                problems.append(f"gate() unexpectedly refused: {gate_why!r}")
+            elif eff_city != expect_city:
+                problems.append(f"gate() dropped/changed city: {eff_city!r}, expected {expect_city!r}")
+            elif caveats:
+                problems.append(f"unexpected caveat on a validated cut: {caveats!r}")
+            else:
+                sql = sqlgen.render(section_name, month, city=eff_city)
+                problems += check_sql(sql, month)
+                if f"'{expect_city}'" not in sql:
+                    problems.append("city not substituted into the rendered SQL")
+        status = "PASS" if not problems else "FAIL"
+        passed, failed = passed + (status == "PASS"), failed + (status == "FAIL")
+        lines.append(f"- **{status}** `{expect}` in {expect_city}, {month} — \"{q}\""
+                     + (f"  ⚠ {problems}" if problems else ""))
+
+    lines.append("\n## Week-cut answerable questions, orders/derived/p80_durations/order_edits/tpo (PNM-G-070, D23)\n")
+    for q, expect, expect_week in ANSWERABLE_WEEK_OTHER:
+        got, got_city, got_week, got_day, got_trend, why = resolve(q)
+        problems = []
+        if got != expect:
+            problems.append(f"resolved to {got!r} (reason: {why}), expected {expect!r}")
+        if got_week != expect_week:
+            problems.append(f"resolved week {got_week!r}, expected {expect_week!r}")
+        if not problems:
+            section_name = METRICS[got]["section"]
+            spec, _sn, eff_city, eff_week, eff_day, caveats, gate_why = gate(
+                got, None, city=got_city, week_start=got_week, day=got_day)
+            if spec is None:
+                problems.append(f"gate() unexpectedly refused: {gate_why!r}")
+            elif eff_week != expect_week:
+                problems.append(f"gate() dropped/changed week: {eff_week!r}, expected {expect_week!r}")
+            elif caveats:
+                problems.append(f"unexpected caveat on a validated cut: {caveats!r}")
+            else:
+                sql = sqlgen.render(section_name, None, week_start=eff_week)
+                problems += check_sql_week(sql, eff_week)
+        status = "PASS" if not problems else "FAIL"
+        passed, failed = passed + (status == "PASS"), failed + (status == "FAIL")
+        lines.append(f"- **{status}** `{expect}`, week of {expect_week} — \"{q}\""
+                     + (f"  ⚠ {problems}" if problems else ""))
+
+    lines.append("\n## Day-cut answerable questions — universal grain generalization (PNM-G-070, D25)\n")
+    for q, expect, expect_day in ANSWERABLE_DAY_OTHER:
+        got, got_city, got_week, got_day, got_trend, why = resolve(q)
+        problems = []
+        if got != expect:
+            problems.append(f"resolved to {got!r} (reason: {why}), expected {expect!r}")
+        if got_day != expect_day:
+            problems.append(f"resolved day {got_day!r}, expected {expect_day!r}")
+        if not problems:
+            section_name = METRICS[got]["section"]
+            spec, _sn, eff_city, eff_week, eff_day, caveats, gate_why = gate(
+                got, None, city=got_city, week_start=got_week, day=got_day)
+            if spec is None:
+                problems.append(f"gate() unexpectedly refused: {gate_why!r}")
+            elif eff_day != expect_day:
+                problems.append(f"gate() dropped/changed day: {eff_day!r}, expected {expect_day!r}")
+            elif caveats:
+                problems.append(f"unexpected caveat on a validated cut: {caveats!r}")
+            else:
+                sql = sqlgen.render(section_name, None, day=eff_day)
+                problems += check_sql_day(sql, eff_day)
+        status = "PASS" if not problems else "FAIL"
+        passed, failed = passed + (status == "PASS"), failed + (status == "FAIL")
+        lines.append(f"- **{status}** `{expect}`, day {expect_day} — \"{q}\""
+                     + (f"  ⚠ {problems}" if problems else ""))
+
+    lines.append("\n## Day fallback for `fare` (the one section day/week can't reach), with --month given (D25)\n")
+    for q, month, expect_mid in DAY_FALLBACK_WITH_MONTH:
+        got_mid, got_city, got_week, got_day, got_trend, why = resolve(q)
+        problems = []
+        if got_mid != expect_mid:
+            problems.append(f"resolved to {got_mid!r} (reason: {why}), expected {expect_mid!r}")
+        else:
+            spec, section_name, eff_city, eff_week, eff_day, caveats, gate_why = gate(
+                got_mid, month, city=got_city, week_start=got_week, day=got_day)
+            if spec is None:
+                problems.append(f"gate() refused: {gate_why!r}, expected a graceful monthly fallback")
+            elif eff_day is not None:
+                problems.append(f"day not dropped: still {eff_day!r}")
+            elif not caveats:
+                problems.append("expected a caveat, got none")
+            else:
+                sql = sqlgen.render(section_name, month, day=eff_day)
+                problems += check_sql(sql, month)
+        status = "PASS" if not problems else "FAIL"
+        passed, failed = passed + (status == "PASS"), failed + (status == "FAIL")
+        lines.append(f"- **{status}** `{expect_mid}` (monthly, day filter dropped) — \"{q}\""
+                     + (f"  ⚠ {problems}" if problems else ""))
+
+    lines.append("\n## Trend answerable questions — multi-row week/day breakdown (PNM-G-070 trend close-out, D27)\n")
+    for q, month, expect_mid, expect_grain in TREND_ANSWERABLE:
+        got_mid, got_city, got_week, got_day, got_trend, why = resolve(q)
+        problems = []
+        if got_mid != expect_mid:
+            problems.append(f"resolved to {got_mid!r} (reason: {why}), expected {expect_mid!r}")
+        if got_trend != expect_grain:
+            problems.append(f"resolved trend grain {got_trend!r}, expected {expect_grain!r}")
+        if got_week is not None or got_day is not None:
+            problems.append(f"unexpectedly extracted a specific week/day: week={got_week!r} day={got_day!r}")
+        if not problems:
+            section_name = METRICS[got_mid]["section"]
+            spec, sec2, eff_city, caveats, supported, gate_why = gate_trend(got_mid, month, got_trend, city=got_city)
+            if spec is None:
+                problems.append(f"gate_trend() unexpectedly refused: {gate_why!r}")
+            elif not supported:
+                problems.append(f"gate_trend() unexpectedly says unsupported for {section_name!r}/{got_trend!r}")
+            elif caveats:
+                problems.append(f"unexpected caveat on a validated trend: {caveats!r}")
+            else:
+                sql = sqlgen.render_trend(section_name, month, got_trend, city=eff_city)
+                try:
+                    sqlgen.assert_read_only(sql)
+                except ValueError as e:
+                    problems.append(f"read-only check failed: {e}")
+                if not re.search(r"GROUP BY", sql, re.I):
+                    problems.append("trend SQL has no GROUP BY — would return a single row, not a trend")
+                tables = set(re.findall(r"PROD_(?:CURATED|ELDORIA)\.[A-Za-z_]+\.[A-Za-z_]+", sql))
+                unexpected = tables - EXPECTED_TABLES
+                if unexpected:
+                    problems.append(f"unexpected tables: {unexpected}")
+        status = "PASS" if not problems else "FAIL"
+        passed, failed = passed + (status == "PASS"), failed + (status == "FAIL")
+        lines.append(f"- **{status}** `{expect_mid}` {expect_grain}ly trend, {month} — \"{q}\""
+                     + (f"  ⚠ {problems}" if problems else ""))
+
+    lines.append("\n## Trend fallback for `fare` (no trend variant at all), with --month given (D27)\n")
+    for q, month, expect_mid in TREND_FALLBACK_WITH_MONTH:
+        got_mid, got_city, got_week, got_day, got_trend, why = resolve(q)
+        problems = []
+        if got_mid != expect_mid:
+            problems.append(f"resolved to {got_mid!r} (reason: {why}), expected {expect_mid!r}")
+        elif got_trend is None:
+            problems.append(f"expected a trend grain to be resolved, got None (why={why!r})")
+        else:
+            section_name = METRICS[got_mid]["section"]
+            spec, sec2, eff_city, caveats, supported, gate_why = gate_trend(got_mid, month, got_trend, city=got_city)
+            if spec is None:
+                problems.append(f"gate_trend() unexpectedly refused: {gate_why!r}")
+            elif supported:
+                problems.append(f"gate_trend() unexpectedly says supported for {section_name!r}")
+            else:
+                # Caller (ask.py main()) falls back to the single-row monthly gate() here.
+                spec2, sec3, eff_city2, week2, day2, mon_caveats, mon_why = gate(got_mid, month, city=eff_city)
+                if spec2 is None:
+                    problems.append(f"monthly fallback gate() unexpectedly refused: {mon_why!r}")
+                else:
+                    sql = sqlgen.render(sec3, month, city=eff_city2, week_start=week2, day=day2)
+                    problems += check_sql(sql, month)
+        status = "PASS" if not problems else "FAIL"
+        passed, failed = passed + (status == "PASS"), failed + (status == "FAIL")
+        lines.append(f"- **{status}** `{expect_mid}` (monthly, trend dropped) — \"{q}\""
+                     + (f"  ⚠ {problems}" if problems else ""))
+
+    lines.append("\n## Graceful city/week fallback for unsupported sections (PNM-G-070, D22)\n")
+    for q, month, expect_mid, expect_dashboard in GRACEFUL_FALLBACK:
+        got_mid, got_city, got_week, got_day, got_trend, why = resolve(q)
+        problems = []
+        if got_mid != expect_mid:
+            problems.append(f"resolved to {got_mid!r} (reason: {why}), expected {expect_mid!r}")
+        else:
+            spec, section_name, eff_city, eff_week, eff_day, caveats, gate_why = gate(
+                got_mid, month, city=got_city, week_start=got_week, day=got_day)
+            if spec is None:
+                problems.append(f"gate() refused: {gate_why!r}, expected a graceful monthly fallback")
+            else:
+                if eff_city is not None:
+                    problems.append(f"city not dropped: still {eff_city!r}")
+                if eff_week is not None:
+                    problems.append(f"week not dropped: still {eff_week!r}")
+                if not caveats or expect_dashboard not in caveats[0]:
+                    problems.append(f"caveat missing or doesn't name {expect_dashboard!r}: {caveats!r}")
+                else:
+                    sql = sqlgen.render(section_name, month, city=eff_city, week_start=eff_week, day=eff_day)
+                    problems += check_sql(sql, month)
+        status = "PASS" if not problems else "FAIL"
+        passed, failed = passed + (status == "PASS"), failed + (status == "FAIL")
+        lines.append(f"- **{status}** `{expect_mid}` (monthly, filter dropped) — \"{q}\""
+                     + (f"  ⚠ {problems}" if problems else ""))
+
+    lines.append("\n## Week fallback with no --month — nothing to compute, must still refuse (D22/D23)\n")
+    for q in WEEK_FALLBACK_NO_MONTH_REFUSAL:
+        got_mid, got_city, got_week, got_day, got_trend, why = resolve(q)
+        problems = []
+        if got_mid is None:
+            problems.append(f"resolve() unexpectedly refused: {why}")
+        else:
+            spec, _section, _city, _week, _day, _caveats, gate_why = gate(
+                got_mid, None, city=got_city, week_start=got_week, day=got_day)
+            if spec is not None:
+                problems.append("gate() unexpectedly answered with no --month to fall back to")
+            elif "week cut" not in (gate_why or ""):
+                problems.append(f"refusal didn't read as a week-cut refusal: {gate_why!r}")
+        status = "PASS" if not problems else "FAIL"
+        passed, failed = passed + (status == "PASS"), failed + (status == "FAIL")
+        lines.append(f"- **{status}** \"{q}\" (no --month)" + (f"  ⚠ {problems}" if problems else ""))
+
     lines.append("\n## Refusal cases (must NOT answer)\n")
     for q, month, kind, expect_sub in REFUSALS:
         ok, detail = False, ""
         if kind == "question":
-            got, why = resolve(q)
+            got, _city, _week, _day, _trend, why = resolve(q)
             ok = got is None and (expect_sub in (why or ""))
             detail = f"resolver said: {why!r}" if got is None else f"WRONGLY resolved to {got}"
         elif kind == "metric_unknown":
@@ -286,7 +695,7 @@ def main(today: date | None = None):
                 problems.append(f"render failed: {e}")
         # and it must NOT be NL-reachable — not even by typing its id verbatim
         # (otherwise the "--metric only" contract is a lie; board/checker nit).
-        got, _ = resolve(mid.replace("_", " ") + " in May 2026")
+        got, _city, _week, _day, _trend, _ = resolve(mid.replace("_", " ") + " in May 2026")
         if got is not None:
             problems.append(f"NL-reachable via id phrasing → resolved to {got!r}")
         status = "PASS" if not problems else "FAIL"
