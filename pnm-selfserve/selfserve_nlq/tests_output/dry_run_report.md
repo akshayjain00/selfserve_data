@@ -1,4 +1,4 @@
-# Dry-run test report — 2026-07-08
+# Dry-run test report — 2026-08-14
 
 ## Answerable questions (resolution + SQL render)
 
@@ -7,13 +7,13 @@
 - **PASS** `leads_desktop` 2026-04 — "How many desktop website leads in April 2026?"
 - **PASS** `leads_mobile` 2026-05 — "Mobile website leads for May 2026"
 - **PASS** `leads_others` 2026-05 — "Leads from other channels in May 2026?"
-- **PASS** `leads_overall` 2026-07  [MTD-labeled] — "Total leads in July 2026?"
+- **PASS** `leads_overall` 2026-07 — "Total leads in July 2026?"
 - **PASS** `orders_overall` 2026-05 — "How many orders were booked in May 2026?"
 - **PASS** `orders_app` 2026-05 — "Orders from the app in May 2026?"
 - **PASS** `orders_desktop` 2026-04 — "Desktop website orders in April 2026?"
 - **PASS** `orders_mobile` 2026-05 — "mweb orders in May 2026?"
 - **PASS** `orders_others` 2026-04 — "Orders from other channels in April 2026?"
-- **PASS** `orders_overall` 2026-07  [MTD-labeled] — "Bookings in July 2026?"
+- **PASS** `orders_overall` 2026-07 — "Bookings in July 2026?"
 - **PASS** `conversion_overall` 2026-05 — "What was the conversion rate in May 2026?"
 - **PASS** `conversion_app` 2026-05 — "App conversion rate in May 2026?"
 - **PASS** `conversion_desktop` 2026-04 — "Desktop conversion in April 2026?"
