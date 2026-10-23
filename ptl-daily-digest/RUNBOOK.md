@@ -22,11 +22,12 @@ Folder: `ptl-daily-digest (repo root: selfserve_data)`
    - Fails loudly if the latest day is missing a field (rerun the daily queries) or a route file is missing.
    - Writes the HTML to `out/PTL-Daily-Digest-<D>.html` and `out/PTL-Daily-Digest-LATEST.html` (plus `~/Downloads` when that folder exists, i.e. locally). In the cloud, commit `data/daily.json` and push it so history keeps growing.
 5. Publish (best effort): use the Artifact tool, action publish, file_path = `out/PTL-Daily-Digest-LATEST.html`, url = `https://claude.ai/artifact/GckMruvaYBfjKNidFf4to7`, title "PTL Daily Digest", icon "chart", label "Refresh <D>". If it says the latest version must be read first, read that URL with the Artifact tool (action read) and publish again. If it still fails, skip it and say so.
-6. Final reply, short: latest day D, files written, and the key numbers printed by build_digest.py, plus anything that failed.
+6. Post to Slack (only after step 2 freshness passed and step 4 built): `mcp__Slack__slack_send_message` to channel `C0C0QUSQLDB`, heading `# PTL Daily Digest`, the latest day D, a table of the KEY NUMBERS printed by build_digest.py (day, MTD, WTD, † on the settling metrics) and the artifact link. If freshness failed or the build failed, do not post.
+7. Final reply, short: latest day D, files written, and the key numbers printed by build_digest.py, plus anything that failed.
 
 ## Rules
 
-- Do not post to Slack or send messages. Do not edit other files in the project.
+- Slack: only the step 6 post to C0C0QUSQLDB; no other messages. Do not edit other files in the project.
 - Internal test users are excluded through `ptl_internal_users.customer_uuid` (plus two legacy ids), already inside the SQL. Do not use mobile numbers (masked since 5 Oct).
 - The "latest day" at 2 days old is still settling for Fulfilment, Order Value, Orders per Trip and Utilization. The page already marks this; do not "fix" it.
 - Return Trip Share comes from `daily_return` (adapted from Metabase card 44691: a batch is a return trip when the same vehicle's previous batch started in this batch's drop city). It is a normal metric like the others; the latest day is provisional (†).
