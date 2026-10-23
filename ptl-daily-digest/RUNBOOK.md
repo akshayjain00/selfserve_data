@@ -3,7 +3,7 @@
 Goal: rebuild the digest HTML with fresh Snowflake numbers and save it to Downloads.
 Latest day D = today (IST) minus 2 days. Everything below uses absolute paths.
 
-Folder: `/Users/devansh.sharma/selfserve_data/ptl-selfserve/daily-digest`
+Folder: `ptl-daily-digest (repo root: selfserve_data)`
 
 | File | Purpose |
 |---|---|
@@ -14,14 +14,14 @@ Folder: `/Users/devansh.sharma/selfserve_data/ptl-selfserve/daily-digest`
 
 ## Steps
 
-1. `cd /Users/devansh.sharma/selfserve_data/ptl-selfserve && python3 daily-digest/make_sql.py`
+1. `cd <repo>/ptl-daily-digest && python3 make_sql.py`
    Prints D and the SQL files (daily_orders, daily_created, daily_util, daily_opt, daily_return, route_a, route_b, route_c, route_d, route_weekly, freshness).
 2. Freshness: run `work/freshness.sql`. The value is the latest order created time (IST). If it is earlier than D 23:00, the orders feed is lagging: stop, do not build, and report it.
-3. For each of the other ten files: read the file, run its contents with the Snowflake MCP tool `mcp__snowflake-domestic-mcp__run_snowflake_query` (argument `statement` = the file text, unchanged), and save the single returned column `S` as plain text to `work/<name>.txt` (same name as the .sql, no quotes, no JSON, one line) using the Write tool. Copy the string exactly. Decimal tails such as `.0000000000000000` may be dropped, nothing else may be altered. Independent queries can be run in parallel.
-4. `python3 daily-digest/build_digest.py`
+3. For each of the other ten files: read the file, run its contents with the Snowflake MCP tool `mcp__snowflake-domestic-mcp__run_snowflake_query`, or in the cloud `mcp__Snowflake__sql-exec` (argument `statement`/`sql` = the file text, unchanged), and save the single returned column `S` as plain text to `work/<name>.txt` (same name as the .sql, no quotes, no JSON, one line) using the Write tool. Copy the string exactly. Decimal tails such as `.0000000000000000` may be dropped, nothing else may be altered. Independent queries can be run in parallel.
+4. `python3 build_digest.py`
    - Fails loudly if the latest day is missing a field (rerun the daily queries) or a route file is missing.
-   - Writes the HTML to `daily-digest/out/`, to `/Users/devansh.sharma/selfserve_data/ptl-selfserve/26-ptl-daily-digest-artifact.html`, and to `~/Downloads/PTL-Daily-Digest-<D>.html` plus `~/Downloads/PTL-Daily-Digest-LATEST.html`.
-5. Publish (best effort): use the Artifact tool, action publish, file_path = the 26-ptl-daily-digest-artifact.html above, url = `https://claude.ai/artifact/GckMruvaYBfjKNidFf4to7`, title "PTL Daily Digest", icon "chart", label "Refresh <D>". If it says the latest version must be read first, read that URL with the Artifact tool (action read) and publish again. If it still fails, skip it and say so.
+   - Writes the HTML to `out/PTL-Daily-Digest-<D>.html` and `out/PTL-Daily-Digest-LATEST.html` (plus `~/Downloads` when that folder exists, i.e. locally). In the cloud, commit `data/daily.json` and push it so history keeps growing.
+5. Publish (best effort): use the Artifact tool, action publish, file_path = `out/PTL-Daily-Digest-LATEST.html`, url = `https://claude.ai/artifact/GckMruvaYBfjKNidFf4to7`, title "PTL Daily Digest", icon "chart", label "Refresh <D>". If it says the latest version must be read first, read that URL with the Artifact tool (action read) and publish again. If it still fails, skip it and say so.
 6. Final reply, short: latest day D, files written, and the key numbers printed by build_digest.py, plus anything that failed.
 
 ## Rules

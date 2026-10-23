@@ -471,11 +471,11 @@ def main():
     os.makedirs(c.OUT, exist_ok=True)
     name = f"PTL-Daily-Digest-{D}.html"
     open(os.path.join(c.OUT, name), "w").write(tpl)
-    proj = os.path.join(os.path.dirname(c.ROOT), "26-ptl-daily-digest-artifact.html")
+    proj = os.path.join(c.OUT, "PTL-Daily-Digest-LATEST.html")
     open(proj, "w").write(tpl)
     print(f"built {name} ({len(tpl):,} bytes) for latest day {D}")
-    if not a.no_downloads:
-        dl_dir = os.path.expanduser("~/Downloads")
+    dl_dir = os.path.expanduser("~/Downloads")
+    if not a.no_downloads and os.path.isdir(dl_dir):
         shutil.copy(proj, os.path.join(dl_dir, name))
         shutil.copy(proj, os.path.join(dl_dir, "PTL-Daily-Digest-LATEST.html"))
         print(f"saved to {dl_dir}/{name} and PTL-Daily-Digest-LATEST.html")
