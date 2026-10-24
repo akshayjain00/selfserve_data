@@ -1,0 +1,1 @@
+Delhi NCR.Nano/Micro|39.05|35.15;Kolkata.Nano/Micro|41.18|30.77;Ahmedabad.Nano/Micro|57.72|49.66;Pune.Nano/Micro|51.29|46.48;Chennai.Nano/Micro|45.81|40.86;Mumbai.Nano/Micro|40.77|37.98;Bangalore.Nano/Micro|68.25|63.86;Hyderabad.Nano/Micro|36.65|41.55

@@ -1,0 +1,2 @@
+CITY_LO=Tier 2 (combined)|24444|1823;Bangalore|32395|7983;Chennai|12460|2249;Kolkata|5303|674;Mumbai|24524|4751;Hyderabad|17447|3150;Ahmedabad|8181|973;Delhi NCR|42456|6891;Pune|17171|3219;(No city yet)|11318|0
+ORDERS=Delhi NCR.Nano/Micro|1086|1055.3;Chennai.Nano/Micro|337|385.8;Kolkata.Nano/Micro|127|172.3;Pune.Nano/Micro|511|515.5;Ahmedabad.Nano/Micro|194|158.2;Mumbai.Nano/Micro|745|780.3;Bangalore.Nano/Micro|1478|1436.0;Hyderabad.Nano/Micro|377|390.7
