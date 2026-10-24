@@ -1,0 +1,5 @@
+rendered/
+build_tmp/
+out/
+__pycache__/
+*.png

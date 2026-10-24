@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PNM Leadership Digest</title>
+<style>
+  :root{
+    --bg:#F3F5F2;
+    --panel:#FFFFFF;
+    --ink:#1A1D1E;
+    --ink-soft:#5B6360;
+    --ink-faint:#8A928E;
+    --line:#DEE3DF;
+    --good:#2F6F5E;
+    --good-bg:#E7F0EC;
+    --warn:#9C5B1E;
+    --warn-bg:#F5EBDD;
+    --bad:#A23E3E;
+    --bad-bg:#F5E3E1;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.5;
+    padding:40px 24px 90px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  header{
+    border-bottom:2px solid var(--ink);
+    padding-bottom:14px;
+    margin-bottom:8px;
+  }
+  .header-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  header h1{
+    font-size:26px;
+    font-weight:700;
+    margin:0;
+    letter-spacing:-0.015em;
+  }
+  header .meta{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .subtitle{
+    font-size:13px;
+    color:var(--ink-faint);
+    margin-top:6px;
+  }
+
+  .key-metrics-section{
+    margin-top:20px;
+    margin-bottom:36px;
+    background:var(--panel);
+    border:2px solid var(--ink);
+    box-shadow:0 4px 0 0 var(--line);
+    padding:20px 20px 16px;
+  }
+  .key-metrics-label{
+    font-family:var(--mono);
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    margin-bottom:14px;
+    padding-bottom:10px;
+    border-bottom:2px solid var(--ink);
+  }
+  table.key-metrics-table{border:none;}
+  table.key-metrics-table th{
+    font-size:11px;
+    background:var(--ink);
+    color:var(--panel);
+  }
+  table.key-metrics-table td{
+    font-size:14px;
+    padding:11px 12px;
+  }
+  table.key-metrics-table td.mname{
+    font-size:13.5px;
+    font-weight:600;
+  }
+  table.key-metrics-table .rag-pill{
+    font-size:12.5px;
+    font-weight:700;
+    padding:5px 14px 5px 10px;
+    border-width:1.5px;
+  }
+  table.key-metrics-table .rag-pill::before{width:9px;height:9px;}
+
+  /* Amplified RAG, applied to every metric table on the page, not just Key Metrics */
+  table.metric-table .rag-pill.green{background:var(--good);color:#fff;border-color:var(--good);font-weight:700;}
+  table.metric-table .rag-pill.green::before{background:#fff;}
+  table.metric-table .rag-pill.amber{background:var(--warn);color:#fff;border-color:var(--warn);font-weight:700;}
+  table.metric-table .rag-pill.amber::before{background:#fff;}
+  table.key-metrics-table tr:nth-child(even) td{background:var(--bg);}
+  table.metric-table td.mname{border-left:5px solid transparent;}
+  table.metric-table tr.rowgreen td.mname{border-left-color:var(--good);}
+  table.metric-table tr.rowamber td.mname{border-left-color:var(--warn);}
+  table.metric-table tr.rowna td.mname{border-left-color:var(--line);}
+  table.metric-table tr:has(.rag-pill.green) td.mname{border-left-color:var(--good);}
+  table.metric-table tr:has(.rag-pill.amber) td.mname{border-left-color:var(--warn);}
+  table.metric-table tr:has(.rag-pill.na) td.mname{border-left-color:var(--line);}
+  table.metric-table tr:has(.hcell.h5) td.mname{border-left-color:var(--good);}
+  table.metric-table tr:has(.hcell.h4) td.mname{border-left-color:var(--good);}
+  table.metric-table tr:has(.hcell.h2) td.mname{border-left-color:var(--warn);}
+  table.metric-table tr:has(.hcell.h1) td.mname{border-left-color:var(--warn);}
+  table.metric-table tr:has(.hcell.hna) td.mname{border-left-color:var(--line);}
+  .orientbox{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    margin-top:14px;
+    font-size:12px;
+  }
+  .orientbox-item{background:var(--panel);padding:12px 14px;}
+  .orientbox-item dt{
+    font-family:var(--mono);
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:var(--ink-faint);
+    margin:0 0 4px;
+  }
+  .orientbox-item dd{margin:0;color:var(--ink-soft);line-height:1.5;}
+
+  .toc{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:12px 16px;
+    margin-top:16px;
+    font-size:12.5px;
+  }
+  .toc a{color:var(--ink);text-decoration:none;font-weight:500;}
+  .toc a:hover{text-decoration:underline;}
+  .toc ul{margin:6px 0 0;padding-left:18px;columns:2;}
+  .toc li{margin-bottom:4px;}
+
+  .foldbtn{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:14px 16px;
+    cursor:pointer;
+    text-align:left;
+    font-family:var(--sans);
+  }
+  .foldbtn:hover{border-color:var(--ink-faint);}
+  .foldbtn-tri{
+    font-size:10px;
+    color:var(--ink-faint);
+    transition:transform .15s ease;
+    flex-shrink:0;
+  }
+  .foldbtn[aria-expanded="true"] .foldbtn-tri{transform:rotate(90deg);}
+  .foldbtn-label{
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .foldbtn-sub{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--ink-faint);
+    margin-left:auto;
+  }
+
+  /* ---- RAG pills, redesigned ---- */
+  .rag-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-family:var(--mono);
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:0.02em;
+    padding:3px 9px 3px 7px;
+    border-radius:12px;
+    white-space:nowrap;
+    border:1px solid transparent;
+  }
+  .rag-pill::before{
+    content:"";
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    flex-shrink:0;
+  }
+  .rag-pill.green{color:var(--good);background:var(--good-bg);border-color:color-mix(in srgb, var(--good) 30%, transparent);}
+  .rag-pill.green::before{background:var(--good);}
+  .rag-pill.amber{color:var(--warn);background:var(--warn-bg);border-color:color-mix(in srgb, var(--warn) 30%, transparent);}
+  .rag-pill.amber::before{background:var(--warn);}
+  .rag-pill.na{color:var(--ink-faint);background:var(--bg);border-color:var(--line);}
+  .rag-pill.na::before{background:var(--ink-faint);}
+  .rag-pill.delta{
+    color:var(--ink-soft);
+    background:var(--bg);
+    border-color:var(--line);
+    border-radius:4px;
+    font-weight:500;
+  }
+  .rag-pill.delta::before{display:none;}
+
+  .metric-group{
+    margin-top:36px;
+    padding-top:22px;
+    border-top:1px solid var(--line);
+  }
+  .group-label{
+    font-size:18px;
+    font-weight:700;
+    margin-bottom:2px;
+  }
+  .group-scope{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:14px;
+  }
+  .group-scope code{
+    font-family:var(--mono);
+    font-size:11px;
+    background:var(--bg);
+    padding:1px 4px;
+    border-radius:2px;
+  }
+  table.metric-table{
+    width:100%;
+    border-collapse:collapse;
+    background:var(--panel);
+    border:1px solid var(--line);
+    font-size:13px;
+  }
+  table.metric-table th{
+    text-align:left;
+    font-family:var(--mono);
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:var(--ink-faint);
+    padding:8px 10px;
+    border-bottom:1px solid var(--line);
+    background:var(--bg);
+  }
+  table.metric-table td{
+    padding:8px 10px;
+    border-bottom:1px solid var(--line);
+    font-family:var(--mono);
+    font-size:12.5px;
+  }
+  table.metric-table td.mname{
+    font-family:var(--sans);
+    font-size:12.5px;
+    color:var(--ink);
+    font-weight:500;
+  }
+  table.metric-table tr:last-child td{border-bottom:none;}
+  table.metric-table tr:hover td{background:var(--bg);}
+  .rag-note{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-top:10px;
+    line-height:1.55;
+    max-width:110ch;
+  }
+  .status-note{
+    font-size:12px;
+    color:var(--ink-faint);
+    margin-top:8px;
+    font-style:italic;
+    max-width:110ch;
+  }
+  details.bucket-detail{
+    margin:8px 0 16px;
+    border:1px solid var(--line);
+    background:var(--panel);
+  }
+  details.bucket-detail summary{
+    padding:8px 12px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--ink-soft);
+    cursor:pointer;
+    background:var(--bg);
+  }
+  details.bucket-detail table.metric-table{border:none;}
+  details.city-bhk-detail{margin-bottom:14px;}
+  details.city-bhk-detail summary{
+    display:flex;
+    align-items:baseline;
+    flex-wrap:wrap;
+    gap:6px;
+    padding:10px 14px;
+  }
+  details.city-bhk-detail summary::-webkit-details-marker{display:none;}
+  details.city-bhk-detail summary::before{
+    content:"\25B8";
+    font-size:10px;
+    color:var(--ink-faint);
+    margin-right:2px;
+    transition:transform .12s ease;
+    display:inline-block;
+  }
+  details.city-bhk-detail[open] summary::before{transform:rotate(90deg);}
+  details.city-bhk-detail > *:not(summary){padding:14px;}
+  details.city-bhk-detail table.metric-table{border:1px solid var(--line);}
+  .exp-metric-header{
+    font-size:13.5px;
+    font-weight:600;
+    margin:16px 0 4px;
+  }
+  .exp-metric-summary{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .rules-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12px;
+    background:var(--panel);
+    border:1px solid var(--line);
+  }
+  .rules-table th{
+    text-align:left;
+    font-family:var(--mono);
+    font-size:10px;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    padding:7px 9px;
+    border-bottom:1px solid var(--line);
+    background:var(--bg);
+  }
+  .rules-table td{
+    padding:7px 9px;
+    border-bottom:1px solid var(--line);
+    color:var(--ink-soft);
+    vertical-align:top;
+  }
+  .rules-table tr:last-child td{border-bottom:none;}
+
+  .scroll{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .scroll:focus-visible{outline:2px solid var(--ink-faint); outline-offset:2px;}
+  .scroll table{min-width:560px;}
+
+  td.hcell{
+    cursor:help;
+    padding:6px 8px;
+    text-align:center;
+    transition:opacity .1s ease;
+  }
+  td.hcell .hval{font-family:var(--mono);font-size:12.5px;font-weight:600;}
+  td.hcell .hdelta{font-family:var(--mono);font-size:9.5px;font-weight:600;margin-top:1px;opacity:.85;}
+  td.hcell.h1{background:#E8CFC9;color:#7A2E2E;}
+  td.hcell.h2{background:var(--warn-bg);color:var(--warn);}
+  td.hcell.h3{background:var(--bg);color:var(--ink-soft);}
+  td.hcell.h3 .hdelta{opacity:.55;}
+  td.hcell.h4{background:var(--good-bg);color:var(--good);}
+  td.hcell.h5{background:#C9DED5;color:#215744;}
+  td.hcell.hna{background:var(--panel);color:var(--ink-faint);}
+  td.hcell.hna .hval{font-weight:400;}
+  td.hcell.thin{opacity:.5;}
+  td.hcell.thin::after{content:" \00B7";}
+
+  .heatlegend{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-bottom:20px;
+    font-family:var(--mono);
+  }
+  .heatlegend-label{color:var(--ink-faint);}
+  .heatlegend-item{display:flex;align-items:center;gap:4px;}
+  .heatlegend-swatch{width:14px;height:14px;border-radius:2px;display:inline-block;}
+  .heatlegend-swatch.h1{background:#E8CFC9;border:1px solid #7A2E2E;}
+  .heatlegend-swatch.h2{background:var(--warn-bg);border:1px solid var(--warn);}
+  .heatlegend-swatch.h3{background:var(--bg);border:1px solid var(--line);}
+  .heatlegend-swatch.h4{background:var(--good-bg);border:1px solid var(--good);}
+  .heatlegend-swatch.h5{background:#C9DED5;border:1px solid #215744;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="header-top">
+      <h1>PNM Leadership Digest</h1>
+      <div class="meta">Report date: 2026-09-27 &middot; Intra-city</div>
+    </div>
+    <div class="subtitle">Top-line KPIs &mdash; headline reading order. Full metric-by-group detail follows below the fold.</div>
+  </header>
+
+  <dl class="orientbox">
+    <div class="orientbox-item"><dt>What this is</dt><dd>A daily/weekly PnM leadership metrics digest &mdash; validated numbers, MTD/WTD/6-month-average comparisons, and RAG status where a defensible direction exists.</dd></div>
+    <div class="orientbox-item"><dt>Who it's for</dt><dd>PnM leadership &mdash; someone fluent in the metric names, checking whether the business is tracking normally or something needs attention.</dd></div>
+    <div class="orientbox-item"><dt>What to do</dt><dd>Scan the top KPI tiles first, then drill into a group below for detail. Flagged/thin cells are called out in-line, not hidden.</dd></div>
+    <div class="orientbox-item"><dt>Status</dt><dd>62 metrics validated across 7 groups. Vendor Ops and Acquisition not yet built; ~13 metrics have no data source anywhere in the pipeline checked so far &mdash; see the footer.</dd></div>
+  </dl>
+
+  <div class="key-metrics-section">
+    <div class="key-metrics-label">Key Metrics</div>
+    <div class="group-scope" style="margin-bottom:12px;">Single comparison basis for every row: <b>MTD-this vs. MTD-last</b> &mdash; consistent across all 11 metrics, rather than mixing MTD, WTD, and 6-month-average bases in one table.</div>
+    <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table key-metrics-table">
+        <tr><th>Metric</th><th>MTD this</th><th>MTD last</th></tr>
+        <tr class="rowgreen"><td class="mname">No. of orders booked</td><td class="hcell h5"><div class="hval">43,145</div><div class="hdelta">+3.48%</div></td><td>41,695</td></tr>
+        <tr class="rowgreen"><td class="mname">Conversion % &mdash; Overall</td><td class="hcell h4">17.57%</td><td>17.10%</td></tr>
+        <tr class="rowgreen"><td class="mname">Leads &mdash; Overall</td><td class="hcell h4"><div class="hval">245,555</div><div class="hdelta">+0.73%</div></td><td>243,782</td></tr>
+        <tr class="rowamber"><td class="mname">AOV (&#8377;)</td><td class="hcell h2">5,570</td><td>5,664</td></tr>
+        <tr class="rowna"><td class="mname">% orders with surge</td><td class="hcell hna">77.29%</td><td>45.00%</td></tr>
+        <tr class="rowamber"><td class="mname">Cancellation %</td><td class="hcell h2">14.17%</td><td>13.82%</td></tr>
+        <tr class="rowgreen"><td class="mname">Deallocation %</td><td class="hcell h4">7.74%</td><td>7.93%</td></tr>
+        <tr class="rowamber"><td class="mname">On Time Arrival %</td><td class="hcell h2">86.15%</td><td>86.51%</td></tr>
+        <tr class="rowgreen"><td class="mname">TPO &mdash; Overall</td><td class="hcell h4">0.54</td><td>0.59</td></tr>
+        <tr class="rowamber"><td class="mname">Overall NPS</td><td class="hcell h2">74.31</td><td>74.73</td></tr>
+        <tr class="rowgreen"><td class="mname">Overall Detractors %</td><td class="hcell h4">3.73%</td><td>3.94%</td></tr>
+      </table>
+    </div>
+    <p class="rag-note" style="margin-top:10px;"><b>Orders booked = Leads &times; Conversion %</b> &mdash; these three rows aren't independent. Under this basis all three read Green: Leads and Conversion are both up MTD-over-MTD, and Orders reflects both moving the same direction together, not offsetting each other.</p>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--good)"></span>Green &mdash; at or better than MTD-last</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--warn)"></span>Amber &mdash; worse than MTD-last</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--ink-faint)"></span>N/A &mdash; no defensible single direction</div>
+    </div>
+  </div>
+
+
+  <div class="toc">
+    <a id="toc">Jump to a section</a>
+    <ul>
+      <li><a href="#leads-orders">Leads &amp; Orders</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#alloc-completion">Allocation &amp; Completion</a></li>
+      <li><a href="#trip-duration">Trip Duration</a></li>
+      <li><a href="#edits-addons">Edits &amp; Add-ons</a></li>
+      <li><a href="#customer-exp">Customer Experience</a></li>
+      <li><a href="#fulfillment-timing">Fulfillment Timing</a></li>
+      <li><a href="#escalations-damage">Escalations &amp; Damage</a></li>
+      <li><a href="#city-bhk">City &times; BHK Category</a></li>
+      <li><a href="#rules">RAG Rules Reference</a></li>
+    </ul>
+  </div>
+
+  <!-- ============ LEADS & ORDERS ============ -->
+  <div class="metric-group" id="leads-orders">
+    <div class="group-label">Leads &amp; Orders</div>
+    <div class="group-scope">Scope: <b>Intra-city</b> &middot; Nano policy: <b>Included</b> (every lead/order counts, Nano or not)</div>
+    <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table">
+      <tr><th>Metric</th><th>MTD this</th><th>MTD last</th><th>WTD this</th><th>WTD last</th></tr>
+      <tr><td class="mname">Leads &mdash; Overall</td><td class="hcell h3" title="MTD last: 243,782"><div class="hval">245,555</div><div class="hdelta">+1%</div></td><td>243,782</td><td>63,973</td><td>56,707</td></tr>
+      <tr><td class="mname">Leads &mdash; App</td><td class="hcell h3" title="MTD last: 166,401"><div class="hval">169,815</div><div class="hdelta">+2%</div></td><td>166,401</td><td>44,176</td><td>39,395</td></tr>
+      <tr><td class="mname">Leads &mdash; Mobile Website</td><td class="hcell h3" title="MTD last: 54,802"><div class="hval">51,133</div><div class="hdelta">-7%</div></td><td>54,802</td><td>13,413</td><td>11,643</td></tr>
+      <tr><td class="mname">Leads &mdash; Desktop Website</td><td class="hcell h3" title="MTD last: 8,916"><div class="hval">8,326</div><div class="hdelta">-7%</div></td><td>8,916</td><td>2,257</td><td>1,925</td></tr>
+      <tr><td class="mname">Leads &mdash; Others</td><td class="hcell h4" title="MTD last: 13,663"><div class="hval">16,281</div><div class="hdelta">+19%</div></td><td>13,663</td><td>4,127</td><td>3,744</td></tr>
+      <tr><td class="mname">Conversion &mdash; Overall %</td><td>17.57%</td><td>17.10%</td><td class="hcell h4" title="6mo avg: 17.34%">18.73%</td><td>16.21%</td></tr>
+      <tr><td class="mname">Conversion &mdash; App %</td><td>21.04%</td><td>20.56%</td><td class="hcell h4" title="6mo avg: 20.27%">22.51%</td><td>19.35%</td></tr>
+      <tr><td class="mname">Conversion &mdash; Desktop Web %</td><td>11.21%</td><td>11.19%</td><td class="hcell h3" title="6mo avg: 12.46%">12.23%</td><td>9.61%</td></tr>
+      <tr><td class="mname">Conversion &mdash; Mobile Web %</td><td>11.09%</td><td>10.57%</td><td class="hcell h3" title="6mo avg: 11.49%">11.60%</td><td>10.31%</td></tr>
+      <tr><td class="mname">Booked Orders</td><td class="hcell h3" title="MTD last: 41,695"><div class="hval">43,145</div><div class="hdelta">+3%</div></td><td>41,695</td><td>11,979</td><td>9,195</td></tr>
+      <tr><td class="mname">Booked Orders (Nano excluded)</td><td class="hcell h3" title="MTD last: 35,400"><div class="hval">37,035</div><div class="hdelta">+5%</div></td><td>35,400</td><td>10,413</td><td>7,861</td></tr>
+      <tr><td class="mname">% Orders &mdash; App</td><td>82.82%</td><td>82.04%</td><td class="hcell hna">83.02%</td><td>82.90%</td></tr>
+      <tr><td class="mname">% Orders &mdash; Website</td><td>15.31%</td><td>16.29%</td><td class="hcell hna">15.29%</td><td>15.06%</td></tr>
+      <tr><td class="mname">% Orders &mdash; LMS</td><td>1.88%</td><td>1.67%</td><td class="hcell hna">1.69%</td><td>2.03%</td></tr>
+    </table>
+      </div>
+    <p class="rag-note">WTD-this now spans a genuine full 7-day week (Mon 21&ndash;Sun 27), since report_date 2026-09-27 falls on a Sunday &mdash; the cleanest WTD window this project has had so far, not a day-count artifact.</p>
+    <p class="status-note">Status: fully validated, no flags. Cross-checked (% Orders by channel sums to 99.9-100%, rounding).</p>
+  </div>
+
+  <!-- ============ PRICING ============ -->
+  <div class="metric-group" id="pricing">
+    <div class="group-label">Pricing</div>
+    <div class="group-scope">Scope: <b>Intra-city</b> &middot; Nano policy: <b>Excluded</b> (all 6 metrics)</div>
+    <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table">
+      <tr><th>Metric</th><th>MTD this</th><th>MTD last</th><th>WTD this</th><th>WTD last</th></tr>
+      <tr><td class="mname">AOV (&#8377;)</td><td>5,570</td><td>5,664</td><td class="hcell h2" title="6mo avg: 5,711.00">5,567</td><td>5,622</td></tr>
+      <tr><td class="mname">% orders with surge</td><td>77.29%</td><td>45.00%</td><td class="hcell hna">79.89%</td><td>79.60%</td></tr>
+      <tr><td class="mname">% orders +ve surge</td><td>42.05%</td><td>44.26%</td><td class="hcell h2" title="6mo avg: 49.64%">39.35%</td><td>44.36%</td></tr>
+      <tr><td class="mname">% orders -ve surge</td><td>35.24%</td><td>0.75%</td><td class="hcell h1" title="6mo avg: 4.33% (see note below)">40.54%</td><td>35.24%</td></tr>
+      <tr><td class="mname">% orders fare increased</td><td>16.76%</td><td>15.93%</td><td class="hcell h3" title="6mo avg: 16.54%"><div class="hval">17.14%</div><div class="hdelta">+0.60pp</div></td><td>16.55%</td></tr>
+      <tr><td class="mname">Median fare increase (&#8377;)</td><td>749.00</td><td>700.00</td><td class="hcell h3" title="6mo avg: 717.40"><div class="hval">749.00</div><div class="hdelta">+&#8377;31.60</div></td><td>749.00</td></tr>
+    </table>
+      </div>
+    <p class="rag-note">+ve surge is higher-is-better (contributes to revenue), -ve surge is lower-is-better &mdash; both colored accordingly. -ve surge's dark-red cell still carries a caveat: <span id="noteNegSurge"></span> Fare-increase metrics carry no direction/color, per instruction &mdash; the tinted cell here just marks the driving column, not a verdict.</p>
+    <p class="status-note">Status: fully validated (see note above on -ve surge).</p>
+  </div>
+
+  <!-- ============ ALLOCATION & COMPLETION ============ -->
+  <div class="metric-group" id="alloc-completion">
+    <div class="group-label">Allocation &amp; Completion</div>
+    <div class="group-scope">Scope: <b>Intra-city</b> &middot; Nano policy: <b>Excluded</b>, except Allocation %, Deallocation %, % no vendor before slot, Reschedule %, % &gt;2 deallocations, and % supervisor changed &mdash; these have no Nano filter in their source table</div>
+    <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table">
+      <tr><th>Metric</th><th>MTD this</th><th>MTD last</th><th>WTD this</th><th>WTD last</th></tr>
+      <tr><td class="mname">Allocation % &mdash; SPOT</td><td>97.32%</td><td>97.04%</td><td class="hcell h3" title="6mo avg: 96.66%">98.12%</td><td>97.31%</td></tr>
+      <tr><td class="mname">Allocation % &mdash; Scheduled</td><td>97.61%</td><td>97.52%</td><td class="hcell h3" title="6mo avg: 97.52%">98.33%</td><td>97.55%</td></tr>
+      <tr><td class="mname">Deallocation %</td><td>7.72%</td><td>7.83%</td><td class="hcell h2" title="6mo avg: 7.86%">8.44%</td><td>7.32%</td></tr>
+      <tr><td class="mname">Deallocation % &mdash; SPOT</td><td>4.34%</td><td>4.23%</td><td class="hcell h1" title="6mo avg: 4.25%">5.12%</td><td>3.60%</td></tr>
+      <tr><td class="mname">Deallocation % &mdash; Scheduled</td><td>8.67%</td><td>8.79%</td><td class="hcell h2" title="6mo avg: 8.60%">9.40%</td><td>8.45%</td></tr>
+      <tr><td class="mname">Completion %</td><td>84.90%</td><td>86.06%</td><td class="hcell h3" title="6mo avg: 85.59%">85.11%</td><td>85.37%</td></tr>
+      <tr><td class="mname">Completion % &mdash; SPOT</td><td>83.10%</td><td>85.87%</td><td class="hcell h3" title="6mo avg: 83.40%">82.95%</td><td>83.64%</td></tr>
+      <tr><td class="mname">Completion % &mdash; Scheduled</td><td>85.31%</td><td>86.10%</td><td class="hcell h3" title="6mo avg: 85.95%">85.63%</td><td>85.79%</td></tr>
+      <tr><td class="mname">Dry Run P75 (km)</td><td>5.91</td><td>5.90</td><td class="hcell h3" title="6mo avg: 6.00">6.03</td><td>6.22</td></tr>
+      <tr><td class="mname">CAC &mdash; SPOT</td><td>6.38%</td><td>5.81%</td><td class="hcell h4" title="6mo avg: 6.91%">5.81%</td><td>6.46%</td></tr>
+      <tr><td class="mname">PAC &mdash; SPOT</td><td>3.63%</td><td>3.47%</td><td class="hcell h4" title="6mo avg: 3.98%">3.34%</td><td>3.03%</td></tr>
+      <tr><td class="mname">PoAC &mdash; SPOT</td><td>5.94%</td><td>4.72%</td><td class="hcell h4" title="6mo avg: 5.39%">4.93%</td><td>6.53%</td></tr>
+      <tr><td class="mname">CAC &mdash; Scheduled</td><td>6.73%</td><td>6.93%</td><td class="hcell h4" title="6mo avg: 6.83%">5.63%</td><td>7.11%</td></tr>
+      <tr><td class="mname">PAC &mdash; Scheduled</td><td>2.00%</td><td>1.81%</td><td class="hcell h5" title="6mo avg: 2.29%">1.38%</td><td>1.95%</td></tr>
+      <tr><td class="mname">PoAC &mdash; Scheduled</td><td>5.03%</td><td>5.04%</td><td class="hcell h4" title="6mo avg: 4.97%">4.45%</td><td>4.84%</td></tr>
+      <tr><td class="mname">Allocation Time P80 (min)</td><td>12.00</td><td>10.00</td><td class="hcell h5" title="6mo avg: 15.00">10.00</td><td>10.00</td></tr>
+      <tr><td class="mname">% no vendor before slot</td><td>2.52%</td><td>2.61%</td><td class="hcell h5" title="6mo avg: 2.69%">1.80%</td><td>2.49%</td></tr>
+      <tr><td class="mname">Reschedule %</td><td>17.64%</td><td>18.15%</td><td class="hcell h4" title="6mo avg: 18.70%">17.22%</td><td>16.81%</td></tr>
+      <tr><td class="mname">% orders &gt;2 deallocations</td><td>0.26%</td><td>0.30%</td><td class="hcell h4" title="6mo avg: 0.33%">0.28%</td><td>0.31%</td></tr>
+      <tr><td class="mname">% supervisor changed</td><td>22.31%</td><td>22.21%</td><td class="hcell h3" title="6mo avg: 22.44%">21.50%</td><td>23.54%</td></tr>
+      <tr><td class="mname">Pickup Deviation P80 (km)</td><td>1.63</td><td>1.54</td><td class="hcell h3" title="6mo avg: 1.50">1.51</td><td>1.67</td></tr>
+      <tr><td class="mname">Drop Deviation P80 (km)</td><td>16.12</td><td>16.00</td><td class="hcell h3" title="6mo avg: 15.26">15.83</td><td>16.08</td></tr>
+    </table>
+      </div>
+    <p class="status-note">Status: refreshed for report_date 2026-09-27 (Sunday), giving a full 7-day WTD window. Most metrics near baseline; the P0 group (Completion %, Deallocation %) shifted from mostly-Green to mostly-Amber this refresh &mdash; worth a look.</p>
+  </div>
+
+  <!-- ============ TRIP DURATION ============ -->
+  <div class="metric-group" id="trip-duration">
+    <div class="group-label">Trip Duration</div>
+    <div class="group-scope">Scope: <b>Intra-city</b> &middot; Nano policy: <b>Excluded</b> (all 6 metrics) &middot; All values in minutes</div>
+    <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table">
+      <tr><th>Metric</th><th>MTD this</th><th>MTD last</th><th>WTD this</th><th>WTD last</th></tr>
+      <tr><td class="mname">Vendor Accepted &rarr; Supervisor Assigned P80</td><td>2,460.2</td><td>2,708.0</td><td class="hcell h3" title="6mo avg: 2,579.0"><div class="hval">2,553.0</div><div class="hdelta">-1.0%</div></td><td>2,302.0</td></tr>
+      <tr><td class="mname">Supervisor Assigned &rarr; Trip Started P80</td><td>594.0</td><td>610.0</td><td class="hcell h3" title="6mo avg: 653.0"><div class="hval">591.0</div><div class="hdelta">-9.5%</div></td><td>559.0</td></tr>
+      <tr><td class="mname">Trip Started &rarr; Shifting Started P80</td><td>81.0</td><td>83.0</td><td class="hcell h3" title="6mo avg: 77.0"><div class="hval">83.0</div><div class="hdelta">+7.8%</div></td><td>82.0</td></tr>
+      <tr><td class="mname">Shifting Started &rarr; Pickup Complete P80</td><td>357.0</td><td>362.0</td><td class="hcell h3" title="6mo avg: 364.0"><div class="hval">330.0</div><div class="hdelta">-9.3%</div></td><td>367.6</td></tr>
+      <tr><td class="mname">Pickup Complete &rarr; Shifting Complete P80</td><td>226.0</td><td>228.0</td><td class="hcell h3" title="6mo avg: 226.0"><div class="hval">216.0</div><div class="hdelta">-4.4%</div></td><td>226.0</td></tr>
+      <tr><td class="mname">Full Trip Duration P80 (Shifting Started &rarr; Order Completed)</td><td>589.0</td><td>598.0</td><td class="hcell h3" title="6mo avg: 601.6"><div class="hval">548.0</div><div class="hdelta">-8.9%</div></td><td>594.8</td></tr>
+    </table>
+      </div>
+    <p class="status-note">Status: fully validated, including the previously-flagged Vendor Accepted &rarr; Supervisor Assigned stage (~40-46 hrs) &mdash; confirmed genuinely bimodal (32% get a supervisor within an hour, ~30% take a day+), consistent with vendors accepting advance-booked Scheduled orders well before shift day. Not an error. Cells here are neutral-tinted (no direction/color, per instruction) &mdash; they just mark WTD-this as the reference column, showing % vs 6mo avg on hover.</p>
+  </div>
+
+  <!-- ============ EDITS & ADD-ONS ============ -->
+  <div class="metric-group" id="edits-addons">
+    <div class="group-label">Edits &amp; Add-ons</div>
+    <div class="group-scope">Scope: <b>Intra-city</b> &middot; Nano policy: <b>Excluded</b> (all 5 metrics)</div>
+    <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table">
+      <tr><th>Metric</th><th>MTD this</th><th>MTD last</th><th>WTD this</th><th>WTD last</th></tr>
+      <tr><td class="mname">% orders edited</td><td>57.25%</td><td>59.46%</td><td class="hcell h4" title="6mo avg: 60.98% (wide tolerance)">54.82%</td><td>57.96%</td></tr>
+      <tr><td class="mname">% support-edited orders</td><td>8.69%</td><td>10.00%</td><td class="hcell h5" title="6mo avg: 12.01%">7.47%</td><td>8.83%</td></tr>
+      <tr><td class="mname">% edits after shifting started</td><td>41.44%</td><td>37.65%</td><td class="hcell h2" title="6mo avg: 36.65%">43.03%</td><td>41.58%</td></tr>
+      <tr><td class="mname">% orders where location modified</td><td>11.16%</td><td>11.61%</td><td class="hcell h5" title="6mo avg: 15.12% (widest tolerance)">10.08%</td><td>12.23%</td></tr>
+      <tr><td class="mname">Overall Add-on Adoption %</td><td>97.87%</td><td>98.14%</td><td class="hcell h4" title="6mo avg: 87.59%">97.50%</td><td>97.96%</td></tr>
+    </table>
+      </div>
+    <p class="rag-note">*% orders edited (<span id="noteEditedTol"></span>) and % location modified (<span id="noteLocationTol"></span>) &mdash; a rising rate is a soft signal, not an automatic flag, since a moderate edit/location-change rate is normal for a moving service.</p>
+    <p class="status-note">Status: refreshed. Add-on Adoption % (~97-98%) is notably higher than the earlier reading (86-89%) &mdash; a real week-to-week shift; the underlying explanation (packing add-ons near-universal) still holds.</p>
+  </div>
+
+  <!-- ============ CUSTOMER EXPERIENCE ============ -->
+  <div class="metric-group" id="customer-exp">
+    <div class="group-label">Customer Experience</div>
+    <div class="group-scope">Scope: <b>Intra-city</b> &middot; Nano policy: <b>Excluded</b> (all 3 metrics) &middot; Date basis: Completion Score on <code>SHIFTING_TS_IST</code>; NPS and Detractors % on <code>ORDER_COMPLETED_TS_IST</code></div>
+
+    <div class="exp-metric-header">Overall Completion Score <span style="font-weight:400;color:var(--ink-faint);">(SHIFTING_TS_IST basis)</span></div>
+    <div class="exp-metric-summary">MTD this 86.17% &middot; MTD last 87.27% &middot; WTD this 85.95% &middot; WTD last 86.66% &middot; 6mo avg 86.77% &middot; <span class="rag-pill amber">AMBER</span></div>
+    <details class="bucket-detail">
+      <summary>By vendor bucket</summary>
+      <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table">
+        <tr><th>Bucket</th><th>MTD this</th><th>MTD last</th><th>WTD this</th><th>WTD last</th><th>6mo avg</th></tr>
+        <tr><td class="mname">GoldPlus</td><td>88.06%</td><td>88.54%</td><td>88.17%</td><td>88.39%</td><td>88.77%</td></tr>
+        <tr><td class="mname">Gold</td><td>85.35%</td><td>86.14%</td><td>83.63%</td><td>85.64%</td><td>86.38%</td></tr>
+        <tr><td class="mname">Silver</td><td>86.67%</td><td>87.39%</td><td>86.51%</td><td>88.28%</td><td>86.17%</td></tr>
+        <tr><td class="mname">Bronze</td><td>80.17%</td><td>83.13%</td><td>76.67%</td><td>79.98%</td><td>83.13%</td></tr>
+        <tr><td class="mname">New</td><td>82.49%</td><td>87.75%</td><td>84.23%</td><td>80.85%</td><td>83.57%</td></tr>
+      </table>
+      </div>
+    </details>
+
+    <div class="exp-metric-header">Overall NPS <span style="font-weight:400;color:var(--ink-faint);">(ORDER_COMPLETED_TS_IST basis)</span></div>
+    <div class="exp-metric-summary">MTD this 74.31 &middot; MTD last 74.73 &middot; WTD this 78.92 &middot; WTD last 75.50 &middot; 6mo avg 73.75 &middot; <span class="rag-pill green">GREEN</span></div>
+    <details class="bucket-detail">
+      <summary>By vendor bucket</summary>
+      <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table">
+        <tr><th>Bucket</th><th>MTD this</th><th>MTD last</th><th>WTD this</th><th>WTD last</th><th>6mo avg</th></tr>
+        <tr><td class="mname">GoldPlus</td><td>77.67</td><td>78.35</td><td>80.65</td><td>78.76</td><td>78.81</td></tr>
+        <tr><td class="mname">Gold</td><td>78.79</td><td>72.72</td><td>85.86</td><td>78.17</td><td>73.67</td></tr>
+        <tr><td class="mname">Silver</td><td>71.21</td><td>75.44</td><td>75.29</td><td>72.70</td><td>73.95</td></tr>
+        <tr><td class="mname">Bronze</td><td>59.68</td><td>59.67</td><td>67.91</td><td>60.69</td><td>59.49</td></tr>
+        <tr><td class="mname">New</td><td>66.58</td><td>73.57</td><td>73.39</td><td>69.74</td><td>67.82</td></tr>
+      </table>
+      </div>
+    </details>
+
+    <div class="exp-metric-header">Overall Detractors % <span style="font-weight:400;color:var(--ink-faint);">(ORDER_COMPLETED_TS_IST basis)</span></div>
+    <div class="exp-metric-summary">MTD this 3.73% &middot; MTD last 3.94% &middot; WTD this 3.11% &middot; WTD last 3.60% &middot; 6mo avg 4.08% &middot; <span class="rag-pill green">GREEN</span></div>
+    <details class="bucket-detail">
+      <summary>By vendor bucket</summary>
+      <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table">
+        <tr><th>Bucket</th><th>MTD this</th><th>MTD last</th><th>WTD this</th><th>WTD last</th><th>6mo avg</th></tr>
+        <tr><td class="mname">GoldPlus</td><td>3.25%</td><td>3.35%</td><td>2.86%</td><td>3.24%</td><td>3.40%</td></tr>
+        <tr><td class="mname">Gold</td><td>3.09%</td><td>4.40%</td><td>2.01%</td><td>3.07%</td><td>4.11%</td></tr>
+        <tr><td class="mname">Silver</td><td>4.21%</td><td>4.14%</td><td>3.47%</td><td>3.90%</td><td>4.25%</td></tr>
+        <tr><td class="mname">Bronze</td><td>5.44%</td><td>5.94%</td><td>4.77%</td><td>4.93%</td><td>5.66%</td></tr>
+        <tr><td class="mname">New</td><td>4.55%</td><td>3.65%</td><td>3.25%</td><td>4.81%</td><td>4.37%</td></tr>
+      </table>
+      </div>
+    </details>
+    <p class="status-note">Status: fully refreshed for report_date 2026-09-27, including vendor-bucket breakdowns. No small-sample outliers this pass.</p>
+  </div>
+
+  <!-- ============ FULFILLMENT TIMING ============ -->
+  <div class="metric-group" id="fulfillment-timing">
+    <div class="group-label">Fulfillment Timing</div>
+    <div class="group-scope">Scope: <b>Intra-city</b> &middot; Nano policy: <b>Excluded</b> &middot; Source: <b>Card #37409</b> &mdash; the authoritative definition. "On time" requires both arriving within 30 minutes of scheduled shift time AND within 2km GPS proximity of the pickup location.</div>
+    <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table">
+      <tr><th>Metric</th><th>MTD this</th><th>MTD last</th><th>WTD this</th><th>WTD last</th></tr>
+      <tr><td class="mname">On Time Arrival %</td><td>86.15%</td><td>86.51%</td><td class="hcell h4" title="6mo avg: 86.31%">89.19%</td><td>87.03%</td></tr>
+      <tr><td class="mname">Delay &gt; 60 minutes %</td><td>5.92%</td><td>5.83%</td><td class="hcell h5" title="6mo avg: 6.17%">4.16%</td><td>5.60%</td></tr>
+    </table>
+    </div>
+    <p class="status-note">Status: refreshed for report_date 2026-09-27. Both metrics genuinely improved this week &mdash; OTA up to 89.19% (from 86.59% previously), Delay down to 4.16% &mdash; real, not baseline noise.</p>
+  </div>
+
+  <!-- ============ ESCALATIONS & DAMAGE ============ -->
+  <div class="metric-group" id="escalations-damage">
+    <div class="group-label">Escalations &amp; Damage</div>
+    <div class="group-scope">Scope: <b>Intra-city</b> &middot; Nano policy: <b>Not applicable</b> (these sources don't carry a Nano flag) &middot; Sources: <code>PNM_SOCIAL_MEDIA_ESCALATIONS_DETAILS</code> + <code>PNM_CEO_ESCALATIONS_DETAILS</code> (Social Media Escalation %), <code>SFMS_PUBLIC_HS_TICKETS</code> filtered to "Damage form sent" raised by the customer (Damage %). Both new to this digest.</div>
+    <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table">
+      <tr><th>Metric</th><th>MTD this</th><th>MTD last</th><th>WTD this</th><th>WTD last</th></tr>
+      <tr><td class="mname">Social Media Escalation %</td><td>0.031%</td><td>0.017%</td><td class="hcell hna">0.036%</td><td>0.061%</td></tr>
+      <tr><td class="mname">Damage %</td><td>0.219%</td><td>0.215%</td><td class="hcell h1" title="6mo avg: 0.187%">0.266%</td><td>0.182%</td></tr>
+    </table>
+    </div>
+    <p class="rag-note"><b>Social Media Escalation % carries no RAG</b> &mdash; the absolute counts are too small to support one (3-4 escalations per week network-wide, 5-10 per month). At that volume, a single extra ticket swings the rate by double digits in percentage terms; any color would be reading noise, not signal. Damage % now has 22 WTD tickets (vs 12 last week) &mdash; still a modest count, but large enough to be a real signal rather than pure noise, hence the Amber.</p>
+    <p class="status-note">Status: refreshed for report_date 2026-09-27. Still newly added, not yet cross-validated against an independent source the way earlier metrics were.</p>
+  </div>
+
+  <!-- ============ CITY x BHK CATEGORY VIEW ============ -->
+  <div class="metric-group" id="city-bhk">
+    <div class="group-label">Where demand goes, by city and BHK category</div>
+    <div class="group-scope">
+      MTD-this (Sept 1&ndash;27) &middot; Tier 1 cities shown individually, Tier 2 rolled into one combined row &middot; <b>RAG applied per cell</b>, compared against that cell's own trailing 6-month average (not the network-wide average used elsewhere) &mdash; higher/lower-is-better direction reused from the same <code>RAG_RULES</code> that drive the rest of the page. Orders booked uses the same &plusmn;10% tolerance as its main-table rule; % and score metrics use direct better/worse against the cell baseline, no tolerance. City tier per <code>DIM_GEO_REGIONS.TIER</code>. Hover any colored cell for its 6-month baseline.
+    </div>
+    <p class="rag-note" style="margin-bottom:18px;"><b>Two things worth reading before the grids below:</b> (1) <b>Orders booked is below baseline in 28 of 45 cells</b> &mdash; and network-wide, MTD-this Orders is running <b>-12.3% below its 6-month trailing baseline</b>, a more sobering read than the &ldquo;+3.48% vs last month&rdquo; Green shown in the main KPI tile above. Last month itself was likely already a below-trend month, so the month-over-month comparison was masking a longer decline. (2) <b>AOV is below baseline in 28 of 45 cells</b> &mdash; pricing is running below its 6-month trend almost everywhere, not just in a few pockets. Neither of these was visible before this baseline was computed.</p>
+    <p class="rag-note" style="margin-bottom:10px;">Several cells remain thin on data (e.g. 4+BHK in smaller cities, &lt;30 orders MTD) &mdash; those are shown at reduced opacity with a trailing &middot; marker, so the eye naturally discounts them rather than reading them at equal weight.</p>
+    <div class="heatlegend">
+      <span class="heatlegend-label">vs 6mo cell baseline:</span>
+      <span class="heatlegend-item"><span class="heatlegend-swatch h1"></span>&le;-20%</span>
+      <span class="heatlegend-item"><span class="heatlegend-swatch h2"></span>-20 to -5%</span>
+      <span class="heatlegend-item"><span class="heatlegend-swatch h3"></span>&plusmn;5%</span>
+      <span class="heatlegend-item"><span class="heatlegend-swatch h4"></span>+5 to +20%</span>
+      <span class="heatlegend-item"><span class="heatlegend-swatch h5"></span>&ge;+20%</span>
+      <span class="heatlegend-item" style="margin-left:8px;">(reversed for lower-is-better metrics)</span>
+    </div>
+    <p class="rag-note" style="margin-bottom:18px;">Leads &mdash; Overall and Conversion % are scoped to <b>city only</b>, not broken out by BHK &mdash; ~26% of leads haven't had a package assigned yet at the lead stage, so a BHK split isn't well-defined for them (same reasoning as the earlier &ldquo;undetermined shifting_type&rdquo; leads).</p>
+
+    <details class="bucket-detail city-bhk-detail">
+      <summary><span class="exp-metric-header" style="display:inline;margin:0;">Leads &mdash; Overall &amp; Conversion % <span style="font-weight:400;color:var(--ink-faint);">(by city only)</span></span> <span class="foldbtn-sub" style="margin-left:10px;">city-only leads and conversion — cross-checked against whole-network totals</span></summary>
+      <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table" style="margin-bottom:20px;">
+      <tr><th>City</th><th>Leads</th><th>Orders</th><th>Conversion %</th></tr>
+      <tr><td class="mname">Delhi NCR</td><td>52,144</td><td>8,682</td><td>16.65%</td></tr>
+      <tr><td class="mname">Bangalore</td><td>42,158</td><td>10,985</td><td>26.06%</td></tr>
+      <tr><td class="mname">Tier 2 (combined)</td><td>41,887</td><td>2,264</td><td>5.41%</td></tr>
+      <tr><td class="mname">Mumbai</td><td>28,812</td><td>5,888</td><td>20.44%</td></tr>
+      <tr><td class="mname">Hyderabad</td><td>23,399</td><td>4,752</td><td>20.31%</td></tr>
+      <tr><td class="mname">Pune</td><td>20,871</td><td>4,195</td><td>20.10%</td></tr>
+      <tr><td class="mname">Chennai</td><td>20,202</td><td>3,968</td><td>19.64%</td></tr>
+      <tr><td class="mname">Ahmedabad</td><td>8,905</td><td>1,205</td><td>13.53%</td></tr>
+      <tr><td class="mname">Kolkata</td><td>7,177</td><td>1,206</td><td>16.80%</td></tr>
+    </table>
+      </div>
+      
+    <p class="status-note" style="margin-bottom:24px;">Cross-checked: both columns sum exactly to the whole-network MTD-this totals (Leads 172,109; Orders 29,575) validated earlier in this file.</p>
+    </details>
+
+    <details class="bucket-detail city-bhk-detail">
+      <summary><span class="exp-metric-header" style="display:inline;margin:0;">No. of orders booked</span> <span class="foldbtn-sub" style="margin-left:10px;">28 below baseline, 15 near baseline, 2 above baseline (of 45 cells)</span></summary>
+      <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table" style="margin-bottom:20px;">
+      <tr><th>City</th><th>Nano/Micro</th><th>1BHK</th><th>2BHK</th><th>3BHK</th><th>4+BHK</th></tr>
+      <tr><td class="mname">Bangalore</td><td class="hcell h2" title="6mo MTD-equiv avg: 4,288"><div class="hval">3,514</div><div class="hdelta">-18%</div></td><td class="hcell h2" title="6mo MTD-equiv avg: 6,200"><div class="hval">5,038</div><div class="hdelta">-19%</div></td><td class="hcell h1" title="6mo MTD-equiv avg: 2,154"><div class="hval">1,665</div><div class="hdelta">-23%</div></td><td class="hcell h1" title="6mo MTD-equiv avg: 912"><div class="hval">668</div><div class="hdelta">-27%</div></td><td class="hcell h1" title="6mo MTD-equiv avg: 131"><div class="hval">100</div><div class="hdelta">-23%</div></td></tr>
+      <tr><td class="mname">Delhi NCR</td><td class="hcell h3" title="6mo MTD-equiv avg: 2,920"><div class="hval">2,779</div><div class="hdelta">-5%</div></td><td class="hcell h3" title="6mo MTD-equiv avg: 4,073"><div class="hval">3,932</div><div class="hdelta">-3%</div></td><td class="hcell h2" title="6mo MTD-equiv avg: 1,378"><div class="hval">1,188</div><div class="hdelta">-14%</div></td><td class="hcell h2" title="6mo MTD-equiv avg: 763"><div class="hval">682</div><div class="hdelta">-11%</div></td><td class="hcell h3" title="6mo MTD-equiv avg: 101"><div class="hval">101</div><div class="hdelta">+0%</div></td></tr>
+      <tr><td class="mname">Mumbai</td><td class="hcell h2" title="6mo MTD-equiv avg: 2,365"><div class="hval">2,090</div><div class="hdelta">-12%</div></td><td class="hcell h1" title="6mo MTD-equiv avg: 3,524"><div class="hval">2,800</div><div class="hdelta">-21%</div></td><td class="hcell h1" title="6mo MTD-equiv avg: 908"><div class="hval">714</div><div class="hdelta">-21%</div></td><td class="hcell h2" title="6mo MTD-equiv avg: 303"><div class="hval">260</div><div class="hdelta">-14%</div></td><td class="hcell h1 thin" title="6mo MTD-equiv avg: 37 &middot; thin cell"><div class="hval">24</div><div class="hdelta">-36%</div></td></tr>
+      <tr><td class="mname">Hyderabad</td><td class="hcell h3" title="6mo MTD-equiv avg: 1,156"><div class="hval">1,146</div><div class="hdelta">-1%</div></td><td class="hcell h2" title="6mo MTD-equiv avg: 2,554"><div class="hval">2,352</div><div class="hdelta">-8%</div></td><td class="hcell h2" title="6mo MTD-equiv avg: 981"><div class="hval">863</div><div class="hdelta">-12%</div></td><td class="hcell h1" title="6mo MTD-equiv avg: 456"><div class="hval">346</div><div class="hdelta">-24%</div></td><td class="hcell h2" title="6mo MTD-equiv avg: 48"><div class="hval">45</div><div class="hdelta">-6%</div></td></tr>
+      <tr><td class="mname">Pune</td><td class="hcell h2" title="6mo MTD-equiv avg: 1,560"><div class="hval">1,288</div><div class="hdelta">-17%</div></td><td class="hcell h2" title="6mo MTD-equiv avg: 2,522"><div class="hval">2,080</div><div class="hdelta">-18%</div></td><td class="hcell h1" title="6mo MTD-equiv avg: 754"><div class="hval">585</div><div class="hdelta">-22%</div></td><td class="hcell h1" title="6mo MTD-equiv avg: 301"><div class="hval">203</div><div class="hdelta">-32%</div></td><td class="hcell h3" title="6mo MTD-equiv avg: 40"><div class="hval">39</div><div class="hdelta">-3%</div></td></tr>
+      <tr><td class="mname">Chennai</td><td class="hcell h3" title="6mo MTD-equiv avg: 897"><div class="hval">940</div><div class="hdelta">+5%</div></td><td class="hcell h3" title="6mo MTD-equiv avg: 1,844"><div class="hval">1,871</div><div class="hdelta">+1%</div></td><td class="hcell h3" title="6mo MTD-equiv avg: 817"><div class="hval">790</div><div class="hdelta">-3%</div></td><td class="hcell h2" title="6mo MTD-equiv avg: 349"><div class="hval">320</div><div class="hdelta">-8%</div></td><td class="hcell h4" title="6mo MTD-equiv avg: 44"><div class="hval">47</div><div class="hdelta">+7%</div></td></tr>
+      <tr><td class="mname">Kolkata</td><td class="hcell h3" title="6mo MTD-equiv avg: 492"><div class="hval">475</div><div class="hdelta">-4%</div></td><td class="hcell h3" title="6mo MTD-equiv avg: 536"><div class="hval">535</div><div class="hdelta">-0%</div></td><td class="hcell h2" title="6mo MTD-equiv avg: 146"><div class="hval">117</div><div class="hdelta">-20%</div></td><td class="hcell h2" title="6mo MTD-equiv avg: 74"><div class="hval">69</div><div class="hdelta">-7%</div></td><td class="hcell h2 thin" title="6mo MTD-equiv avg: 11 &middot; thin cell"><div class="hval">10</div><div class="hdelta">-12%</div></td></tr>
+      <tr><td class="mname">Ahmedabad</td><td class="hcell h4" title="6mo MTD-equiv avg: 454"><div class="hval">479</div><div class="hdelta">+6%</div></td><td class="hcell h3" title="6mo MTD-equiv avg: 566"><div class="hval">550</div><div class="hdelta">-3%</div></td><td class="hcell h1" title="6mo MTD-equiv avg: 156"><div class="hval">114</div><div class="hdelta">-27%</div></td><td class="hcell h2" title="6mo MTD-equiv avg: 60"><div class="hval">55</div><div class="hdelta">-8%</div></td><td class="hcell h2 thin" title="6mo MTD-equiv avg: 8 &middot; thin cell"><div class="hval">7</div><div class="hdelta">-16%</div></td></tr>
+      <tr><td class="mname">Tier 2 (combined)</td><td class="hcell h3" title="6mo MTD-equiv avg: 584"><div class="hval">574</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo MTD-equiv avg: 1,122"><div class="hval">1,111</div><div class="hdelta">-1%</div></td><td class="hcell h3" title="6mo MTD-equiv avg: 375"><div class="hval">362</div><div class="hdelta">-4%</div></td><td class="hcell h3" title="6mo MTD-equiv avg: 192"><div class="hval">185</div><div class="hdelta">-4%</div></td><td class="hcell h2" title="6mo MTD-equiv avg: 39"><div class="hval">32</div><div class="hdelta">-18%</div></td></tr>
+    </table>
+      </div>
+      
+    </details>
+
+    <details class="bucket-detail city-bhk-detail">
+      <summary><span class="exp-metric-header" style="display:inline;margin:0;">AOV (&#8377;)</span> <span class="foldbtn-sub" style="margin-left:10px;">28 below baseline, 16 near baseline, 1 above baseline (of 45 cells)</span></summary>
+      <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table" style="margin-bottom:20px;">
+      <tr><th>City</th><th>Nano/Micro</th><th>1BHK</th><th>2BHK</th><th>3BHK</th><th>4+BHK</th></tr>
+      <tr><td class="mname">Bangalore</td><td class="hcell h4" title="6mo avg: ₹3,227"><div class="hval">₹3,703</div><div class="hdelta">+15%</div></td><td class="hcell h3" title="6mo avg: ₹5,260"><div class="hval">₹5,197</div><div class="hdelta">-1%</div></td><td class="hcell h2" title="6mo avg: ₹8,832"><div class="hval">₹8,329</div><div class="hdelta">-6%</div></td><td class="hcell h2" title="6mo avg: ₹12,974"><div class="hval">₹12,054</div><div class="hdelta">-7%</div></td><td class="hcell h2" title="6mo avg: ₹18,864"><div class="hval">₹16,750</div><div class="hdelta">-11%</div></td></tr>
+      <tr><td class="mname">Delhi NCR</td><td class="hcell h3" title="6mo avg: ₹3,829"><div class="hval">₹4,008</div><div class="hdelta">+5%</div></td><td class="hcell h3" title="6mo avg: ₹5,810"><div class="hval">₹5,564</div><div class="hdelta">-4%</div></td><td class="hcell h2" title="6mo avg: ₹10,118"><div class="hval">₹9,535</div><div class="hdelta">-6%</div></td><td class="hcell h3" title="6mo avg: ₹13,894"><div class="hval">₹13,383</div><div class="hdelta">-4%</div></td><td class="hcell h2" title="6mo avg: ₹22,622"><div class="hval">₹21,288</div><div class="hdelta">-6%</div></td></tr>
+      <tr><td class="mname">Mumbai</td><td class="hcell h3" title="6mo avg: ₹3,749"><div class="hval">₹3,786</div><div class="hdelta">+1%</div></td><td class="hcell h3" title="6mo avg: ₹5,726"><div class="hval">₹5,666</div><div class="hdelta">-1%</div></td><td class="hcell h2" title="6mo avg: ₹9,667"><div class="hval">₹9,043</div><div class="hdelta">-6%</div></td><td class="hcell h2" title="6mo avg: ₹14,246"><div class="hval">₹13,271</div><div class="hdelta">-7%</div></td><td class="hcell h2 thin" title="6mo avg: ₹22,304 &middot; thin cell"><div class="hval">₹20,232</div><div class="hdelta">-9%</div></td></tr>
+      <tr><td class="mname">Hyderabad</td><td class="hcell h3" title="6mo avg: ₹3,751"><div class="hval">₹3,807</div><div class="hdelta">+1%</div></td><td class="hcell h3" title="6mo avg: ₹5,303"><div class="hval">₹5,142</div><div class="hdelta">-3%</div></td><td class="hcell h2" title="6mo avg: ₹9,191"><div class="hval">₹8,417</div><div class="hdelta">-8%</div></td><td class="hcell h2" title="6mo avg: ₹12,707"><div class="hval">₹11,915</div><div class="hdelta">-6%</div></td><td class="hcell h2" title="6mo avg: ₹19,840"><div class="hval">₹16,300</div><div class="hdelta">-18%</div></td></tr>
+      <tr><td class="mname">Pune</td><td class="hcell h3" title="6mo avg: ₹3,510"><div class="hval">₹3,574</div><div class="hdelta">+2%</div></td><td class="hcell h3" title="6mo avg: ₹5,119"><div class="hval">₹5,016</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo avg: ₹8,796"><div class="hval">₹8,382</div><div class="hdelta">-5%</div></td><td class="hcell h2" title="6mo avg: ₹12,654"><div class="hval">₹11,668</div><div class="hdelta">-8%</div></td><td class="hcell h2" title="6mo avg: ₹18,588"><div class="hval">₹17,369</div><div class="hdelta">-7%</div></td></tr>
+      <tr><td class="mname">Chennai</td><td class="hcell h2" title="6mo avg: ₹3,861"><div class="hval">₹3,641</div><div class="hdelta">-6%</div></td><td class="hcell h2" title="6mo avg: ₹6,056"><div class="hval">₹5,548</div><div class="hdelta">-8%</div></td><td class="hcell h2" title="6mo avg: ₹10,117"><div class="hval">₹9,531</div><div class="hdelta">-6%</div></td><td class="hcell h2" title="6mo avg: ₹14,085"><div class="hval">₹12,436</div><div class="hdelta">-12%</div></td><td class="hcell h3" title="6mo avg: ₹19,420"><div class="hval">₹18,646</div><div class="hdelta">-4%</div></td></tr>
+      <tr><td class="mname">Kolkata</td><td class="hcell h3" title="6mo avg: ₹2,576"><div class="hval">₹2,460</div><div class="hdelta">-5%</div></td><td class="hcell h2" title="6mo avg: ₹5,163"><div class="hval">₹4,864</div><div class="hdelta">-6%</div></td><td class="hcell h2" title="6mo avg: ₹8,918"><div class="hval">₹8,228</div><div class="hdelta">-8%</div></td><td class="hcell h2" title="6mo avg: ₹12,587"><div class="hval">₹11,753</div><div class="hdelta">-7%</div></td><td class="hcell h2 thin" title="6mo avg: ₹21,010 &middot; thin cell"><div class="hval">₹18,976</div><div class="hdelta">-10%</div></td></tr>
+      <tr><td class="mname">Ahmedabad</td><td class="hcell h3" title="6mo avg: ₹3,382"><div class="hval">₹3,463</div><div class="hdelta">+2%</div></td><td class="hcell h2" title="6mo avg: ₹5,280"><div class="hval">₹4,825</div><div class="hdelta">-9%</div></td><td class="hcell h3" title="6mo avg: ₹8,933"><div class="hval">₹8,829</div><div class="hdelta">-1%</div></td><td class="hcell h2" title="6mo avg: ₹12,697"><div class="hval">₹10,341</div><div class="hdelta">-19%</div></td><td class="hcell h2 thin" title="6mo avg: ₹19,360 &middot; thin cell"><div class="hval">₹15,983</div><div class="hdelta">-17%</div></td></tr>
+      <tr><td class="mname">Tier 2 (combined)</td><td class="hcell h2" title="6mo avg: ₹2,282"><div class="hval">₹2,041</div><div class="hdelta">-11%</div></td><td class="hcell h3" title="6mo avg: ₹4,793"><div class="hval">₹4,571</div><div class="hdelta">-5%</div></td><td class="hcell h2" title="6mo avg: ₹8,257"><div class="hval">₹7,817</div><div class="hdelta">-5%</div></td><td class="hcell h2" title="6mo avg: ₹10,949"><div class="hval">₹9,973</div><div class="hdelta">-9%</div></td><td class="hcell h2" title="6mo avg: ₹16,716"><div class="hval">₹15,325</div><div class="hdelta">-8%</div></td></tr>
+    </table>
+      </div>
+      
+    <p class="status-note" style="margin-bottom:24px;">AOV rises monotonically Nano/Micro &rarr; 1BHK &rarr; 2BHK &rarr; 3BHK &rarr; 4+BHK within every single city &mdash; a clean, expected pattern (bigger moves cost more).</p>
+    </details>
+
+    <details class="bucket-detail city-bhk-detail">
+      <summary><span class="exp-metric-header" style="display:inline;margin:0;">% orders with surge</span> <span class="foldbtn-sub" style="margin-left:10px;">no single direction — not banded</span></summary>
+      <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table" style="margin-bottom:20px;">
+      <tr><th>City</th><th>Nano/Micro</th><th>1BHK</th><th>2BHK</th><th>3BHK</th><th>4+BHK</th></tr>
+      <tr><td class="mname">Bangalore</td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">61.9%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">81.5%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">64.6%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">66.5%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">66.7%</div></td></tr>
+      <tr><td class="mname">Delhi NCR</td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">62.7%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">73.2%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">80.7%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">82.9%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">82.3%</div></td></tr>
+      <tr><td class="mname">Mumbai</td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">64.2%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">73.9%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">57.6%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">54.9%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">70.8%</div></td></tr>
+      <tr><td class="mname">Hyderabad</td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">55.6%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">69.0%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">65.8%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">65.0%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">68.9%</div></td></tr>
+      <tr><td class="mname">Pune</td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">63.0%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">76.0%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">61.3%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">56.9%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">48.7%</div></td></tr>
+      <tr><td class="mname">Chennai</td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">64.0%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">78.4%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">77.3%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">77.2%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">74.5%</div></td></tr>
+      <tr><td class="mname">Kolkata</td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">77.1%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">86.1%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">68.4%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">53.6%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">60.0%</div></td></tr>
+      <tr><td class="mname">Ahmedabad</td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">63.2%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">83.2%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">60.7%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">70.9%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">71.4%</div></td></tr>
+      <tr><td class="mname">Tier 2 (combined)</td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">83.8%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">87.4%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">64.6%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">61.1%</div></td><td class="hcell hna" title="6mo avg: n/a"><div class="hval">62.5%</div></td></tr>
+    </table>
+      </div>
+      
+    </details>
+
+    <details class="bucket-detail city-bhk-detail">
+      <summary><span class="exp-metric-header" style="display:inline;margin:0;">Completion %</span> <span class="foldbtn-sub" style="margin-left:10px;">3 below baseline, 41 near baseline, 1 above baseline (of 45 cells)</span></summary>
+      <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table" style="margin-bottom:20px;">
+      <tr><th>City</th><th>Nano/Micro</th><th>1BHK</th><th>2BHK</th><th>3BHK</th><th>4+BHK</th></tr>
+      <tr><td class="mname">Bangalore</td><td class="hcell h3" title="6mo avg: 87.2%"><div class="hval">84.5%</div><div class="hdelta">-3%</div></td><td class="hcell h3" title="6mo avg: 87.4%"><div class="hval">87.5%</div><div class="hdelta">+0%</div></td><td class="hcell h3" title="6mo avg: 90.6%"><div class="hval">91.2%</div><div class="hdelta">+1%</div></td><td class="hcell h3" title="6mo avg: 89.4%"><div class="hval">89.4%</div><div class="hdelta">+0%</div></td><td class="hcell h3" title="6mo avg: 90.0%"><div class="hval">90.2%</div><div class="hdelta">+0%</div></td></tr>
+      <tr><td class="mname">Delhi NCR</td><td class="hcell h3" title="6mo avg: 84.6%"><div class="hval">81.4%</div><div class="hdelta">-4%</div></td><td class="hcell h3" title="6mo avg: 80.5%"><div class="hval">78.7%</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo avg: 81.6%"><div class="hval">80.9%</div><div class="hdelta">-1%</div></td><td class="hcell h3" title="6mo avg: 81.6%"><div class="hval">82.6%</div><div class="hdelta">+1%</div></td><td class="hcell h3" title="6mo avg: 77.3%"><div class="hval">76.5%</div><div class="hdelta">-1%</div></td></tr>
+      <tr><td class="mname">Mumbai</td><td class="hcell h3" title="6mo avg: 88.6%"><div class="hval">89.4%</div><div class="hdelta">+1%</div></td><td class="hcell h3" title="6mo avg: 84.5%"><div class="hval">85.4%</div><div class="hdelta">+1%</div></td><td class="hcell h3" title="6mo avg: 85.6%"><div class="hval">84.8%</div><div class="hdelta">-1%</div></td><td class="hcell h3" title="6mo avg: 87.1%"><div class="hval">88.6%</div><div class="hdelta">+2%</div></td><td class="hcell h3 thin" title="6mo avg: 82.3% &middot; thin cell"><div class="hval">81.5%</div><div class="hdelta">-1%</div></td></tr>
+      <tr><td class="mname">Hyderabad</td><td class="hcell h3" title="6mo avg: 87.3%"><div class="hval">85.7%</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo avg: 85.6%"><div class="hval">84.7%</div><div class="hdelta">-1%</div></td><td class="hcell h3" title="6mo avg: 87.6%"><div class="hval">88.0%</div><div class="hdelta">+0%</div></td><td class="hcell h3" title="6mo avg: 85.9%"><div class="hval">85.3%</div><div class="hdelta">-1%</div></td><td class="hcell h2" title="6mo avg: 81.2%"><div class="hval">75.6%</div><div class="hdelta">-7%</div></td></tr>
+      <tr><td class="mname">Pune</td><td class="hcell h3" title="6mo avg: 89.6%"><div class="hval">91.2%</div><div class="hdelta">+2%</div></td><td class="hcell h3" title="6mo avg: 88.5%"><div class="hval">87.8%</div><div class="hdelta">-1%</div></td><td class="hcell h3" title="6mo avg: 90.2%"><div class="hval">90.0%</div><div class="hdelta">-0%</div></td><td class="hcell h3" title="6mo avg: 88.0%"><div class="hval">86.6%</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo avg: 85.0%"><div class="hval">89.2%</div><div class="hdelta">+5%</div></td></tr>
+      <tr><td class="mname">Chennai</td><td class="hcell h3" title="6mo avg: 86.8%"><div class="hval">84.0%</div><div class="hdelta">-3%</div></td><td class="hcell h3" title="6mo avg: 82.1%"><div class="hval">79.7%</div><div class="hdelta">-3%</div></td><td class="hcell h3" title="6mo avg: 85.8%"><div class="hval">84.0%</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo avg: 86.3%"><div class="hval">83.3%</div><div class="hdelta">-4%</div></td><td class="hcell h3" title="6mo avg: 83.3%"><div class="hval">86.8%</div><div class="hdelta">+4%</div></td></tr>
+      <tr><td class="mname">Kolkata</td><td class="hcell h3" title="6mo avg: 83.6%"><div class="hval">87.3%</div><div class="hdelta">+4%</div></td><td class="hcell h3" title="6mo avg: 84.6%"><div class="hval">83.3%</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo avg: 88.9%"><div class="hval">85.5%</div><div class="hdelta">-4%</div></td><td class="hcell h2" title="6mo avg: 88.5%"><div class="hval">83.3%</div><div class="hdelta">-6%</div></td><td class="hcell h3 thin" title="6mo avg: 100.0% &middot; thin cell"><div class="hval">100.0%</div><div class="hdelta">+0%</div></td></tr>
+      <tr><td class="mname">Ahmedabad</td><td class="hcell h3" title="6mo avg: 88.6%"><div class="hval">88.6%</div><div class="hdelta">+0%</div></td><td class="hcell h3" title="6mo avg: 86.3%"><div class="hval">84.1%</div><div class="hdelta">-3%</div></td><td class="hcell h3" title="6mo avg: 88.4%"><div class="hval">88.4%</div><div class="hdelta">+0%</div></td><td class="hcell h3" title="6mo avg: 90.0%"><div class="hval">90.2%</div><div class="hdelta">+0%</div></td><td class="hcell h1 thin" title="6mo avg: 100.0% &middot; thin cell"><div class="hval">66.7%</div><div class="hdelta">-33%</div></td></tr>
+      <tr><td class="mname">Tier 2 (combined)</td><td class="hcell h3" title="6mo avg: 85.1%"><div class="hval">85.7%</div><div class="hdelta">+1%</div></td><td class="hcell h3" title="6mo avg: 82.3%"><div class="hval">82.3%</div><div class="hdelta">-0%</div></td><td class="hcell h3" title="6mo avg: 85.2%"><div class="hval">83.2%</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo avg: 86.0%"><div class="hval">86.5%</div><div class="hdelta">+1%</div></td><td class="hcell h4" title="6mo avg: 87.5%"><div class="hval">93.9%</div><div class="hdelta">+7%</div></td></tr>
+    </table>
+      </div>
+      
+    </details>
+
+    <details class="bucket-detail city-bhk-detail">
+      <summary><span class="exp-metric-header" style="display:inline;margin:0;">Deallocation %</span> <span class="foldbtn-sub" style="margin-left:10px;">16 below baseline, 9 near baseline, 16 above baseline (of 45 cells)</span></summary>
+      <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table" style="margin-bottom:20px;">
+      <tr><th>City</th><th>Nano/Micro</th><th>1BHK</th><th>2BHK</th><th>3BHK</th><th>4+BHK</th></tr>
+      <tr><td class="mname">Bangalore</td><td class="hcell h2" title="6mo avg: 10.5%"><div class="hval">11.9%</div><div class="hdelta">+13%</div></td><td class="hcell h3" title="6mo avg: 10.0%"><div class="hval">10.0%</div><div class="hdelta">-0%</div></td><td class="hcell h4" title="6mo avg: 10.5%"><div class="hval">9.6%</div><div class="hdelta">-9%</div></td><td class="hcell h4" title="6mo avg: 15.5%"><div class="hval">14.6%</div><div class="hdelta">-6%</div></td><td class="hcell h2" title="6mo avg: 14.7%"><div class="hval">15.7%</div><div class="hdelta">+7%</div></td></tr>
+      <tr><td class="mname">Delhi NCR</td><td class="hcell h1" title="6mo avg: 6.9%"><div class="hval">8.4%</div><div class="hdelta">+22%</div></td><td class="hcell h3" title="6mo avg: 6.6%"><div class="hval">6.8%</div><div class="hdelta">+2%</div></td><td class="hcell h3" title="6mo avg: 6.9%"><div class="hval">7.1%</div><div class="hdelta">+3%</div></td><td class="hcell h5" title="6mo avg: 7.1%"><div class="hval">5.6%</div><div class="hdelta">-21%</div></td><td class="hcell h1" title="6mo avg: 3.9%"><div class="hval">4.9%</div><div class="hdelta">+27%</div></td></tr>
+      <tr><td class="mname">Mumbai</td><td class="hcell h3" title="6mo avg: 6.2%"><div class="hval">6.5%</div><div class="hdelta">+5%</div></td><td class="hcell h4" title="6mo avg: 7.0%"><div class="hval">6.0%</div><div class="hdelta">-15%</div></td><td class="hcell h4" title="6mo avg: 7.7%"><div class="hval">6.6%</div><div class="hdelta">-15%</div></td><td class="hcell h4" title="6mo avg: 6.9%"><div class="hval">6.3%</div><div class="hdelta">-9%</div></td><td class="hcell h1 thin" title="6mo avg: 3.3% &middot; thin cell"><div class="hval">7.4%</div><div class="hdelta">+122%</div></td></tr>
+      <tr><td class="mname">Hyderabad</td><td class="hcell h2" title="6mo avg: 6.9%"><div class="hval">7.8%</div><div class="hdelta">+13%</div></td><td class="hcell h2" title="6mo avg: 7.2%"><div class="hval">8.1%</div><div class="hdelta">+11%</div></td><td class="hcell h3" title="6mo avg: 8.5%"><div class="hval">8.4%</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo avg: 11.2%"><div class="hval">11.3%</div><div class="hdelta">+1%</div></td><td class="hcell h4" title="6mo avg: 14.3%"><div class="hval">13.3%</div><div class="hdelta">-7%</div></td></tr>
+      <tr><td class="mname">Pune</td><td class="hcell h1" title="6mo avg: 3.9%"><div class="hval">5.0%</div><div class="hdelta">+28%</div></td><td class="hcell h5" title="6mo avg: 3.8%"><div class="hval">2.6%</div><div class="hdelta">-30%</div></td><td class="hcell h3" title="6mo avg: 3.9%"><div class="hval">3.9%</div><div class="hdelta">-2%</div></td><td class="hcell h2" title="6mo avg: 5.9%"><div class="hval">6.4%</div><div class="hdelta">+10%</div></td><td class="hcell h5" title="6mo avg: 8.3%"><div class="hval">2.7%</div><div class="hdelta">-68%</div></td></tr>
+      <tr><td class="mname">Chennai</td><td class="hcell h1" title="6mo avg: 6.0%"><div class="hval">8.6%</div><div class="hdelta">+43%</div></td><td class="hcell h4" title="6mo avg: 9.2%"><div class="hval">7.6%</div><div class="hdelta">-18%</div></td><td class="hcell h4" title="6mo avg: 10.3%"><div class="hval">9.4%</div><div class="hdelta">-8%</div></td><td class="hcell h5" title="6mo avg: 11.8%"><div class="hval">6.9%</div><div class="hdelta">-41%</div></td><td class="hcell h5" title="6mo avg: 9.1%"><div class="hval">5.7%</div><div class="hdelta">-38%</div></td></tr>
+      <tr><td class="mname">Kolkata</td><td class="hcell h1" title="6mo avg: 5.7%"><div class="hval">8.1%</div><div class="hdelta">+44%</div></td><td class="hcell h5" title="6mo avg: 6.3%"><div class="hval">4.5%</div><div class="hdelta">-28%</div></td><td class="hcell h5" title="6mo avg: 5.6%"><div class="hval">3.6%</div><div class="hdelta">-35%</div></td><td class="hcell h5" title="6mo avg: 4.5%"><div class="hval">1.5%</div><div class="hdelta">-67%</div></td><td class="hcell hna">&mdash;</td></tr>
+      <tr><td class="mname">Ahmedabad</td><td class="hcell h3" title="6mo avg: 9.8%"><div class="hval">9.3%</div><div class="hdelta">-5%</div></td><td class="hcell h2" title="6mo avg: 6.1%"><div class="hval">7.1%</div><div class="hdelta">+17%</div></td><td class="hcell h1" title="6mo avg: 4.3%"><div class="hval">7.4%</div><div class="hdelta">+75%</div></td><td class="hcell hna">&mdash;</td><td class="hcell hna">&mdash;</td></tr>
+      <tr><td class="mname">Tier 2 (combined)</td><td class="hcell h3" title="6mo avg: 2.0%"><div class="hval">2.1%</div><div class="hdelta">+3%</div></td><td class="hcell h1" title="6mo avg: 3.1%"><div class="hval">4.0%</div><div class="hdelta">+27%</div></td><td class="hcell h1" title="6mo avg: 4.2%"><div class="hval">8.3%</div><div class="hdelta">+98%</div></td><td class="hcell h2" title="6mo avg: 5.1%"><div class="hval">6.0%</div><div class="hdelta">+16%</div></td><td class="hcell hna">&mdash;</td></tr>
+    </table>
+      </div>
+      
+    </details>
+
+    <details class="bucket-detail city-bhk-detail">
+      <summary><span class="exp-metric-header" style="display:inline;margin:0;">On Time Arrival %</span> <span class="foldbtn-sub" style="margin-left:10px;">5 below baseline, 37 near baseline, 3 above baseline (of 45 cells)</span></summary>
+      <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table" style="margin-bottom:20px;">
+      <tr><th>City</th><th>Nano/Micro</th><th>1BHK</th><th>2BHK</th><th>3BHK</th><th>4+BHK</th></tr>
+      <tr><td class="mname">Bangalore</td><td class="hcell h3" title="6mo avg: 89.6%"><div class="hval">88.9%</div><div class="hdelta">-1%</div></td><td class="hcell h3" title="6mo avg: 91.2%"><div class="hval">91.2%</div><div class="hdelta">-0%</div></td><td class="hcell h3" title="6mo avg: 91.9%"><div class="hval">92.4%</div><div class="hdelta">+1%</div></td><td class="hcell h3" title="6mo avg: 91.0%"><div class="hval">89.6%</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo avg: 86.7%"><div class="hval">86.0%</div><div class="hdelta">-1%</div></td></tr>
+      <tr><td class="mname">Delhi NCR</td><td class="hcell h3" title="6mo avg: 81.1%"><div class="hval">78.3%</div><div class="hdelta">-3%</div></td><td class="hcell h3" title="6mo avg: 83.5%"><div class="hval">83.1%</div><div class="hdelta">-0%</div></td><td class="hcell h3" title="6mo avg: 84.1%"><div class="hval">84.1%</div><div class="hdelta">-0%</div></td><td class="hcell h3" title="6mo avg: 82.8%"><div class="hval">83.2%</div><div class="hdelta">+0%</div></td><td class="hcell h2" title="6mo avg: 79.0%"><div class="hval">71.2%</div><div class="hdelta">-10%</div></td></tr>
+      <tr><td class="mname">Mumbai</td><td class="hcell h3" title="6mo avg: 82.2%"><div class="hval">83.8%</div><div class="hdelta">+2%</div></td><td class="hcell h3" title="6mo avg: 83.1%"><div class="hval">86.4%</div><div class="hdelta">+4%</div></td><td class="hcell h3" title="6mo avg: 85.6%"><div class="hval">88.0%</div><div class="hdelta">+3%</div></td><td class="hcell h3" title="6mo avg: 83.1%"><div class="hval">86.8%</div><div class="hdelta">+4%</div></td><td class="hcell h4 thin" title="6mo avg: 81.8% &middot; thin cell"><div class="hval">91.7%</div><div class="hdelta">+12%</div></td></tr>
+      <tr><td class="mname">Hyderabad</td><td class="hcell h3" title="6mo avg: 83.2%"><div class="hval">80.4%</div><div class="hdelta">-3%</div></td><td class="hcell h3" title="6mo avg: 87.7%"><div class="hval">84.7%</div><div class="hdelta">-3%</div></td><td class="hcell h3" title="6mo avg: 86.3%"><div class="hval">84.5%</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo avg: 88.4%"><div class="hval">89.1%</div><div class="hdelta">+1%</div></td><td class="hcell h2" title="6mo avg: 88.9%"><div class="hval">82.3%</div><div class="hdelta">-7%</div></td></tr>
+      <tr><td class="mname">Pune</td><td class="hcell h3" title="6mo avg: 87.9%"><div class="hval">83.5%</div><div class="hdelta">-5%</div></td><td class="hcell h3" title="6mo avg: 89.3%"><div class="hval">90.8%</div><div class="hdelta">+2%</div></td><td class="hcell h3" title="6mo avg: 90.4%"><div class="hval">89.9%</div><div class="hdelta">-1%</div></td><td class="hcell h3" title="6mo avg: 88.4%"><div class="hval">89.6%</div><div class="hdelta">+1%</div></td><td class="hcell h3" title="6mo avg: 83.3%"><div class="hval">79.4%</div><div class="hdelta">-5%</div></td></tr>
+      <tr><td class="mname">Chennai</td><td class="hcell h3" title="6mo avg: 82.0%"><div class="hval">78.0%</div><div class="hdelta">-5%</div></td><td class="hcell h3" title="6mo avg: 81.4%"><div class="hval">80.9%</div><div class="hdelta">-1%</div></td><td class="hcell h3" title="6mo avg: 85.5%"><div class="hval">83.9%</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo avg: 84.4%"><div class="hval">84.8%</div><div class="hdelta">+0%</div></td><td class="hcell h2" title="6mo avg: 90.0%"><div class="hval">78.7%</div><div class="hdelta">-13%</div></td></tr>
+      <tr><td class="mname">Kolkata</td><td class="hcell h4" title="6mo avg: 76.0%"><div class="hval">81.2%</div><div class="hdelta">+7%</div></td><td class="hcell h3" title="6mo avg: 79.6%"><div class="hval">82.1%</div><div class="hdelta">+3%</div></td><td class="hcell h3" title="6mo avg: 87.5%"><div class="hval">85.1%</div><div class="hdelta">-3%</div></td><td class="hcell h3" title="6mo avg: 89.7%"><div class="hval">89.5%</div><div class="hdelta">-0%</div></td><td class="hcell h1 thin" title="6mo avg: 100.0% &middot; thin cell"><div class="hval">71.4%</div><div class="hdelta">-29%</div></td></tr>
+      <tr><td class="mname">Ahmedabad</td><td class="hcell h3" title="6mo avg: 84.2%"><div class="hval">81.1%</div><div class="hdelta">-4%</div></td><td class="hcell h3" title="6mo avg: 87.4%"><div class="hval">85.5%</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo avg: 90.9%"><div class="hval">89.7%</div><div class="hdelta">-1%</div></td><td class="hcell h4" title="6mo avg: 90.5%"><div class="hval">95.7%</div><div class="hdelta">+6%</div></td><td class="hcell h1 thin" title="6mo avg: 100.0% &middot; thin cell"><div class="hval">75.0%</div><div class="hdelta">-25%</div></td></tr>
+      <tr><td class="mname">Tier 2 (combined)</td><td class="hcell h3" title="6mo avg: 88.7%"><div class="hval">88.6%</div><div class="hdelta">-0%</div></td><td class="hcell h3" title="6mo avg: 87.5%"><div class="hval">86.9%</div><div class="hdelta">-1%</div></td><td class="hcell h3" title="6mo avg: 85.9%"><div class="hval">83.8%</div><div class="hdelta">-3%</div></td><td class="hcell h3" title="6mo avg: 89.6%"><div class="hval">90.4%</div><div class="hdelta">+1%</div></td><td class="hcell h3" title="6mo avg: 90.9%"><div class="hval">87.5%</div><div class="hdelta">-4%</div></td></tr>
+    </table>
+      </div>
+      
+    </details>
+
+    <details class="bucket-detail city-bhk-detail">
+      <summary><span class="exp-metric-header" style="display:inline;margin:0;">TPO &mdash; Overall</span> <span class="foldbtn-sub" style="margin-left:10px;">0 below baseline, 3 near baseline, 42 above baseline (of 45 cells)</span></summary>
+      <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table" style="margin-bottom:20px;">
+      <tr><th>City</th><th>Nano/Micro</th><th>1BHK</th><th>2BHK</th><th>3BHK</th><th>4+BHK</th></tr>
+      <tr><td class="mname">Bangalore</td><td class="hcell h5" title="6mo avg: 0.40"><div class="hval">0.32</div><div class="hdelta">-21%</div></td><td class="hcell h5" title="6mo avg: 0.49"><div class="hval">0.37</div><div class="hdelta">-25%</div></td><td class="hcell h4" title="6mo avg: 0.67"><div class="hval">0.55</div><div class="hdelta">-18%</div></td><td class="hcell h4" title="6mo avg: 0.93"><div class="hval">0.77</div><div class="hdelta">-17%</div></td><td class="hcell h5" title="6mo avg: 1.26"><div class="hval">0.90</div><div class="hdelta">-29%</div></td></tr>
+      <tr><td class="mname">Delhi NCR</td><td class="hcell h4" title="6mo avg: 0.63"><div class="hval">0.55</div><div class="hdelta">-13%</div></td><td class="hcell h5" title="6mo avg: 0.79"><div class="hval">0.62</div><div class="hdelta">-22%</div></td><td class="hcell h4" title="6mo avg: 1.08"><div class="hval">0.92</div><div class="hdelta">-15%</div></td><td class="hcell h4" title="6mo avg: 1.19"><div class="hval">0.98</div><div class="hdelta">-17%</div></td><td class="hcell h5" title="6mo avg: 1.36"><div class="hval">1.05</div><div class="hdelta">-23%</div></td></tr>
+      <tr><td class="mname">Mumbai</td><td class="hcell h5" title="6mo avg: 0.57"><div class="hval">0.45</div><div class="hdelta">-21%</div></td><td class="hcell h5" title="6mo avg: 0.75"><div class="hval">0.58</div><div class="hdelta">-23%</div></td><td class="hcell h5" title="6mo avg: 1.09"><div class="hval">0.86</div><div class="hdelta">-21%</div></td><td class="hcell h4" title="6mo avg: 1.24"><div class="hval">1.08</div><div class="hdelta">-13%</div></td><td class="hcell h5 thin" title="6mo avg: 1.60 &middot; thin cell"><div class="hval">0.88</div><div class="hdelta">-45%</div></td></tr>
+      <tr><td class="mname">Hyderabad</td><td class="hcell h3" title="6mo avg: 0.46"><div class="hval">0.45</div><div class="hdelta">-2%</div></td><td class="hcell h4" title="6mo avg: 0.53"><div class="hval">0.45</div><div class="hdelta">-15%</div></td><td class="hcell h5" title="6mo avg: 0.84"><div class="hval">0.60</div><div class="hdelta">-29%</div></td><td class="hcell h5" title="6mo avg: 1.10"><div class="hval">0.85</div><div class="hdelta">-22%</div></td><td class="hcell h4" title="6mo avg: 1.42"><div class="hval">1.18</div><div class="hdelta">-17%</div></td></tr>
+      <tr><td class="mname">Pune</td><td class="hcell h3" title="6mo avg: 0.39"><div class="hval">0.39</div><div class="hdelta">-1%</div></td><td class="hcell h5" title="6mo avg: 0.45"><div class="hval">0.33</div><div class="hdelta">-27%</div></td><td class="hcell h5" title="6mo avg: 0.67"><div class="hval">0.45</div><div class="hdelta">-33%</div></td><td class="hcell h5" title="6mo avg: 1.01"><div class="hval">0.80</div><div class="hdelta">-21%</div></td><td class="hcell h5" title="6mo avg: 1.51"><div class="hval">1.15</div><div class="hdelta">-24%</div></td></tr>
+      <tr><td class="mname">Chennai</td><td class="hcell h5" title="6mo avg: 0.40"><div class="hval">0.31</div><div class="hdelta">-22%</div></td><td class="hcell h5" title="6mo avg: 0.54"><div class="hval">0.39</div><div class="hdelta">-27%</div></td><td class="hcell h4" title="6mo avg: 0.71"><div class="hval">0.62</div><div class="hdelta">-13%</div></td><td class="hcell h4" title="6mo avg: 0.85"><div class="hval">0.68</div><div class="hdelta">-20%</div></td><td class="hcell h5" title="6mo avg: 1.15"><div class="hval">0.87</div><div class="hdelta">-24%</div></td></tr>
+      <tr><td class="mname">Kolkata</td><td class="hcell h5" title="6mo avg: 0.63"><div class="hval">0.47</div><div class="hdelta">-25%</div></td><td class="hcell h5" title="6mo avg: 0.83"><div class="hval">0.59</div><div class="hdelta">-29%</div></td><td class="hcell h5" title="6mo avg: 1.25"><div class="hval">0.71</div><div class="hdelta">-43%</div></td><td class="hcell h5" title="6mo avg: 1.53"><div class="hval">1.09</div><div class="hdelta">-29%</div></td><td class="hcell h3 thin" title="6mo avg: 1.42 &middot; thin cell"><div class="hval">1.43</div><div class="hdelta">+1%</div></td></tr>
+      <tr><td class="mname">Ahmedabad</td><td class="hcell h4" title="6mo avg: 0.47"><div class="hval">0.42</div><div class="hdelta">-10%</div></td><td class="hcell h4" title="6mo avg: 0.60"><div class="hval">0.49</div><div class="hdelta">-19%</div></td><td class="hcell h5" title="6mo avg: 0.80"><div class="hval">0.59</div><div class="hdelta">-26%</div></td><td class="hcell h5" title="6mo avg: 1.00"><div class="hval">0.61</div><div class="hdelta">-39%</div></td><td class="hcell h5 thin" title="6mo avg: 1.50 &middot; thin cell"><div class="hval">1.00</div><div class="hdelta">-33%</div></td></tr>
+      <tr><td class="mname">Tier 2 (combined)</td><td class="hcell h4" title="6mo avg: 0.32"><div class="hval">0.28</div><div class="hdelta">-12%</div></td><td class="hcell h5" title="6mo avg: 0.45"><div class="hval">0.36</div><div class="hdelta">-20%</div></td><td class="hcell h5" title="6mo avg: 0.68"><div class="hval">0.52</div><div class="hdelta">-24%</div></td><td class="hcell h4" title="6mo avg: 0.81"><div class="hval">0.73</div><div class="hdelta">-10%</div></td><td class="hcell h5" title="6mo avg: 0.88"><div class="hval">0.50</div><div class="hdelta">-43%</div></td></tr>
+    </table>
+      </div>
+      
+    <p class="status-note" style="margin-bottom:24px;">TPO rises with BHK size in most cities &mdash; bigger, more complex moves generate more support tickets, a sensible pattern.</p>
+    </details>
+
+    <details class="bucket-detail city-bhk-detail">
+      <summary><span class="exp-metric-header" style="display:inline;margin:0;">Overall NPS</span> <span class="foldbtn-sub" style="margin-left:10px;">11 below baseline, 20 near baseline, 13 above baseline (of 45 cells)</span></summary>
+      <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table" style="margin-bottom:20px;">
+      <tr><th>City</th><th>Nano/Micro</th><th>1BHK</th><th>2BHK</th><th>3BHK</th><th>4+BHK</th></tr>
+      <tr><td class="mname">Bangalore</td><td class="hcell h3" title="6mo avg: 86"><div class="hval">83</div><div class="hdelta">-4%</div></td><td class="hcell h3" title="6mo avg: 82"><div class="hval">83</div><div class="hdelta">+1%</div></td><td class="hcell h3" title="6mo avg: 71"><div class="hval">68</div><div class="hdelta">-3%</div></td><td class="hcell h3" title="6mo avg: 66"><div class="hval">69</div><div class="hdelta">+4%</div></td><td class="hcell h3" title="6mo avg: 68"><div class="hval">70</div><div class="hdelta">+3%</div></td></tr>
+      <tr><td class="mname">Delhi NCR</td><td class="hcell h3" title="6mo avg: 75"><div class="hval">74</div><div class="hdelta">-1%</div></td><td class="hcell h3" title="6mo avg: 72"><div class="hval">74</div><div class="hdelta">+2%</div></td><td class="hcell h4" title="6mo avg: 62"><div class="hval">66</div><div class="hdelta">+6%</div></td><td class="hcell h2" title="6mo avg: 51"><div class="hval">48</div><div class="hdelta">-6%</div></td><td class="hcell h5" title="6mo avg: 25"><div class="hval">50</div><div class="hdelta">+100%</div></td></tr>
+      <tr><td class="mname">Mumbai</td><td class="hcell h3" title="6mo avg: 75"><div class="hval">74</div><div class="hdelta">-1%</div></td><td class="hcell h3" title="6mo avg: 71"><div class="hval">71</div><div class="hdelta">+1%</div></td><td class="hcell h4" title="6mo avg: 60"><div class="hval">67</div><div class="hdelta">+11%</div></td><td class="hcell h2" title="6mo avg: 56"><div class="hval">47</div><div class="hdelta">-16%</div></td><td class="hcell hna">&mdash;</td></tr>
+      <tr><td class="mname">Hyderabad</td><td class="hcell h3" title="6mo avg: 82"><div class="hval">86</div><div class="hdelta">+5%</div></td><td class="hcell h2" title="6mo avg: 78"><div class="hval">74</div><div class="hdelta">-5%</div></td><td class="hcell h3" title="6mo avg: 69"><div class="hval">66</div><div class="hdelta">-4%</div></td><td class="hcell h3" title="6mo avg: 62"><div class="hval">62</div><div class="hdelta">+0%</div></td><td class="hcell h5" title="6mo avg: 50"><div class="hval">64</div><div class="hdelta">+29%</div></td></tr>
+      <tr><td class="mname">Pune</td><td class="hcell h3" title="6mo avg: 83"><div class="hval">80</div><div class="hdelta">-3%</div></td><td class="hcell h3" title="6mo avg: 78"><div class="hval">82</div><div class="hdelta">+4%</div></td><td class="hcell h4" title="6mo avg: 66"><div class="hval">75</div><div class="hdelta">+14%</div></td><td class="hcell h2" title="6mo avg: 56"><div class="hval">51</div><div class="hdelta">-8%</div></td><td class="hcell h5" title="6mo avg: 42"><div class="hval">69</div><div class="hdelta">+65%</div></td></tr>
+      <tr><td class="mname">Chennai</td><td class="hcell h2" title="6mo avg: 84"><div class="hval">72</div><div class="hdelta">-14%</div></td><td class="hcell h3" title="6mo avg: 74"><div class="hval">73</div><div class="hdelta">-1%</div></td><td class="hcell h3" title="6mo avg: 68"><div class="hval">65</div><div class="hdelta">-5%</div></td><td class="hcell h2" title="6mo avg: 64"><div class="hval">57</div><div class="hdelta">-11%</div></td><td class="hcell h3" title="6mo avg: 75"><div class="hval">72</div><div class="hdelta">-4%</div></td></tr>
+      <tr><td class="mname">Kolkata</td><td class="hcell h2" title="6mo avg: 76"><div class="hval">68</div><div class="hdelta">-11%</div></td><td class="hcell h4" title="6mo avg: 68"><div class="hval">78</div><div class="hdelta">+14%</div></td><td class="hcell h1" title="6mo avg: 64"><div class="hval">49</div><div class="hdelta">-24%</div></td><td class="hcell h1" title="6mo avg: 50"><div class="hval">25</div><div class="hdelta">-50%</div></td><td class="hcell h1 thin" title="6mo avg: 100 &middot; thin cell"><div class="hval">33</div><div class="hdelta">-67%</div></td></tr>
+      <tr><td class="mname">Ahmedabad</td><td class="hcell h3" title="6mo avg: 90"><div class="hval">90</div><div class="hdelta">-0%</div></td><td class="hcell h4" title="6mo avg: 76"><div class="hval">87</div><div class="hdelta">+14%</div></td><td class="hcell h5" title="6mo avg: 70"><div class="hval">88</div><div class="hdelta">+26%</div></td><td class="hcell h4" title="6mo avg: 50"><div class="hval">56</div><div class="hdelta">+12%</div></td><td class="hcell h1 thin" title="6mo avg: 75 &middot; thin cell"><div class="hval">-100</div><div class="hdelta">-233%</div></td></tr>
+      <tr><td class="mname">Tier 2 (combined)</td><td class="hcell h3" title="6mo avg: 87"><div class="hval">86</div><div class="hdelta">-2%</div></td><td class="hcell h4" title="6mo avg: 79"><div class="hval">84</div><div class="hdelta">+7%</div></td><td class="hcell h4" title="6mo avg: 72"><div class="hval">79</div><div class="hdelta">+10%</div></td><td class="hcell h4" title="6mo avg: 67"><div class="hval">73</div><div class="hdelta">+10%</div></td><td class="hcell h3" title="6mo avg: 67"><div class="hval">69</div><div class="hdelta">+4%</div></td></tr>
+    </table>
+      </div>
+      
+    </details>
+
+    <div class="exp-metric-header">Overall Detractors %</div>
+    <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="metric-table" style="margin-bottom:12px;">
+      <tr><th>City</th><th>Nano/Micro</th><th>1BHK</th><th>2BHK</th><th>3BHK</th><th>4+BHK</th></tr>
+      <tr><td class="mname">Bangalore</td><td class="hcell h2" title="6mo avg: 2.0%"><div class="hval">2.2%</div><div class="hdelta">+8%</div></td><td class="hcell h4" title="6mo avg: 2.7%"><div class="hval">2.3%</div><div class="hdelta">-14%</div></td><td class="hcell h4" title="6mo avg: 4.7%"><div class="hval">4.4%</div><div class="hdelta">-5%</div></td><td class="hcell h5" title="6mo avg: 6.1%"><div class="hval">4.7%</div><div class="hdelta">-23%</div></td><td class="hcell h4" title="6mo avg: 6.7%"><div class="hval">5.4%</div><div class="hdelta">-19%</div></td></tr>
+      <tr><td class="mname">Delhi NCR</td><td class="hcell h3" title="6mo avg: 3.8%"><div class="hval">3.6%</div><div class="hdelta">-5%</div></td><td class="hcell h4" title="6mo avg: 4.5%"><div class="hval">3.8%</div><div class="hdelta">-15%</div></td><td class="hcell h4" title="6mo avg: 6.9%"><div class="hval">6.1%</div><div class="hdelta">-11%</div></td><td class="hcell h2" title="6mo avg: 7.8%"><div class="hval">9.0%</div><div class="hdelta">+16%</div></td><td class="hcell h3" title="6mo avg: 9.1%"><div class="hval">8.8%</div><div class="hdelta">-4%</div></td></tr>
+      <tr><td class="mname">Mumbai</td><td class="hcell h3" title="6mo avg: 3.4%"><div class="hval">3.4%</div><div class="hdelta">-2%</div></td><td class="hcell h3" title="6mo avg: 4.6%"><div class="hval">4.5%</div><div class="hdelta">-2%</div></td><td class="hcell h5" title="6mo avg: 7.9%"><div class="hval">4.2%</div><div class="hdelta">-47%</div></td><td class="hcell h4" title="6mo avg: 9.5%"><div class="hval">8.6%</div><div class="hdelta">-9%</div></td><td class="hcell h5 thin" title="6mo avg: 11.8% &middot; thin cell"><div class="hval">8.3%</div><div class="hdelta">-29%</div></td></tr>
+      <tr><td class="mname">Hyderabad</td><td class="hcell h4" title="6mo avg: 1.9%"><div class="hval">1.5%</div><div class="hdelta">-20%</div></td><td class="hcell h2" title="6mo avg: 3.3%"><div class="hval">3.9%</div><div class="hdelta">+17%</div></td><td class="hcell h3" title="6mo avg: 5.2%"><div class="hval">5.4%</div><div class="hdelta">+3%</div></td><td class="hcell h2" title="6mo avg: 7.1%"><div class="hval">7.9%</div><div class="hdelta">+12%</div></td><td class="hcell hna">&mdash;</td></tr>
+      <tr><td class="mname">Pune</td><td class="hcell h3" title="6mo avg: 2.2%"><div class="hval">2.2%</div><div class="hdelta">-2%</div></td><td class="hcell h4" title="6mo avg: 3.2%"><div class="hval">2.6%</div><div class="hdelta">-17%</div></td><td class="hcell h5" title="6mo avg: 5.1%"><div class="hval">4.0%</div><div class="hdelta">-21%</div></td><td class="hcell h3" title="6mo avg: 6.7%"><div class="hval">6.6%</div><div class="hdelta">-2%</div></td><td class="hcell h5" title="6mo avg: 11.8%"><div class="hval">5.9%</div><div class="hdelta">-50%</div></td></tr>
+      <tr><td class="mname">Chennai</td><td class="hcell h1" title="6mo avg: 2.3%"><div class="hval">2.8%</div><div class="hdelta">+25%</div></td><td class="hcell h4" title="6mo avg: 3.4%"><div class="hval">3.2%</div><div class="hdelta">-6%</div></td><td class="hcell h2" title="6mo avg: 4.4%"><div class="hval">5.1%</div><div class="hdelta">+15%</div></td><td class="hcell h2" title="6mo avg: 5.8%"><div class="hval">6.4%</div><div class="hdelta">+12%</div></td><td class="hcell hna">&mdash;</td></tr>
+      <tr><td class="mname">Kolkata</td><td class="hcell h1" title="6mo avg: 4.1%"><div class="hval">5.4%</div><div class="hdelta">+31%</div></td><td class="hcell h5" title="6mo avg: 4.3%"><div class="hval">3.2%</div><div class="hdelta">-25%</div></td><td class="hcell h2" title="6mo avg: 7.1%"><div class="hval">8.5%</div><div class="hdelta">+19%</div></td><td class="hcell h1" title="6mo avg: 8.5%"><div class="hval">12.3%</div><div class="hdelta">+44%</div></td><td class="hcell hna">&mdash;</td></tr>
+      <tr><td class="mname">Ahmedabad</td><td class="hcell h4" title="6mo avg: 2.0%"><div class="hval">1.7%</div><div class="hdelta">-14%</div></td><td class="hcell h5" title="6mo avg: 3.2%"><div class="hval">1.9%</div><div class="hdelta">-40%</div></td><td class="hcell h5" title="6mo avg: 5.9%"><div class="hval">1.9%</div><div class="hdelta">-68%</div></td><td class="hcell h5" title="6mo avg: 9.1%"><div class="hval">6.5%</div><div class="hdelta">-28%</div></td><td class="hcell hna">&mdash;</td></tr>
+      <tr><td class="mname">Tier 2 (combined)</td><td class="hcell h3" title="6mo avg: 2.0%"><div class="hval">2.0%</div><div class="hdelta">+1%</div></td><td class="hcell h4" title="6mo avg: 2.6%"><div class="hval">2.1%</div><div class="hdelta">-19%</div></td><td class="hcell h5" title="6mo avg: 4.3%"><div class="hval">2.9%</div><div class="hdelta">-34%</div></td><td class="hcell h5" title="6mo avg: 6.3%"><div class="hval">4.2%</div><div class="hdelta">-34%</div></td><td class="hcell hna">&mdash;</td></tr>
+    </table>
+      </div>
+    <p class="rag-note"><b>The real finding in this whole section:</b> NPS clearly declines and Detractors % clearly rises with BHK size, across nearly every city &mdash; bigger, more complex moves are harder to execute well. The aggregate "Overall NPS" metric hides this entirely. <b>Read the 4+BHK column with real caution</b> &mdash; Ahmedabad shows NPS of -100.00 there, which is a small-sample artifact (very few rated orders, one or two detractors swings the whole cell), not a real signal. This is exactly the thin-cell problem the reference wireframe's own-baseline banding was designed to solve &mdash; worth building that properly before this section is read as anything more than directional.</p>
+  </div>
+
+  <!-- ============ RAG RULES REFERENCE — collapsed, last ============ -->
+  <div class="metric-group" id="rules">
+    <button class="foldbtn" id="rulesFoldBtn" type="button" aria-expanded="false" aria-controls="rulesFoldBody">
+      <span class="foldbtn-tri">&#9654;</span>
+      <span class="foldbtn-label">Open the RAG rules register</span>
+      <span class="foldbtn-sub" id="rulesFoldSub">&mdash; a reference, not a read</span>
+    </button>
+    <div id="rulesFoldBody" hidden>
+      <div class="group-scope" id="rulesIntro" style="margin-top:14px;"></div>
+      <div class="scroll" tabindex="0" role="region" aria-label="Scrollable data table">
+      <table class="rules-table">
+        <thead>
+          <tr><th>Metric</th><th>Direction</th><th>Basis</th><th>Notes</th></tr>
+        </thead>
+        <tbody id="rulesTableBody"></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <b>62 metrics validated across 7 groups.</b> Not yet picked up: Vendor Ops, Acquisition. Out of scope per direct instruction: Conversion % Overall (1hr window), Completed orders by bucket. Still unsourced (no data found anywhere): L4 Tickets, P90 L4 Resolution Time, Users landing to PnM page, Activation, Frequency, Weekend contribution by bucket, Face match success rate, % orders with no images uploaded.
+  </footer>
+
+</div>
+
+<script>
+  /* ==================================================================
+     RAG_RULES — the single source of truth for this page's rules
+     register. The register table, the "N metrics" count in the fold
+     button, and the two-basis summary sentence are all rendered FROM
+     this array, not hand-typed separately — so the footnote can never
+     describe a rule this page isn't actually running. Change a rule
+     here and every place it's shown updates with it.
+     ================================================================== */
+  var BASIS_VOLUME = 'MTD vs MTD-last, \u00b110%';
+  var BASIS_WTD = 'WTD vs 6mo avg';
+  var BASIS_DELTA = 'Plain delta from 6mo avg';
+
+  var RAG_RULES = [
+    { metric: 'Leads (all variants)', direction: 'Higher-better', basis: BASIS_VOLUME, notes: '\u2014' },
+    { metric: 'Conversion % (all variants)', direction: 'Higher-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: 'Booked Orders (both variants)', direction: 'Higher-better', basis: BASIS_VOLUME, notes: '\u2014' },
+    { metric: '% Orders by channel (App/Website/LMS)', direction: 'n/a', basis: '\u2014', notes: 'Channel mix, no inherent direction' },
+    { metric: 'AOV', direction: 'Higher-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: '% orders with surge (overall)', direction: 'n/a', basis: '\u2014', notes: 'Mixes +ve and -ve surge' },
+    { metric: '% orders +ve surge', direction: 'Higher-better', basis: BASIS_WTD, notes: 'Surge contributes to revenue' },
+    { metric: '% orders -ve surge', direction: 'Lower-better', basis: BASIS_WTD, notes: '6mo baseline is artificially low (discounting didn\u2019t exist early in window)' },
+    { metric: '% orders fare increased', direction: '\u2014', basis: BASIS_DELTA, notes: 'No color, per instruction' },
+    { metric: 'Median fare increase (\u20b9)', direction: '\u2014', basis: BASIS_DELTA, notes: 'No color, per instruction' },
+    { metric: 'Allocation % (SPOT/Scheduled)', direction: 'Higher-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: 'Deallocation % (all variants)', direction: 'Lower-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: 'Completion % (all variants)', direction: 'Higher-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: 'Dry Run P75', direction: 'Lower-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: 'CAC/PAC/PoAC (SPOT/Scheduled)', direction: 'Lower-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: 'Allocation Time P80', direction: 'Lower-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: '% no vendor before slot', direction: 'Lower-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: 'Reschedule %', direction: 'Lower-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: '% orders >2 deallocations', direction: 'Lower-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: '% supervisor changed', direction: 'Lower-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: 'Pickup/Drop Deviation P80', direction: 'Lower-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: 'Trip duration stages (all 6)', direction: '\u2014', basis: BASIS_DELTA, notes: 'No color, same treatment as fare metrics' },
+    { metric: '% orders edited', direction: 'Lower-better, wide tolerance', basis: BASIS_WTD, notes: 'No hard threshold defined yet' },
+    { metric: '% support-edited orders', direction: 'Lower-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: '% edits after shifting started', direction: 'Lower-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: '% orders where location modified', direction: 'Lower-better, widest tolerance', basis: BASIS_WTD, notes: 'No hard threshold defined yet' },
+    { metric: 'Overall Add-on Adoption %', direction: 'Higher-better', basis: BASIS_WTD, notes: '\u2014' },
+    { metric: 'Overall Completion Score (+ by bucket)', direction: 'Higher-better', basis: BASIS_WTD, notes: 'Anchored on SHIFTING_TS_IST' },
+    { metric: 'Overall NPS (+ by bucket)', direction: 'Higher-better', basis: BASIS_WTD, notes: 'Anchored on ORDER_COMPLETED_TS_IST' },
+    { metric: 'Overall Detractors % (+ by bucket)', direction: 'Lower-better', basis: BASIS_WTD, notes: 'Anchored on ORDER_COMPLETED_TS_IST' },
+    { metric: 'On Time Arrival %', direction: 'Higher-better', basis: BASIS_WTD, notes: 'Card #37409 definition' },
+    { metric: 'Delay > 60 minutes %', direction: 'Lower-better', basis: BASIS_WTD, notes: 'Card #37409 definition' },
+    { metric: 'Social Media Escalation %', direction: 'n/a', basis: '\u2014', notes: 'Absolute counts too small (3-8/week network-wide) to support any color' },
+    { metric: 'Damage %', direction: 'Lower-better', basis: BASIS_WTD, notes: 'MTD counts (41-47) support this; WTD counts (5-8) are still thin' }
+  ];
+
+  (function renderRulesRegister(){
+    var body = document.getElementById('rulesTableBody');
+    var html = '';
+    for (var i = 0; i < RAG_RULES.length; i++){
+      var r = RAG_RULES[i];
+      html += '<tr><td>' + r.metric + '</td><td>' + r.direction + '</td><td>' + r.basis + '</td><td>' + r.notes + '</td></tr>';
+    }
+    body.innerHTML = html;
+
+    document.getElementById('rulesFoldSub').textContent =
+      RAG_RULES.length + ' metrics \u00d7 direction, comparison basis, and notes \u2014 a reference, not a read';
+
+    document.getElementById('rulesIntro').innerHTML =
+      'Two comparison bases in use, by metric type \u2014 <b>absolute/volume metrics</b> (counts): ' + BASIS_VOLUME +
+      ' tolerance, Amber only on a worse-direction move beyond 10% &middot; <b>% and experience metrics</b>: ' + BASIS_WTD +
+      ', Amber if worse than average. Some metrics get a plain delta (no color) or are marked n/a where no defensible direction exists.';
+  })();
+
+  /* Inline callouts elsewhere on the page pull their explanation text
+     from the SAME RAG_RULES entries, rather than duplicating it by hand
+     in prose. If a rule's note changes above, these update with it. */
+  (function renderInlineNotes(){
+    function findRule(metricName){
+      for (var i = 0; i < RAG_RULES.length; i++){
+        if (RAG_RULES[i].metric === metricName) return RAG_RULES[i];
+      }
+      return null;
+    }
+    var negSurge = findRule('% orders -ve surge');
+    if (negSurge) {
+      document.getElementById('noteNegSurge').textContent = negSurge.notes + ' \u2014 the color reflects a stale baseline more than real performance.';
+    }
+    var editedRule = findRule('% orders edited');
+    if (editedRule) {
+      document.getElementById('noteEditedTol').textContent = editedRule.direction.toLowerCase() + '; ' + editedRule.notes.toLowerCase();
+    }
+    var locationRule = findRule('% orders where location modified');
+    if (locationRule) {
+      document.getElementById('noteLocationTol').textContent = locationRule.direction.toLowerCase() + '; ' + locationRule.notes.toLowerCase();
+    }
+  })();
+
+  var rfb = document.getElementById('rulesFoldBtn');
+  var rfBody = document.getElementById('rulesFoldBody');
+  rfb.addEventListener('click', function(){
+    var open = rfb.getAttribute('aria-expanded') === 'true';
+    rfb.setAttribute('aria-expanded', open ? 'false' : 'true');
+    rfBody.hidden = open;
+    rfb.querySelector('.foldbtn-label').textContent = open ? 'Open the RAG rules register' : 'Close the RAG rules register';
+  });
+</script>
+</body>
+</html>

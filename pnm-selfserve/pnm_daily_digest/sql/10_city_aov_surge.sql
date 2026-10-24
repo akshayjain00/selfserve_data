@@ -1,0 +1,10 @@
+-- -> data/city_aov_surge.txt : 'AOV=' + col 1 ; 'SURGE=' + col 2   (base = mean of 6 monthly MTD-equivalent values)
+WITH {{PERIODS}}, g AS (SELECT geo_region_id, IFF(tier='Tier 1', city_name, 'Tier 2 (combined)') city FROM PROD_ELDORIA.CORE.DIM_GEO_REGIONS QUALIFY ROW_NUMBER() OVER (PARTITION BY geo_region_id ORDER BY updated_at DESC NULLS LAST)=1),
+fm AS (SELECT f.*, g.city, CASE WHEN f.package_name ILIKE 'Nano%' OR f.package_name ILIKE 'Micro%' THEN 'Nano/Micro' WHEN f.package_name ILIKE '1 RK%' OR f.package_name ILIKE '1 BHK%' THEN '1BHK' WHEN f.package_name ILIKE '2 BHK%' THEN '2BHK' WHEN f.package_name ILIKE '3 BHK%' THEN '3BHK' WHEN f.package_name ILIKE '4 BHK%' OR f.package_name ILIKE '5 BHK%' THEN '4+BHK' ELSE 'Unknown' END bhk FROM PROD_ELDORIA.MART.PNM_FARE_MOVEMENT f LEFT JOIN g ON g.geo_region_id=f.pickup_geo_region_id WHERE f.service_type_bucket='intracity'),
+a1 AS (SELECT city, bhk, p.p, SUM(total_order_fare)/NULLIF(COUNT(DISTINCT order_id),0) v FROM fm JOIN periods p ON DATE(fm.order_updated_at_ist) BETWEEN p.s AND p.e
+  WHERE order_status='completed' AND {{NANO:package_name ILIKE 'Nano%'}} AND is_test_user=0 AND city IS NOT NULL AND bhk<>'Unknown' GROUP BY 1,2,3),
+s1 AS (SELECT city, bhk, p.p, 100.0*COUNT(DISTINCT IFF(booking_surge_multiplier<>1 AND booking_surge_multiplier IS NOT NULL,order_id,NULL))/NULLIF(COUNT(DISTINCT order_id),0) v
+  FROM fm JOIN periods p ON fm.order_created_date BETWEEN p.s AND p.e WHERE {{NANO:is_nano_order=1}} AND city IS NOT NULL AND bhk<>'Unknown' GROUP BY 1,2,3),
+aov AS (SELECT city, bhk, MAX(IFF(p='mtd_this',v,NULL)) cur, AVG(IFF(p IN ('m1','m2','m3','m4','m5','m6'),v,NULL)) base FROM a1 GROUP BY 1,2), sur AS (SELECT city, bhk, MAX(IFF(p='mtd_this',v,NULL)) cur, AVG(IFF(p IN ('m1','m2','m3','m4','m5','m6'),v,NULL)) base FROM s1 GROUP BY 1,2)
+SELECT (SELECT LISTAGG(city||'.'||bhk||'|'||ROUND(cur,1)||'|'||ROUND(base,1), ';') FROM aov) aov,
+       (SELECT LISTAGG(city||'.'||bhk||'|'||ROUND(cur,2)||'|'||ROUND(base,2), ';') FROM sur) surge;

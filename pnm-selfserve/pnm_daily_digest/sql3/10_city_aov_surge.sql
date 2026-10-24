@@ -1,0 +1,15 @@
+-- 3-segment version of sql/10_city_aov_surge.sql -> save_result.py 10_city_aov_surge.sql
+WITH {{PERIODS}}, per7 AS (SELECT * FROM periods WHERE p IN ('mtd_this','m1','m2','m3','m4','m5','m6')), segs AS (SELECT 'all' seg UNION ALL SELECT 'nn' UNION ALL SELECT 'nano'), g AS (SELECT geo_region_id, IFF(tier='Tier 1', city_name, 'Tier 2 (combined)') city FROM PROD_ELDORIA.CORE.DIM_GEO_REGIONS QUALIFY ROW_NUMBER() OVER (PARTITION BY geo_region_id ORDER BY updated_at DESC NULLS LAST)=1),
+fm AS (SELECT f.*, g.city, CASE WHEN f.package_name ILIKE 'Nano%' OR f.package_name ILIKE 'Micro%' THEN 'Nano/Micro' WHEN f.package_name ILIKE '1 RK%' OR f.package_name ILIKE '1 BHK%' THEN '1BHK' WHEN f.package_name ILIKE '2 BHK%' THEN '2BHK' WHEN f.package_name ILIKE '3 BHK%' THEN '3BHK' WHEN f.package_name ILIKE '4 BHK%' OR f.package_name ILIKE '5 BHK%' THEN '4+BHK' ELSE 'Unknown' END bhk FROM PROD_ELDORIA.MART.PNM_FARE_MOVEMENT f LEFT JOIN g ON g.geo_region_id=f.pickup_geo_region_id WHERE f.service_type_bucket='intracity'),
+a1 AS (SELECT seg, city, bhk, p.p, SUM(total_order_fare)/NULLIF(COUNT(DISTINCT order_id),0) v FROM fm JOIN segs ON CASE seg WHEN 'all' THEN TRUE WHEN 'nn' THEN NOT (package_name ILIKE 'Nano%') ELSE (package_name ILIKE 'Nano%') END JOIN per7 p ON DATE(fm.order_updated_at_ist) BETWEEN p.s AND p.e
+  WHERE order_status='completed' AND is_test_user=0 AND city IS NOT NULL AND bhk<>'Unknown' GROUP BY 1,2,3,4),
+s1 AS (SELECT seg, city, bhk, p.p, 100.0*COUNT(DISTINCT IFF(booking_surge_multiplier<>1 AND booking_surge_multiplier IS NOT NULL,order_id,NULL))/NULLIF(COUNT(DISTINCT order_id),0) v
+  FROM fm JOIN segs ON CASE seg WHEN 'all' THEN TRUE WHEN 'nn' THEN NOT (is_nano_order=1) ELSE (is_nano_order=1) END JOIN per7 p ON fm.order_created_date BETWEEN p.s AND p.e WHERE city IS NOT NULL AND bhk<>'Unknown' GROUP BY 1,2,3,4),
+aov AS (SELECT seg, city, bhk, MAX(IFF(p='mtd_this',v,NULL)) cur, AVG(IFF(p IN ('m1','m2','m3','m4','m5','m6'),v,NULL)) base FROM a1 GROUP BY 1,2,3),
+sur AS (SELECT seg, city, bhk, MAX(IFF(p='mtd_this',v,NULL)) cur, AVG(IFF(p IN ('m1','m2','m3','m4','m5','m6'),v,NULL)) base FROM s1 GROUP BY 1,2,3)
+SELECT (SELECT LISTAGG(city||'.'||bhk||'|'||NVL(TO_VARCHAR(ROUND(cur,1)),'')||'|'||NVL(TO_VARCHAR(ROUND(base,1)),''), ';') FROM aov WHERE seg='all'),
+ (SELECT LISTAGG(city||'.'||bhk||'|'||NVL(TO_VARCHAR(ROUND(cur,2)),'')||'|'||NVL(TO_VARCHAR(ROUND(base,2)),''), ';') FROM sur WHERE seg='all'),
+ (SELECT LISTAGG(city||'.'||bhk||'|'||NVL(TO_VARCHAR(ROUND(cur,1)),'')||'|'||NVL(TO_VARCHAR(ROUND(base,1)),''), ';') FROM aov WHERE seg='nn'),
+ (SELECT LISTAGG(city||'.'||bhk||'|'||NVL(TO_VARCHAR(ROUND(cur,2)),'')||'|'||NVL(TO_VARCHAR(ROUND(base,2)),''), ';') FROM sur WHERE seg='nn'),
+ (SELECT LISTAGG(city||'.'||bhk||'|'||NVL(TO_VARCHAR(ROUND(cur,1)),'')||'|'||NVL(TO_VARCHAR(ROUND(base,1)),''), ';') FROM aov WHERE seg='nano'),
+ (SELECT LISTAGG(city||'.'||bhk||'|'||NVL(TO_VARCHAR(ROUND(cur,2)),'')||'|'||NVL(TO_VARCHAR(ROUND(base,2)),''), ';') FROM sur WHERE seg='nano')

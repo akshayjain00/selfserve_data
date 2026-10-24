@@ -1,0 +1,15 @@
+{
+ "leads_sum": 195699,
+ "ord_sum": 31713,
+ "grid_summ": {
+  "orders": "5 worse than baseline, 3 at or better (of 8 cells)",
+  "aov": "4 worse than baseline, 4 at or better (of 8 cells)",
+  "surge": "no single direction &mdash; not banded",
+  "comp": "1 worse than baseline, 7 at or better (of 8 cells)",
+  "dealloc": "8 worse than baseline, 0 at or better (of 8 cells)",
+  "ota": "1 worse than baseline, 7 at or better (of 8 cells)",
+  "tpo": "1 worse than baseline, 7 at or better (of 8 cells)",
+  "nps": "6 worse than baseline, 2 at or better (of 8 cells)",
+  "detr": "6 worse than baseline, 2 at or better (of 8 cells)"
+ }
+}
