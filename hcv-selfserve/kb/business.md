@@ -29,13 +29,33 @@ All rows `last_verified: 2026-08-14`.
 
 ## §2 Interventions and GTM events
 
-Dated events that explain a step-change in a trend. **This section is empty**, and that is a
-finding, not an omission — none of this KB's sources record pricing changes, city launches,
-campaigns or policy changes for HCV.
+Dated events that explain a step-change in a trend. **Populated for exactly one intervention class
+on 2026-09-03 (`D-030`); still empty for every other.**
 
-> ⚠️ Without this section, **no trend movement in HCV can be attributed.** A drop in fulfilment
-> could be supply, seasonality, a pricing change, or a city launch, and nothing here distinguishes
-> them. → `G-021`
+| date | event | scope | source |
+|---|---|---|---|
+| 2026-05-25 | Driver-skew allocation ramp | **14ft** — Delhi, Mumbai | `local:Downloads/hcv/90-colleague-session-extract.md` |
+| 2026-05-25 | Driver-skew allocation ramp | **10ft** — Mumbai | ” |
+| 2026-06-25 | Driver-skew allocation ramp | **9ft** — all Tier-1 cities **except Kolkata and Delhi** | ” |
+| 2026-07-07 | Driver-skew allocation ramp | **10ft** — Delhi | ” |
+| 2026-07-07 | Driver-skew allocation ramp | **8ft** — Delhi, Bangalore | ” |
+| 2026-07-10 | Driver-skew allocation ramp | **8ft** — Mumbai | ” |
+| 2026-08-18 | Skew driver-list method changed **quantitative → qualitative**; reporting split either side of this date | all active skew categories | ” |
+
+> ⚠️ **This narrows `G-021`; it does not answer it.** These are **driver-allocation experiment
+> ramps** — not the pricing changes, city launches, campaigns or policy changes that `G-021` names,
+> and which remain unrecorded. All seven rows are `local:`-sourced and therefore `unverified`
+> ([CONTRIBUTING.md](./CONTRIBUTING.md) §3); none may be quoted as a governed event.
+>
+> ⚠️ **`8ft` appears here as an experiment-active category with two launch dates**, while `T-021`
+> scopes HCV to `9ft/10ft/14ft/17ft/19ft` and `G-008`/`G-075` treat an `8ft` option as a *defect*.
+> Do not reconcile these by assuming one is wrong — the experiment's vehicle scope and this KB's
+> governed scope are different questions. → `G-104`, `G-008`
+>
+> ⚠️ **Two ramps fall inside `G-081`'s unexplained May→June window** (25 May and 25 June).
+> `G-081`'s `next_action` is *"establish why the SO-only share collapsed 22x"*, and these are the
+> first dated candidates this KB has. **This is a lead, not a finding** — no source asserts a
+> causal link, and the corpus never mentions SO-only rows.
 
 ---
 

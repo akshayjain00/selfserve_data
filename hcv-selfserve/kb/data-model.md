@@ -143,9 +143,36 @@ consolidates the OMS and SO legs.
 | T-061 | `mart_partner_daily_performance_summary` | Semantic model behind `store:metric.porter.map` | `driver_id`, `total_completed_orders` | **verified** |
 | T-062 | ⚠️ `prod_curated.trucks.*` — `VEHICLE_SEGMENT_MAPPING_V2`, `GEO_REGIONS_ROI`, `order_batching_info`, `order_level_matchmaking_funnel` | **Legacy (redshift-era) schema still backing dashboard cards.** Card 32713 joins it for both vehicle and geo | — | **verified** |
 
+| T-083 | `prod_eldoria.mart.trucks_eta_ata_dry_run_alloc` | ETA / ATA / allocation-time / dry-run percentiles — `3823` Supply tab | — | **unverified** (`dash3823`) |
+| T-084 | `prod_eldoria.mart.breach_pricing_observability` | Trip breaches and actual waiting time — `3823` Experience tab | — | **unverified** (`dash3823`) |
+| T-085 | `prod_eldoria.mart.trucks_level0_customer_retention_cohort_data_completed` | Lifecycle segments and retention cohorts. ⚠️ Its unsegmented `SUM(completed_orders)` is a **third independent lineage** for Completed Orders, beside `T-050` and `oms_public.orders` → `G-012` | `new_to_category`, `repeat_customer`, `reactivated_customer` | **unverified** (`dash3823`) |
+| T-086 | `prod_eldoria.mart.trucks_session_conversion` · `trucks_session_conversion_raw` | Pre-aggregated session summary, and the session-grain raw log. Card 28677 recomputes from the raw log while 28676/28687/29151 trust the pre-aggregate → contested source | `app_sessions`, `placed_orders` | **unverified** (`dash3823`) |
+| T-087 | `prod_eldoria.mart.driver_first_last_order_date` | Onboarding and activation. Referenced by `G-###` row 38's contested-source note but never carried as a table until now | `driver_id` | **unverified** (`dash3823`) |
+| T-088 | `prod_eldoria.core.dim_vehicle_segment_mapping_v2` | Vehicle classification — joined by card 28696 where 28675/28666 join `dim_vehicles` (`T-056`) for the same purpose | — | **unverified** (`dash3823`) |
+| T-089 | ⚠️ `DEV_ELDORIA.SANDBOX.TEMP_ORDER_ALLOCATION_SUMMARY` | Feeds `num_batches_created` on `6248` cards 50831/50852/50795. **A second dev-sandbox object in a production path**, alongside `T-073` — same class, no refresh contract → `G-080` | `num_batches_created` | **unverified** (`dash6248`) |
+| T-090 | ⚠️ `dev_eldoria.sandbox.mbr_mapping_v3` | Reported successor to `mbr_mapping_v2` (`T-070`), *"widened to Jan–current, dynamic `date_trunc('month', current_date())` upper bound"*. **`CONTEXT.md` hard rule 7 and `T-070`–`T-074` describe `v2`** → `G-090` | — | **unverified** (`local:`) |
+| T-091 | `prod_curated.trucks.customer_retention_master_table` | Paired with `FACT_ORDERS` for the cross-sell retention cohort (§2 row 124) — a different source pairing from row 91's `trucks.customer_acquisition` × `oms_public.orders` | `customer_id` | **unverified** (`dash6248`) |
+| T-092 | ⚠️ `prod_curated.trucks.order_info_data` | Order status source on `6248`. **Its status enum is asserted to differ from `T-001`** — `status=5` reads as *completed* here and *cancelled* on `FACT_ORDERS` → `G-092` | `status` | **unverified** (`dash6248`) |
+
 > ⚠️ **Three different objects answer "how many HCV orders completed."** `hcv_overall_demand_mart`
 > (`pack:§2`/`§3`/`§6`), `oms_public.orders` (`pack:§1`), and `cge_completed_spot_orders_fast_mv`
 > (card 32713). They are not interchangeable and have never been reconciled → `G-012`.
+
+---
+
+### §7a Column-level additions from the `D-029` harvest
+
+All `unverified`; none is confirmed against SQL, and the two dashboard inventories contain almost
+none (0 fenced blocks in the `6248` file, 6 short excerpts in the `3823` file).
+
+| extends | addition |
+|---|---|
+| `T-056` `dim_vehicles` | **`serviceability_segment`** — a key column this KB did not carry. Observed values are **mixed case**: `'Vanilla'`, `'Outstation'`, `'Rental'`, `'Not-Recognized'`, `'Helper + 1 Labour'`, `'Helper'`. A filter for all-caps `'VANILLA'` returned **zero rows**; `UPPER(...)` was used thereafter. Bears directly on `G-104` |
+| `T-054` `fact_quotations` | **`QUOTATION`** (VARIANT) joined on the path `so.QUOTATION:quotation_uuid::STRING = qs.uuid::STRING`, plus **`quotations_creation_time`** |
+| `T-057` `dim_geo_regions` | Cardinality: **Tier 1 = 8 regions, Tier 2 = 61**. Probative for `G-107`, which turns on whether the hardcoded `geo_region_id IN (1,2,3,4,5,6,8,9)` — also 8 members, skipping id 7 — matches the governed list |
+| `T-058` `dim_cancel_reasons_attribution` | Full enum: **`customer`, `partner`, `porter`**. ⚠️ Cancelled orders with a NULL / unmatched `fo_cancel_reason_id` are **not** counted as customer-cancelled — a judgement call the source records as *"never explicitly confirmed or overridden"*, and a **third** E-FF ambiguity distinct from `G-034`'s two |
+| `T-050` `hcv_overall_demand_mart` | **Negative schema evidence:** the mart carries **no** precomputed duplicate/unique-demand column — dedup must be reconstructed. This explains why `M-005` inlines it, and sharpens `G-035`: card 28681 reads a *pre-computed* `unique_demand` from `trucks_unique_demand_summary`, so the two implementations cannot be reconciled by pointing at a shared column |
+| `T-051` `oms_public.orders` | **Operational constraint:** an unfiltered join to `fact_order_fares` / `fact_quotations` **timed out at 180s**; date lower+upper bounds with a buffer were required. The first performance fact recorded in this KB |
 
 ---
 
