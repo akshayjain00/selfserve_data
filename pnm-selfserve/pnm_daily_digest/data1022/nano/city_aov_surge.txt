@@ -1,0 +1,2 @@
+AOV=Chennai.Nano/Micro|1474.4|1413.4;Kolkata.Nano/Micro|1475.7|1458.4;Bangalore.Nano/Micro|1343.2|1353.2;Ahmedabad.Nano/Micro|1281.7|1299.1;Mumbai.Nano/Micro|1634.7|1534.7;Hyderabad.Nano/Micro|1315.5|1289.8;Delhi NCR.Nano/Micro|1640.9|1700.7;Pune.Nano/Micro|1301.5|1319.9
+SURGE=Bangalore.Nano/Micro|4.40|24.28;Delhi NCR.Nano/Micro|4.70|24.97;Pune.Nano/Micro|5.68|29.28;Kolkata.Nano/Micro|3.15|24.55;Chennai.Nano/Micro|6.23|25.44;Hyderabad.Nano/Micro|4.24|24.35;Mumbai.Nano/Micro|7.25|26.63;Ahmedabad.Nano/Micro|9.28|26.13

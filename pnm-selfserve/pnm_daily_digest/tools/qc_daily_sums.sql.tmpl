@@ -1,0 +1,15 @@
+WITH per(p,s,e) AS (SELECT column1,column2::DATE,column3::DATE FROM VALUES ('mt','__MTD_S__','__R__'),('ml','__ML_S__','__ML_E__'),('wt','__WT_S__','__R__'),('wl','__WL_S__','__WL_E__'),('lw','__LW_S__','__LW_E__'),
+ ('f1','__F1_S__','__F1_E__'),('f2','__F2_S__','__F2_E__'),('f3','__F3_S__','__F3_E__'),('f4','__F4_S__','__F4_E__'),('f5','__F5_S__','__F5_E__'),('f6','__F6_S__','__F6_E__')),
+od AS (SELECT DATE(o.o_created_ts) d, IFF(dp.package_name ILIKE 'Nano%',1,0) nz, COUNT(DISTINCT o.order_id) a, 0 b, 0 c, 0 x
+  FROM PROD_ELDORIA.CORE.FACT_PNM_ORDERS o JOIN PROD_ELDORIA.MART.PNM_CUSTOMERS pc ON pc.customer_mobile=o.customer_mobile LEFT JOIN PROD_ELDORIA.CORE.DIM_PNM_ORDERS dp ON dp.order_id=o.order_id
+  WHERE dp.user_flag ILIKE 'normal' AND dp.shifting_type='intra_city' AND o.crn LIKE '%PNM%' AND DATE(o.o_created_ts) BETWEEN '__F6_S__' AND '__R__' GROUP BY 1,2),
+av AS (SELECT DATE(order_updated_at_ist) d, IFF(package_name ILIKE 'Nano%',1,0) nz, SUM(total_order_fare) a, COUNT(DISTINCT order_id) b, 0 c, 0 x FROM PROD_ELDORIA.MART.PNM_FARE_MOVEMENT
+  WHERE service_type_bucket='intracity' AND order_status='completed' AND is_test_user=0 AND DATE(order_updated_at_ist) BETWEEN '__F6_S__' AND '__R__' GROUP BY 1,2),
+sg AS (SELECT order_created_date d, IFF(is_nano_order=1,1,0) nz, COUNT(DISTINCT IFF(booking_surge_multiplier<>1,order_id,NULL)) a, COUNT(DISTINCT order_id) b, 0 c, 0 x FROM PROD_ELDORIA.MART.PNM_FARE_MOVEMENT
+  WHERE service_type_bucket='intracity' AND order_created_date BETWEEN '__F6_S__' AND '__R__' GROUP BY 1,2),
+al AS (SELECT TO_DATE(shifting_ts_ist) d, IFF(is_nano_order=1,1,0) nz, COUNT(DISTINCT order_id) a, COUNT(DISTINCT IFF(cancellation_type IN ('CAC','PAC','PoAC'),order_id,NULL)) b, COUNT(DISTINCT IFF(is_deallocated_post_accept=1,order_id,NULL)) c, 0 x
+  FROM PROD_ELDORIA.MART.PNM_ALLOCATION WHERE shifting_type='intra_city' AND is_test_user=0 AND TO_DATE(shifting_ts_ist) BETWEEN '__F6_S__' AND '__R__' GROUP BY 1,2),
+np AS (SELECT order_completed_ts_ist::date d, IFF(package_name ILIKE 'Nano%',1,0) nz, COUNT(DISTINCT IFF(classification='Promoter',order_id,NULL)) a, COUNT(DISTINCT IFF(classification='Detractor',order_id,NULL)) b, COUNT(DISTINCT IFF(classification IS NOT NULL,order_id,NULL)) c, COUNT(DISTINCT order_id) x
+  FROM PROD_ELDORIA.MART.PNM_EXPERIENCE WHERE shifting_type='intra_city' AND order_status='completed' AND order_completed_ts_ist::date BETWEEN '__F6_S__' AND '__R__' GROUP BY 1,2),
+u AS (SELECT 'od' src,* FROM od UNION ALL SELECT 'av',* FROM av UNION ALL SELECT 'sg',* FROM sg UNION ALL SELECT 'al',* FROM al UNION ALL SELECT 'np',* FROM np)
+SELECT LISTAGG(src||'|'||p||'|'||nz||'|'||a||'|'||b||'|'||c||'|'||x, ';') FROM (SELECT src, per.p, nz, SUM(a) a, SUM(b) b, SUM(c) c, SUM(x) x FROM u JOIN per ON u.d BETWEEN per.s AND per.e GROUP BY 1,2,3)
