@@ -1,0 +1,532 @@
+<title>Which Architecture Ships?</title>
+
+<style>
+  :root{
+    --paper:#F5F6FA; --card:#FFFFFF; --sunk:#EDEFF6;
+    --ink:#12151F; --body:#333A4D; --mute:#6B7288; --faint:#9AA0B4;
+    --rule:#D9DCE8; --rule-soft:#E7E9F2;
+    --accent:#33427A; --accent-soft:#E6E9F5;
+    --ok:#2F6B4F; --ok-soft:#E3EFE8;
+    --warn:#9A6B1E; --warn-soft:#F6EDDC;
+    --stop:#8E3B34; --stop-soft:#F6E5E3;
+    --off:#6B7288; --off-soft:#E9EBF1;
+    --serif:ui-serif,Georgia,'Iowan Old Style','Times New Roman',serif;
+    --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#0E1119; --card:#171B26; --sunk:#12161F;
+      --ink:#EEF0F6; --body:#C3C8D8; --mute:#8990A6; --faint:#666D82;
+      --rule:#2A3040; --rule-soft:#212736;
+      --accent:#93A4E0; --accent-soft:#1D2438;
+      --ok:#79BC96; --ok-soft:#16241D;
+      --warn:#D4A353; --warn-soft:#271E10;
+      --stop:#D98077; --stop-soft:#2A1715;
+      --off:#8990A6; --off-soft:#1B202C;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0E1119; --card:#171B26; --sunk:#12161F;
+    --ink:#EEF0F6; --body:#C3C8D8; --mute:#8990A6; --faint:#666D82;
+    --rule:#2A3040; --rule-soft:#212736;
+    --accent:#93A4E0; --accent-soft:#1D2438;
+    --ok:#79BC96; --ok-soft:#16241D;
+    --warn:#D4A353; --warn-soft:#271E10;
+    --stop:#D98077; --stop-soft:#2A1715;
+    --off:#8990A6; --off-soft:#1B202C;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--paper); color:var(--body);
+    font-family:var(--sans); font-size:16px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:0 24px 80px}
+  h1,h2,h3,h4{font-family:var(--serif); color:var(--ink); text-wrap:balance; margin:0}
+  p{margin:0}
+  code,.mono{font-family:var(--mono); font-size:.86em; font-variant-numeric:tabular-nums}
+  code{background:var(--sunk); border:1px solid var(--rule-soft); border-radius:2px; padding:.08em .34em; color:var(--ink)}
+  a{color:var(--accent)}
+  :focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+  .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--mute);
+  }
+
+  /* ---------- masthead ---------- */
+  header.top{border-bottom:1px solid var(--rule); background:var(--card); margin-bottom:36px}
+  .top-in{max-width:1180px; margin:0 auto; padding:34px 24px 28px; display:flex; flex-direction:column; gap:14px}
+  h1{font-size:clamp(30px,4.6vw,46px); line-height:1.08; letter-spacing:-.015em; font-weight:600}
+  .dek{max-width:64ch; font-size:17px; color:var(--body)}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 20px; font-family:var(--mono); font-size:11.5px; color:var(--faint); letter-spacing:.04em}
+
+  .verdict{
+    display:flex; gap:14px; align-items:flex-start;
+    background:var(--stop-soft); border:1px solid var(--stop);
+    border-radius:3px; padding:16px 18px; margin-top:4px;
+  }
+  .verdict .vt{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--stop); white-space:nowrap; padding-top:2px; font-weight:700}
+  .verdict p{font-size:15.5px; color:var(--ink)}
+
+  /* ---------- sections ---------- */
+  section{margin-top:56px}
+  .shead{display:flex; flex-direction:column; gap:8px; margin-bottom:22px; padding-bottom:14px; border-bottom:2px solid var(--ink)}
+  .shead h2{font-size:clamp(21px,2.6vw,27px); font-weight:600; letter-spacing:-.01em}
+  .shead p{color:var(--mute); font-size:15px; max-width:68ch}
+
+  /* ---------- plain summary ---------- */
+  .plain{display:grid; grid-template-columns:repeat(auto-fit,minmax(255px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:3px; overflow:hidden}
+  .plain > div{background:var(--card); padding:20px}
+  .plain h3{font-size:15.5px; margin-bottom:7px; font-weight:600}
+  .plain p{font-size:14.5px; color:var(--body)}
+
+  /* ---------- flow ---------- */
+  .flowscroll{overflow-x:auto; padding-bottom:8px}
+  .flow{min-width:660px; display:flex; flex-direction:column; gap:0}
+  .stage{display:grid; grid-template-columns:112px 1fr; gap:20px; align-items:stretch}
+  .stage-l{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--mute); padding-top:18px; text-align:right; border-right:1px solid var(--rule); padding-right:16px;
+  }
+  .stage-r{padding:14px 0 14px 0}
+  .conn{grid-column:2; height:20px; display:flex; align-items:center; padding-left:26px}
+  .conn span{font-family:var(--mono); font-size:11px; color:var(--faint); position:relative; padding-left:16px}
+  .conn span::before{content:""; position:absolute; left:0; top:50%; width:9px; height:1px; background:var(--rule)}
+
+  .node{background:var(--card); border:1px solid var(--rule); border-radius:3px; padding:15px 17px}
+  .node h4{font-size:15px; font-weight:600; margin-bottom:3px}
+  .node .sub{font-size:13.5px; color:var(--mute)}
+  .node ul{margin:9px 0 0; padding-left:17px; font-size:13.5px; color:var(--body)}
+  .node li{margin-bottom:3px}
+  .node li::marker{color:var(--faint)}
+
+  .row3{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:12px}
+
+  .opt{border-radius:3px; padding:15px 17px; border:1px solid var(--rule); background:var(--card); display:flex; flex-direction:column; gap:8px}
+  .opt.dead{border-color:var(--stop); background:var(--stop-soft)}
+  .opt.live{border-color:var(--warn); background:var(--warn-soft)}
+  .opt.park{border-color:var(--rule); background:var(--sunk)}
+  .opt .oname{font-family:var(--serif); font-size:15.5px; color:var(--ink); font-weight:600}
+  .opt .odesc{font-size:13.5px; color:var(--body)}
+  .opt .overdict{font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; font-weight:700}
+  .dead .overdict{color:var(--stop)} .live .overdict{color:var(--warn)} .park .overdict{color:var(--off)}
+
+  .gate{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px}
+  .gatecard{background:var(--card); border:1px solid var(--rule); border-left:3px solid var(--accent); border-radius:3px; padding:15px 17px}
+  .gatecard h4{font-size:14.5px; margin-bottom:8px; font-weight:600}
+  .sev{display:flex; flex-wrap:wrap; gap:5px; margin-bottom:9px}
+  .sevpill{font-family:var(--mono); font-size:10.5px; padding:2px 7px; border-radius:2px; letter-spacing:.04em; border:1px solid transparent}
+  .sev-b{background:var(--stop-soft); color:var(--stop); border-color:var(--stop)}
+  .sev-s{background:var(--warn-soft); color:var(--warn); border-color:var(--warn)}
+  .sev-m{background:var(--off-soft); color:var(--off); border-color:var(--rule)}
+  .gatecard p{font-size:13.5px}
+  .quote{font-family:var(--serif); font-style:italic; font-size:14.5px; color:var(--ink); border-left:2px solid var(--rule); padding-left:13px; margin-top:9px}
+
+  /* ---------- dashboard ---------- */
+  .legend{display:flex; flex-wrap:wrap; gap:7px 18px; padding:13px 16px; background:var(--card); border:1px solid var(--rule); border-radius:3px; margin-bottom:20px}
+  .lg{display:flex; align-items:center; gap:7px; font-size:13px; color:var(--body)}
+  .dot{width:9px; height:9px; border-radius:50%; flex:none}
+  .d-ok{background:var(--ok)} .d-warn{background:var(--warn)} .d-stop{background:var(--stop)} .d-off{background:var(--off)} .d-unk{background:transparent; border:1.5px solid var(--faint)}
+
+  .pillars{display:grid; grid-template-columns:repeat(auto-fit,minmax(298px,1fr)); gap:14px}
+  .pillar{background:var(--card); border:1px solid var(--rule); border-radius:3px; padding:18px; display:flex; flex-direction:column; gap:12px}
+  .pillar > h3{font-size:16px; font-weight:600; padding-bottom:10px; border-bottom:1px solid var(--rule-soft)}
+  .items{display:flex; flex-direction:column; gap:9px}
+  .item{display:grid; grid-template-columns:11px 1fr; gap:10px; align-items:start; font-size:13.8px}
+  .item .dot{margin-top:6px}
+  .item b{color:var(--ink); font-weight:600}
+  .item .note{color:var(--mute); font-size:12.8px; display:block; margin-top:1px}
+
+  .bars{display:flex; flex-direction:column; gap:11px; margin-top:2px}
+  .bar-l{display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px}
+  .bar-l .n{font-family:var(--mono); color:var(--mute); font-size:12.5px}
+  .track{height:7px; background:var(--sunk); border:1px solid var(--rule-soft); border-radius:2px; overflow:hidden}
+  .fill{height:100%; background:var(--accent)}
+  .fill.none{background:repeating-linear-gradient(45deg,var(--rule),var(--rule) 3px,transparent 3px,transparent 6px); width:100%}
+
+  /* ---------- ledger ---------- */
+  .ledger{display:grid; grid-template-columns:repeat(auto-fill,minmax(232px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:3px; overflow:hidden}
+  .dchip{background:var(--card); padding:11px 13px; display:flex; gap:10px; align-items:baseline; font-size:13.2px}
+  .dchip .id{font-family:var(--mono); font-size:11.5px; color:var(--accent); font-weight:700; white-space:nowrap}
+  .dchip.owner{background:var(--accent-soft)}
+  .dchip.kill .id{color:var(--stop)}
+
+  /* ---------- next / glossary ---------- */
+  .decide{display:grid; grid-template-columns:repeat(auto-fit,minmax(288px,1fr)); gap:14px}
+  .dcard{border:1px solid var(--rule); border-radius:3px; padding:18px; background:var(--card)}
+  .dcard.hot{border-color:var(--stop); border-width:1px; background:var(--stop-soft)}
+  .dcard h3{font-size:15.5px; margin-bottom:9px; font-weight:600}
+  .dcard p{font-size:14px; margin-bottom:8px}
+  .dcard p:last-child{margin-bottom:0}
+
+  .gloss{display:grid; grid-template-columns:repeat(auto-fit,minmax(292px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:3px; overflow:hidden}
+  .gloss > div{background:var(--card); padding:15px 17px}
+  .gloss dt{font-family:var(--mono); font-size:12.5px; color:var(--ink); font-weight:700; margin-bottom:4px}
+  .gloss dd{margin:0; font-size:13.8px; color:var(--body)}
+
+  footer{margin-top:60px; padding-top:20px; border-top:1px solid var(--rule); font-size:12.8px; color:var(--faint)}
+  footer code{font-size:12px}
+
+  @media (max-width:620px){
+    .stage{grid-template-columns:1fr; gap:0}
+    .stage-l{text-align:left; border-right:none; border-left:1px solid var(--rule); padding-left:14px; padding-right:0; padding-top:14px}
+    .conn{grid-column:1; padding-left:14px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="eyebrow">Porter · Product Ops · Self-serve data</div>
+    <h1>Which Architecture Ships?</h1>
+    <p class="dek">We set out to put a knowledge base of metric definitions into the hands of PMs and the business team, so they could answer their own data questions. Three designs were proposed. Two independent reviews killed two of them. This is where it actually stands.</p>
+    <div class="meta">
+      <span>Status as of 14 Aug 2026</span>
+      <span>Decisions D-001 → D-032</span>
+      <span>4 research agents · 2 blind reviews</span>
+    </div>
+    <div class="verdict">
+      <span class="vt">Nothing approved</span>
+      <p><b>There is no architecture cleared to build today.</b> The design chosen on 14 Aug was sent to an independent reviewer, which found two fatal problems and judged it <i>worse than the design it replaced</i>. A third approach is on the table and needs your decision. Separately — and more importantly — two questions about what our metrics even <i>mean</i> are unanswered, and no design can proceed past them.</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ================= PLAIN SUMMARY ================= -->
+  <section style="margin-top:0">
+    <div class="shead">
+      <h2>The sixty-second version</h2>
+      <p>If you read nothing else on this page, read these five boxes.</p>
+    </div>
+    <div class="plain">
+      <div>
+        <h3>What we wanted</h3>
+        <p>Let a PM or a business colleague ask “what was fulfilment by city last week?” and get a trustworthy number — without waiting on an analyst.</p>
+      </div>
+      <div>
+        <h3>What we found</h3>
+        <p>Most of the machinery already exists inside Porter. The genuinely missing piece is much smaller than expected: a way to guarantee every number is tied to an agreed definition.</p>
+      </div>
+      <div>
+        <h3>What went wrong</h3>
+        <p>Both designs we wrote assumed a problem that isn’t the real one. The real problem is that Porter’s dashboards already carry several conflicting definitions of the same metric.</p>
+      </div>
+      <div>
+        <h3>What’s proposed now</h3>
+        <p>Stop building a new place to look. Instead write the agreed definition <i>onto the dashboards people already open</i>, and retire the duplicates.</p>
+      </div>
+      <div>
+        <h3>What’s actually blocking</h3>
+        <p>Two definitional questions only you can settle — what counts as a “week”, and what goes on the bottom of the fulfilment fraction. No software fixes these.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= VIEW 1 : FLOW ================= -->
+  <section>
+    <div class="shead">
+      <h2>How we got here</h2>
+      <p>Read top to bottom. Each stage fed the next, and two independent reviews acted as filters that findings had to survive.</p>
+    </div>
+
+    <div class="flowscroll">
+      <div class="flow">
+
+        <!-- stage 1 -->
+        <div class="stage">
+          <div class="stage-l">Stage 1<br>Discovery</div>
+          <div class="stage-r">
+            <div class="row3">
+              <div class="node">
+                <h4>The knowledge base</h4>
+                <p class="sub">Only PTL has one</p>
+                <ul>
+                  <li>9 files, <b>2,091 lines</b></li>
+                  <li>Every fact carries a confidence label and a source</li>
+                  <li><b>PNM has none. HCV has none.</b></li>
+                </ul>
+              </div>
+              <div class="node">
+                <h4>Already built in-house</h4>
+                <p class="sub">Two of three pieces exist</p>
+                <ul>
+                  <li><code>data-tools:query</code> — turns a question into SQL, with a mandatory human approval step</li>
+                  <li><code>akshayjain-mbr-brain</code> — proves a knowledge base can ship as an installable add-on</li>
+                </ul>
+              </div>
+              <div class="node">
+                <h4>The incumbent <span class="mono" style="color:var(--stop)">(missed at first)</span></h4>
+                <p class="sub">Found only by the second review</p>
+                <ul>
+                  <li><code>dashboard/4198</code> — <b>~82 cards, 11 tabs</b></li>
+                  <li>Already filters by date, day/week/month, pickup city, drop city, route, delivery type</li>
+                  <li>Viewed tens of thousands of times</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="conn"><span>four research agents · repo, Porter plugins, industry practice, adoption evidence</span></div>
+
+        <!-- stage 2 -->
+        <div class="stage">
+          <div class="stage-l">Stage 2<br>Options</div>
+          <div class="stage-r">
+            <div class="row3">
+              <div class="opt park">
+                <div class="overdict">Deferred</div>
+                <div class="oname">Option A — the query add-on</div>
+                <p class="odesc">An installable add-on that looks up the agreed definition, then hands off to <code>data-tools:query</code> to write and run the SQL.</p>
+                <p class="odesc" style="color:var(--mute)"><b>Why parked:</b> it depends on two add-ons talking to each other, which nobody has proven works.</p>
+              </div>
+              <div class="opt dead">
+                <div class="overdict">Chosen, then killed</div>
+                <div class="oname">Option F — the card collection</div>
+                <p class="odesc">A tidy set of 8–10 pre-built Metabase charts, plus a small look-up tool that explains what each metric means. No AI writes any SQL.</p>
+                <p class="odesc" style="color:var(--stop)"><b>Why killed:</b> see the second review below.</p>
+              </div>
+              <div class="opt live">
+                <div class="overdict">Awaiting your call</div>
+                <div class="oname">Option G — annotate what exists</div>
+                <p class="odesc">Don’t build a new place to look. Write the agreed definition, its basis, and its owner directly onto the charts people already open, and archive the duplicates.</p>
+                <p class="odesc" style="color:var(--warn)"><b>Not yet reviewed.</b> Proposed by the reviewer, not by us.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="conn"><span>each design was handed to a reviewer who was shown the goal and the document — but never our reasoning for why it was right</span></div>
+
+        <!-- stage 3 -->
+        <div class="stage">
+          <div class="stage-l">Stage 3<br>Reviews</div>
+          <div class="stage-r">
+            <div class="gate">
+              <div class="gatecard">
+                <h4>First review — on Option A</h4>
+                <div class="sev">
+                  <span class="sevpill sev-b">3 blocking</span>
+                  <span class="sevpill sev-s">5 severe</span>
+                  <span class="sevpill sev-m">7 moderate</span>
+                  <span class="sevpill sev-m">3 minor</span>
+                </div>
+                <p>Found that one of the two promised features depended on a tool that exists only on one laptop; that our trust safeguard could not fire in the exact situation it was built for; and that two of our own decisions contradicted each other.</p>
+                <p class="quote">“Every mechanism makes a wrong number better documented. None of them stops it.”</p>
+              </div>
+              <div class="gatecard" style="border-left-color:var(--stop)">
+                <h4>Second review — on Option F</h4>
+                <div class="sev">
+                  <span class="sevpill sev-b">2 blocking</span>
+                  <span class="sevpill sev-s">3 severe</span>
+                  <span class="sevpill sev-m">4 moderate</span>
+                  <span class="sevpill sev-m">1 minor</span>
+                </div>
+                <p><b>A chart cannot ask a question.</b> Our own knowledge base says any weekly figure <i>must ask the requester</i> which week convention they mean. A pre-built chart can’t ask, can’t refuse, and can’t show doubt — it just picks one silently and looks official.</p>
+                <p style="margin-top:8px"><b>And the incumbent already does more.</b> <code>dashboard/4198</code> offers more slicing than our 8–10 fixed charts would.</p>
+              </div>
+            </div>
+            <p style="font-size:13.5px; color:var(--mute); margin-top:12px">Across both reviews: <b style="color:var(--ink)">17 findings accepted and folded in</b>, <b style="color:var(--ink)">1 rejected on evidence</b> — a miscount caused by a search pattern that only matched one of two table formats <span class="mono">(D-024)</span>.</p>
+          </div>
+        </div>
+        <div class="conn"><span>both designs assumed away the same thing</span></div>
+
+        <!-- stage 4 -->
+        <div class="stage">
+          <div class="stage-l">Stage 4<br>Where it lands</div>
+          <div class="stage-r">
+            <div class="node" style="border-color:var(--stop); border-left-width:3px; border-left-color:var(--stop)">
+              <h4>The real obstacle isn’t engineering</h4>
+              <p class="sub">Established independently of which design wins</p>
+              <ul>
+                <li><b>Two definitions are unsettled and marked “blocked — owner”.</b> Option A assumed an AI would resolve them at question time. Option F assumed a chart author could just pick one. Neither is allowed.</li>
+                <li><b>No number in the knowledge base has ever been checked against the warehouse.</b> Its own front page says so, in those words.</li>
+                <li>So distribution is downstream of a decision, not of a build.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= VIEW 2 : DASHBOARD ================= -->
+  <section>
+    <div class="shead">
+      <h2>Lay of the land</h2>
+      <p>What exists, what’s missing, and what’s stuck. Status words below are the knowledge base’s own vocabulary, not a generic scale.</p>
+    </div>
+
+    <div class="legend">
+      <span class="lg"><span class="dot d-ok"></span> <b style="color:var(--ink)">Verified</b> — checked against a real source</span>
+      <span class="lg"><span class="dot d-warn"></span> <b style="color:var(--ink)">Contested</b> — two live answers, neither wins</span>
+      <span class="lg"><span class="dot d-stop"></span> <b style="color:var(--ink)">Blocked</b> — needs an owner decision</span>
+      <span class="lg"><span class="dot d-unk"></span> <b style="color:var(--ink)">Unknown</b> — nobody has checked</span>
+      <span class="lg"><span class="dot d-off"></span> <b style="color:var(--ink)">Deferred</b> — deliberately not now</span>
+    </div>
+
+    <div class="pillars">
+
+      <div class="pillar">
+        <h3>The knowledge base</h3>
+        <div class="items">
+          <div class="item"><span class="dot d-ok"></span><div><b>PTL: 9 files, 2,091 lines.</b><span class="note">Definitions, data-model notes, query rules, known gaps, and a contributor contract.</span></div></div>
+          <div class="item"><span class="dot d-stop"></span><div><b>PNM: no knowledge base at all.</b><span class="note">Nothing to distribute. Would have to be written first.</span></div></div>
+          <div class="item"><span class="dot d-stop"></span><div><b>HCV: nothing at all.</b><span class="note">No knowledge base, no tooling — only a coverage map.</span></div></div>
+          <div class="item"><span class="dot d-unk"></span><div><b>How many open gaps? Unclear.</b><span class="note">48 by one count, 66 by the file’s own claim. Two table formats count different things. <span class="mono">[unknown]</span> — nothing depends on it.</span></div></div>
+        </div>
+      </div>
+
+      <div class="pillar">
+        <h3>Metric coverage shipped</h3>
+        <p style="font-size:13.5px; color:var(--mute); margin-top:-4px">Rows marked ready for a stakeholder, out of rows tracked.</p>
+        <div class="bars">
+          <div>
+            <div class="bar-l"><span>PTL</span><span class="n">14 / 116</span></div>
+            <div class="track"><div class="fill" style="width:12.1%"></div></div>
+          </div>
+          <div>
+            <div class="bar-l"><span>PNM</span><span class="n">0 / 167</span></div>
+            <div class="track"><div class="fill none"></div></div>
+          </div>
+          <div>
+            <div class="bar-l"><span>HCV</span><span class="n">0 / 118</span></div>
+            <div class="track"><div class="fill none"></div></div>
+          </div>
+        </div>
+        <p style="font-size:12.8px; color:var(--mute)">Hatched bars mean nothing shipped. “Shipped” is being read from a status field — no file defines a coverage percentage, so treat these as counts, not a score. <span class="mono">[assumption]</span></p>
+      </div>
+
+      <div class="pillar">
+        <h3>Distribution options</h3>
+        <div class="items">
+          <div class="item"><span class="dot d-off"></span><div><b>Option A — query add-on.</b><span class="note">Deferred. Depends on two add-ons composing, which is unproven.</span></div></div>
+          <div class="item"><span class="dot d-stop"></span><div><b>Option F — card collection.</b><span class="note">Chosen, then failed review. Marked not approved.</span></div></div>
+          <div class="item"><span class="dot d-warn"></span><div><b>Option G — annotate the incumbents.</b><span class="note">Proposed by the reviewer. Needs no add-on, no install, no code repository access. Not yet reviewed itself.</span></div></div>
+          <div class="item"><span class="dot d-off"></span><div><b>Option E — fold into <code>data-tools</code>.</b><span class="note">Kept as the fallback if Option A’s composition test ever fails.</span></div></div>
+        </div>
+      </div>
+
+      <div class="pillar">
+        <h3>Trust and governance</h3>
+        <div class="items">
+          <div class="item"><span class="dot d-warn"></span><div><b>“Verified” is hiding conflicts.</b><span class="note">When two sources disagree, the knowledge base picks a winner and stamps it verified — so a reader can’t tell a settled fact from one that won on a tie-break.</span></div></div>
+          <div class="item"><span class="dot d-warn"></span><div><b>Fulfilment is the live example.</b><span class="note">Marked verified, yet its own entry says the figure “is not comparable” to the one in the weekly report.</span></div></div>
+          <div class="item"><span class="dot d-stop"></span><div><b>Proposed fix needs your sign-off.</b><span class="note">Add a “contested” state. It changes the contributor contract, which belongs to a different workstream.</span></div></div>
+          <div class="item"><span class="dot d-ok"></span><div><b>The gap loop already works.</b><span class="note">Wrong answers become numbered gap entries under existing rules. Nothing new needed here.</span></div></div>
+        </div>
+      </div>
+
+      <div class="pillar" style="border-color:var(--stop)">
+        <h3 style="color:var(--stop)">Blocked — needs a person, not a build</h3>
+        <div class="items">
+          <div class="item"><span class="dot d-stop"></span><div><b>What is a week?</b><span class="note">Saturday→Friday, or Sunday→Saturday? Both are live in production and neither outranks the other. The knowledge base instructs: <i>ask the requester before running</i>.</span></div></div>
+          <div class="item"><span class="dot d-stop"></span><div><b>What goes under fulfilment?</b><span class="note">All orders, or only ones that reached a final state? The weekly report uses one; the knowledge base uses the other. Described as “a definitional choice, not a discoverable fact”.</span></div></div>
+          <div class="item"><span class="dot d-stop"></span><div><b>Nothing has been checked against the warehouse.</b><span class="note">No query has ever been run. Running one needs explicit go-ahead.</span></div></div>
+          <div class="item"><span class="dot d-warn"></span><div><b>21 further gaps are owner-blocked.</b><span class="note">They sit on exactly the metrics anyone would want to publish first.</span></div></div>
+        </div>
+      </div>
+
+      <div class="pillar">
+        <h3>Housekeeping</h3>
+        <div class="items">
+          <div class="item"><span class="dot d-stop"></span><div><b>GitHub login expired.</b><span class="note">Blocks publishing an add-on. Fixed by running <code>gh auth login</code>. Option G needs none of this.</span></div></div>
+          <div class="item"><span class="dot d-unk"></span><div><b>Who can edit a Metabase chart?</b><span class="note">Unchecked, and it matters a lot more under Option F or G.</span></div></div>
+          <div class="item"><span class="dot d-unk"></span><div><b>Does the desktop app work?</b><span class="note">Never tested. Irrelevant to Option G, since a chart is just a web link.</span></div></div>
+          <div class="item"><span class="dot d-ok"></span><div><b>Publishing route is understood.</b><span class="note">Changes inside your own namespace approve automatically; there’s a documented path to org-wide status later.</span></div></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= LEDGER ================= -->
+  <section>
+    <div class="shead">
+      <h2>The decision trail</h2>
+      <p>Every choice was written down as it was made, so this can be picked up cold. Shaded entries are yours; red entries are reversals.</p>
+    </div>
+    <div class="ledger">
+      <div class="dchip owner"><span class="id">D-007</span><span>Ship PTL first — it’s the only knowledge base that exists</span></div>
+      <div class="dchip owner"><span class="id">D-008</span><span>Include the desktop app in version 1</span></div>
+      <div class="dchip owner"><span class="id">D-009</span><span>Publish under your own namespace</span></div>
+      <div class="dchip owner"><span class="id">D-010</span><span>Data access already provisioned for the team</span></div>
+      <div class="dchip"><span class="id">D-011</span><span>Design for the surface we haven’t verified</span></div>
+      <div class="dchip"><span class="id">D-012</span><span>Build only the missing layer; compose, don’t rebuild</span></div>
+      <div class="dchip kill"><span class="id">D-013</span><span>Drop hypothesis-testing — its dependency ships nowhere</span></div>
+      <div class="dchip kill"><span class="id">D-014</span><span>Add a “contested” state; make provenance travel</span></div>
+      <div class="dchip kill"><span class="id">D-015</span><span>Reverse D-011 — it banned the mechanism we depend on</span></div>
+      <div class="dchip kill"><span class="id">D-016</span><span>Fix a quote we’d cited backwards</span></div>
+      <div class="dchip kill"><span class="id">D-017</span><span>Estimate was 8–10 days, not 5</span></div>
+      <div class="dchip"><span class="id">D-018</span><span>Add the two options we never considered</span></div>
+      <div class="dchip"><span class="id">D-019</span><span>Relabel “guardrails” we can’t actually enforce</span></div>
+      <div class="dchip"><span class="id">D-020</span><span>Nothing was ever actually run — mark both surfaces unverified</span></div>
+      <div class="dchip"><span class="id">D-021</span><span>Three publishing rules corrected</span></div>
+      <div class="dchip"><span class="id">D-022</span><span>A trigger that could never fire, rewritten</span></div>
+      <div class="dchip"><span class="id">D-023</span><span>Acceptance tests were unfalsifiable</span></div>
+      <div class="dchip"><span class="id">D-024</span><span>Rejected one review finding — it was a search-pattern artefact</span></div>
+      <div class="dchip owner"><span class="id">D-025</span><span>Confirm: hypothesis-testing moves to a later iteration</span></div>
+      <div class="dchip owner"><span class="id">D-026</span><span>Choose Option F, holding the one-week limit</span></div>
+      <div class="dchip"><span class="id">D-027</span><span>Keep the add-on as the container (reversible)</span></div>
+      <div class="dchip"><span class="id">D-028</span><span>Option F introduced two new risks of its own</span></div>
+      <div class="dchip kill"><span class="id">D-029</span><span>Option F marked NOT APPROVED — do not build</span></div>
+      <div class="dchip kill"><span class="id">D-030</span><span>Escalate Option G rather than pivot a third time alone</span></div>
+      <div class="dchip kill"><span class="id">D-031</span><span>The blocked definitions are the real critical path</span></div>
+      <div class="dchip kill"><span class="id">D-032</span><span>Four factual corrections, incl. the same quote inverted twice</span></div>
+    </div>
+  </section>
+
+  <!-- ================= NEXT ================= -->
+  <section>
+    <div class="shead">
+      <h2>What needs you</h2>
+      <p>Two of these unblock the work. The third is a choice about how to spend the first week.</p>
+    </div>
+    <div class="decide">
+      <div class="dcard hot">
+        <h3>1 · Settle the week convention</h3>
+        <p>Saturday→Friday, or Sunday→Saturday? Both are running in production right now and the knowledge base explicitly refuses to pick.</p>
+        <p><b>Until this is settled, every weekly figure any design produces is a coin-flip presented as a fact.</b></p>
+      </div>
+      <div class="dcard hot">
+        <h3>2 · Settle the fulfilment denominator</h3>
+        <p>All orders, or only those that reached a final state? The weekly report and the knowledge base currently disagree, and the gap entry says outright that no amount of investigation settles it — it’s a choice.</p>
+        <p><b>This is the number most likely to reach leadership and be wrong.</b></p>
+      </div>
+      <div class="dcard">
+        <h3>3 · Pick the approach</h3>
+        <p><b>Option G</b> — annotate the dashboards people already use. Cheapest, needs no install, puts the governance where the traffic is. Not yet independently reviewed.</p>
+        <p><b>Option F with fixes</b> — keep the card collection and repair what the review found.</p>
+        <p><b>Or pause</b> — settle 1 and 2 first, then choose with better information.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= GLOSSARY ================= -->
+  <section>
+    <div class="shead">
+      <h2>Plain-language glossary</h2>
+      <p>Terms used above, and what they actually mean here.</p>
+    </div>
+    <div class="gloss">
+      <div><dt>Knowledge base</dt><dd>A set of plain-text files recording what each business metric means, where the definition came from, and how much we trust it.</dd></div>
+      <div><dt>Metabase card</dt><dd>A single saved chart or table in Porter’s BI tool. A “collection” is a folder of them. Opening one is just following a web link.</dd></div>
+      <div><dt>Plugin / skill / add-on</dt><dd>A package someone installs into Claude so it gains knowledge or an ability. Installing is a deliberate act — which is why non-technical colleagues are hard to reach this way.</dd></div>
+      <div><dt>Blind review</dt><dd>A fresh reviewer is given the goal and the document, but never the author’s reasoning for why it’s right. The point is to catch errors the author’s own logic is blind to.</dd></div>
+      <div><dt>Denominator</dt><dd>The bottom of a fraction. Fulfilment is “orders completed ÷ demand” — and the argument is entirely about what counts as demand.</dd></div>
+      <div><dt>Grain and dimension</dt><dd>Grain is how finely time is sliced (daily, weekly, monthly). Dimension is how you cut it (by city, by route, by vehicle type).</dd></div>
+      <div><dt>Contested / blocked — owner</dt><dd>“Contested” means two answers are live and neither wins on evidence. “Blocked — owner” means only a person with authority can settle it; more analysis won’t.</dd></div>
+      <div><dt>Trigger-gated</dt><dd>Later stages start when a specific observable thing happens — not on a calendar date. Avoids committing to a roadmap we can’t predict.</dd></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Every figure on this page traces to <code>DISTRIBUTION-ARCHITECTURE-SPEC.md</code>, <code>coordination/DECISIONS.md</code>, or <code>coordination/BOARD.md</code>. Nothing here is estimated, projected, or inferred beyond the tags shown. Items marked <span class="mono">[unknown]</span> or <span class="mono">[assumption]</span> carry those tags in the source documents too.</p>
+    <p style="margin-top:8px">The specification itself is marked <b style="color:var(--stop)">NOT APPROVED</b> and should not be implemented from. Read its section 15 before any build decision.</p>
+  </footer>
+
+</div>
