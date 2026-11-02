@@ -16,7 +16,7 @@ built on it is **STALE**. Re-extract before trusting it. See CONTRIBUTING §5.
 | 33462 | 2026-07-28T09:54:28Z | 73 | 38287 | 2026-07-14T10:08:52Z | 73 |
 | 33483 | 2026-07-28T09:54:27Z | 73 | 39149 | 2026-07-14T10:55:48Z | 73 |
 | 33485 | 2026-01-09T09:12:11Z | 73 | 39107 | 2026-07-14T09:15:34Z | 73 |
-| 37419 | 2026-01-11T18:11:46Z | 73 | 39118 | 2025-10-07T11:47:51Z | 73 |
+| 37419 | 2026-01-11T18:11:46Z | 73 | 39118 | 2026-08-14T07:56:55Z | 73 |
 | 33466 | 2026-01-11T16:16:18Z | 73 | 43406 | 2025-12-01T09:46:29Z | 73 |
 | 43238 | 2026-02-09T09:57:42Z | 73 | 39104 | 2025-10-07T11:59:16Z | 73 |
 | 37104 | 2026-01-11T17:50:47Z | 73 | 38900 | 2025-09-16T11:32:57Z | 73 |
@@ -33,6 +33,25 @@ built on it is **STALE**. Re-extract before trusting it. See CONTRIBUTING §5.
 > ⚠️ **9 cards added 2026-07-30 (batch 2: 34052, 34364, 33784, 33823, 33785, 33824, 42081, 42080,
 > 37416) have NO fingerprint yet.** The worker that found them was scoped to metadata search, not
 > fingerprint capture — recorded here rather than guessed. → `G-152`
+> *(Partially closed 2026-08-07: **34052** = `2026-01-11T17:47:14Z`, **33784** = `2026-01-11T17:56:24Z`,
+> **42081** = `2026-08-05T17:51:14Z`. Seven remain.)*
+
+### Cards added 2026-08-07
+
+| card | name | `source_updated_at` | db | role |
+|---|---|---|---|---|
+| **52812** | PTL position on VSS | 2026-06-17T07:51:39Z | 73 | `M-024` — **the VSS TOF source the catalogue never pointed at.** Also emits PTL's list position and labels `vehicl_a_selected` as auto-selection (`M-026`) |
+| **43551** | SLA App sheet | 2026-06-08T10:41:23Z | 73 | `M-025` — **the live Perfect-Order metric (`OPOD`)**, in collection 5780 not on 4198 → `G-180` |
+| 44410 | VSS→Quote→BookNow session conversion | 2026-05-12T07:07:49Z | 73 | `M-009` — ⚠️ numerator is a **click**, no business filter → `G-183` |
+| 50929 | PTL Orders — Delay Research | 2026-06-05T12:01:28Z | 73 | Owner's own research card; documents `orders.trip_start/end_time` as 100%-covered. **Not an SLA source** — the SLA cards use `reached_pickup_at` arrival timestamps instead |
+
+> 🛑 **Dead cards — read before quoting anything from dashboard 4198's SLA tiles.**
+> **34052** (Perfect Order Experience) returns **0% for every month Feb-26 → Jul-26**.
+> **33784** (On-Time Pickup) returns **zero rows**. Both read `gsheet_sync.ptl_table`, whose sync
+> stopped after Jan-2026 (`T-077`). Because the join is `LEFT JOIN`, the failure renders as a
+> confident `0%` rather than an error. → `G-179`. Companion cards **33823 / 33785 / 33824 / 34364**
+> share the source and are near-certainly dead too — **not yet individually executed**, so they are
+> recorded as suspect, not confirmed.
 
 ### The three Metabase database connections
 | id | name | role here |
@@ -90,7 +109,7 @@ Route Level, OKR, Order Share, Clubbing.
 |---|---|---|---|
 | 33483 | Total Orders | `COUNT(DISTINCT external_id)`, online+offline union | M-002 |
 | 33485 / 37419 | Fulfilment % | `state=3 / all states` — **same formula, NOT byte-identical**: the SQL text differs (`is_active` vs `ptl_routes.is_active` join qualifier) and the display type differs (smartscalar vs bar) | M-003 |
-| 33466 / 43238 / 37104 | Fulfilment excl-60s | `completed / (all − cancels ≤60s)`, `<60s` **dropped from the DENOMINATOR** — verbatim: `COUNT(DISTINCT external_id) - COUNT(DISTINCT CASE WHEN DATEDIFF(SECOND, created_at, ocr_created_at) <= 60 THEN external_id END)`, numerator untouched. **33466 and 43238 return 5 metrics; 37104 returns only 3** (split by EDD dimension instead) | M-003, `G-002` |
+| 33466 / 43238 / 37104 | Fulfilment excl-60s | `completed / (all − cancels ≤60s)`, `<60s` **dropped from the DENOMINATOR** — verbatim: `COUNT(DISTINCT external_id) - COUNT(DISTINCT CASE WHEN DATEDIFF(SECOND, created_at, ocr_created_at) <= 60 THEN external_id END)`, numerator untouched. **33466 and 43238 return 5 metrics; 37104 returns only 3** (split by EDD dimension instead). 5th column is `unique_fulfillment_perc` → **`M-027`**, defective → `G-177` | M-003, `M-027`, `G-002` |
 | 43897 | Fulfilment Rate — Route | completed/all per route percentile bucket | — |
 | 33462 | Order Funnel | raw counts only (total/completed/cancelled/in-process); **no ratio in SQL** | — |
 | 33539 / 34506 / 39941 | Cancellation % | `state=4 / all` — **flat, no CBDF/CADF split** | `G-001` |
@@ -108,7 +127,11 @@ Route Level, OKR, Order Share, Clubbing.
 | 43896 | Same-day reorder after cancellation | — | — |
 
 **Title-vs-SQL mismatches:** the three "Fullfillment %" cards each return **5 metrics**, not one
-(cancellation %, in-process %, and a clustered "unique fulfilment %" ride along). "Total Revenue"
+(cancellation %, in-process %, and a clustered "unique fulfilment %" — now defined as **`M-027`**,
+read 2026-09-01 — ride along). ⚠️ **43238's real title is "Fullfillment excluding 60sec
+cancellations %"**, not "Fullfillment %" as previously recorded here; and 43238 joins `ptl_routes`
+on an **unqualified** `is_active = 'True'` where 33466 qualifies it — the same latent pattern as
+`G-026` / `G-176`, now recorded against this card too. "Total Revenue"
 (37413) also returns AOV, vendor cost and gross margin. → `G-022`
 
 **⚠️ This dashboard contains no CBDF/CADF split.** All 11 cancellation cards use flat `state = 4`
@@ -131,7 +154,7 @@ Poor Customer Retention, Conversion, First-time User Metrics.
 | 38283 | Revenue per Customer | — | — |
 | 39101 | AOV (overall / business / personal) | — | `M-008` |
 | 38619 / 44080 | Orders per Customer | — | — |
-| 39118 | Repeat Purchase Rate | **intra-period** ≥2 orders | `G-023` |
+| 39118 | Repeat Purchase Rate | **lifetime** order count >1 through end of period — *rewritten 2026-08-14, was intra-period ≥2* | `G-172` |
 | 39107 / 39149 | New vs Repeat % | **binary, lifetime-based** | `G-023` |
 | 35397 / 44086 | Cohort Retention M0–M12 | — | `M-011` |
 | 43406 / 44088 | Aggregate M1/M3/M6/M12 Retention | — | `M-011` |
