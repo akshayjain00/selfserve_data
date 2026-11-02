@@ -1,0 +1,2 @@
+SELECT card_id, COALESCE(PARSE_JSON(dataset_query):stages[0]:native::string, PARSE_JSON(dataset_query):native:query::string) AS q
+FROM PROD_ELDORIA.raw.metabase_public_report_card WHERE card_id IN (37416, 43940)

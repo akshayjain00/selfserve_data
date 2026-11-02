@@ -1,0 +1,376 @@
+{
+ "cache_invalidated_at": "2026-10-23T09:31:28.744039Z",
+ "description": "Session conversion per arm with a delta-method z-test clustered by customer (Statsig randomises customers, not sessions). Fixed-sample test: Statsig console CIs use sequential testing and are ~1.85x wider. Control = arm named Control/fail.",
+ "archived": false,
+ "view_count": 15,
+ "collection_position": null,
+ "source_card_id": null,
+ "table_id": null,
+ "can_run_adhoc_query": true,
+ "result_metadata": [
+  {
+   "name": "Metric",
+   "database_type": "VARCHAR",
+   "base_type": "type/Text",
+   "display_name": "Metric",
+   "field_ref": [
+    "field",
+    "Metric",
+    {
+     "base-type": "type/Text"
+    }
+   ]
+  },
+  {
+   "name": "Arms",
+   "database_type": "VARCHAR",
+   "base_type": "type/Text",
+   "display_name": "Arms",
+   "field_ref": [
+    "field",
+    "Arms",
+    {
+     "base-type": "type/Text"
+    }
+   ]
+  },
+  {
+   "name": "Control Customers",
+   "database_type": "NUMBER",
+   "base_type": "type/Number",
+   "display_name": "Control Customers",
+   "field_ref": [
+    "field",
+    "Control Customers",
+    {
+     "base-type": "type/Number"
+    }
+   ]
+  },
+  {
+   "name": "Test Customers",
+   "database_type": "NUMBER",
+   "base_type": "type/Number",
+   "display_name": "Test Customers",
+   "field_ref": [
+    "field",
+    "Test Customers",
+    {
+     "base-type": "type/Number"
+    }
+   ]
+  },
+  {
+   "name": "Control Sessions",
+   "database_type": "NUMBER",
+   "base_type": "type/Number",
+   "display_name": "Control Sessions",
+   "field_ref": [
+    "field",
+    "Control Sessions",
+    {
+     "base-type": "type/Number"
+    }
+   ]
+  },
+  {
+   "name": "Test Sessions",
+   "database_type": "NUMBER",
+   "base_type": "type/Number",
+   "display_name": "Test Sessions",
+   "field_ref": [
+    "field",
+    "Test Sessions",
+    {
+     "base-type": "type/Number"
+    }
+   ]
+  },
+  {
+   "name": "Control %",
+   "database_type": "NUMBER",
+   "base_type": "type/Number",
+   "display_name": "Control %",
+   "field_ref": [
+    "field",
+    "Control %",
+    {
+     "base-type": "type/Number"
+    }
+   ]
+  },
+  {
+   "name": "Test %",
+   "database_type": "NUMBER",
+   "base_type": "type/Number",
+   "display_name": "Test %",
+   "field_ref": [
+    "field",
+    "Test %",
+    {
+     "base-type": "type/Number"
+    }
+   ]
+  },
+  {
+   "name": "\u0394 (pp)",
+   "database_type": "NUMBER",
+   "base_type": "type/Number",
+   "display_name": "\u0394 (pp)",
+   "field_ref": [
+    "field",
+    "\u0394 (pp)",
+    {
+     "base-type": "type/Number"
+    }
+   ]
+  },
+  {
+   "name": "Lift %",
+   "database_type": "NUMBER",
+   "base_type": "type/Number",
+   "display_name": "Lift %",
+   "field_ref": [
+    "field",
+    "Lift %",
+    {
+     "base-type": "type/Number"
+    }
+   ]
+  },
+  {
+   "name": "95% CI Low (pp)",
+   "database_type": "DOUBLE",
+   "base_type": "type/Float",
+   "display_name": "95% CI Low (pp)",
+   "field_ref": [
+    "field",
+    "95% CI Low (pp)",
+    {
+     "base-type": "type/Float"
+    }
+   ]
+  },
+  {
+   "name": "95% CI High (pp)",
+   "database_type": "DOUBLE",
+   "base_type": "type/Float",
+   "display_name": "95% CI High (pp)",
+   "field_ref": [
+    "field",
+    "95% CI High (pp)",
+    {
+     "base-type": "type/Float"
+    }
+   ]
+  },
+  {
+   "name": "p-value",
+   "database_type": "DOUBLE",
+   "base_type": "type/Float",
+   "display_name": "p-value",
+   "field_ref": [
+    "field",
+    "p-value",
+    {
+     "base-type": "type/Float"
+    }
+   ]
+  },
+  {
+   "name": "Significant (95%)",
+   "database_type": "VARCHAR",
+   "base_type": "type/Text",
+   "display_name": "Significant (95%)",
+   "field_ref": [
+    "field",
+    "Significant (95%)",
+    {
+     "base-type": "type/Text"
+    }
+   ]
+  }
+ ],
+ "embedding_type": null,
+ "creator": {
+  "email": "devansh.sharma@theporter.in",
+  "first_name": "Devansh",
+  "is_data_analyst": false,
+  "last_login": "2026-10-26T07:36:40.648107Z",
+  "is_qbnewb": false,
+  "is_superuser": false,
+  "id": 4411,
+  "last_name": "Sharma",
+  "tenant_id": null,
+  "date_joined": "2026-01-20T07:10:08.556713Z",
+  "common_name": "Devansh Sharma"
+ },
+ "initially_published_at": null,
+ "can_write": true,
+ "card_schema": 23,
+ "database_id": 73,
+ "enable_embedding": false,
+ "collection_id": 5404,
+ "query_type": "native",
+ "name": "Session Conversion - Lift & Significance (customer-clustered)",
+ "last_query_start": "2026-10-26T07:45:09.873182Z",
+ "is_remote_synced": false,
+ "dashboard_count": 1,
+ "document_id": null,
+ "last_used_at": "2026-10-26T07:45:09.881327Z",
+ "dashboard": null,
+ "type": "question",
+ "dimensions": null,
+ "average_query_time": 13541.0,
+ "creator_id": 4411,
+ "can_restore": false,
+ "moderation_reviews": [],
+ "updated_at": "2026-10-23T09:31:28.740487Z",
+ "made_public_by_id": null,
+ "embedding_params": null,
+ "cache_ttl": null,
+ "dataset_query": {
+  "lib/type": "mbql/query",
+  "database": 73,
+  "stages": [
+   {
+    "lib/type": "mbql.stage/native",
+    "template-tags": {
+     "new_repeat": {
+      "name": "new_repeat",
+      "id": "86628fba-d53f-4abe-96b3-a12414c58a4d",
+      "display-name": "New Repeat",
+      "type": "text",
+      "required": false
+     },
+     "experiment_id": {
+      "id": "62062c71-5a15-4d00-9ea9-3bb533cc4076",
+      "display-name": "Experiment ID",
+      "type": "text",
+      "required": true,
+      "name": "experiment_id",
+      "default": "ptl_partner_found_comms"
+     },
+     "start_date": {
+      "name": "start_date",
+      "id": "ae2a0c7d-7b9e-4259-8adf-01015d73f627",
+      "display-name": "Start Date",
+      "type": "date",
+      "required": false
+     },
+     "end_date": {
+      "name": "end_date",
+      "id": "095e9398-c2bd-4bc1-8d15-508a5890331e",
+      "display-name": "End Date",
+      "type": "date",
+      "required": false
+     },
+     "pickup_city": {
+      "name": "pickup_city",
+      "id": "fc989183-9bbc-4dce-a180-9513acec1348",
+      "display-name": "Pickup City",
+      "type": "text",
+      "required": false
+     },
+     "route": {
+      "name": "route",
+      "id": "97ed6787-bf63-4dfc-bff5-d3e848616d56",
+      "display-name": "Route",
+      "type": "text",
+      "required": false
+     },
+     "customer_category": {
+      "name": "customer_category",
+      "id": "00aa5a36-4220-459e-96e6-f5cf3ca68b7f",
+      "display-name": "Customer Category",
+      "type": "text",
+      "required": false
+     },
+     "device_platform": {
+      "name": "device_platform",
+      "id": "ce74d57a-7725-4328-9bd2-ef82fa4748b2",
+      "display-name": "Device Platform",
+      "type": "text",
+      "required": false
+     }
+    },
+    "native": "-- Dashboard 6361 (A/B: Experiment observability) | Database 73\n-- SESSION CONVERSION BASE (shared by every card on the \"Session Conversion\" tab)\n--\n-- Unit of analysis: app_session_id. Entry = a PTL Confirm (vehicle 1159) on/after the\n-- customer's first Statsig exposure. Steps must happen in order within the session:\n--   1 Confirm -> 2 Quote viewed -> 3 Book now -> 4 Order placed -> 5 Completed (state 3)\n-- Steps 4/5 link the Book-now event's variable_attr:order_id to ORDERS.external_id\n-- (same join as dashboard 6174 card 49611; 99.8% of Book-now sessions match an order).\n--\n-- RANDOMISATION: Statsig assigns per CUSTOMER, not per session. Session-level rates are\n-- fine to read, but any significance test must cluster sessions by customer (see the\n-- \"Lift & Significance\" card, delta method).\n--\n-- PII MASKING (live 2026-10-05): never join on mobile. PTL_FE_EVENTS.customer_id = OMS\n-- customers.id (text); ORDERS.customer_id = customers.uuid; internal users are excluded by\n-- PTL_INTERNAL_USERS.customer_uuid.\n--\n-- TIMESTAMP CONTRACT: PTL_FE_EVENTS.EVENT_TIMESTAMP is TIMESTAMP_LTZ. It is normalised to\n-- NTZ-in-UTC once (ptl_events) and then converted to IST with the single house idiom.\n-- Do NOT apply CONVERT_TIMEZONE('UTC','Asia/Kolkata', ...) to the raw LTZ column.\n\nWITH exposures AS (\n    SELECT e.customer_id AS statsig_customer_id, e.group_name,\n           CONVERT_TIMEZONE('UTC','Asia/Kolkata', e.timestamp) AS exposure_ist\n    FROM PROD_ELDORIA.RAW.STATSIG_PROD_EXPOSURES e\n    WHERE e.experiment_id = {{experiment_id}}\n    QUALIFY ROW_NUMBER() OVER (PARTITION BY e.customer_id ORDER BY e.timestamp) = 1\n),\ncust AS (\n    SELECT TO_VARCHAR(c.id) AS customer_id, c.uuid AS customer_uuid, c.frequency, c.platform\n    FROM PROD_CURATED.OMS_PUBLIC.CUSTOMERS c\n),\ninternal_users AS (\n    SELECT DISTINCT customer_uuid\n    FROM PROD_CURATED.PARTLOAD_ANALYTICS.PTL_INTERNAL_USERS\n    WHERE customer_uuid IS NOT NULL\n),\nptl_events AS (\n    SELECT fe.app_session_id,\n           fe.customer_id,\n           fe.event_name,\n           CONVERT_TIMEZONE('UTC', fe.event_timestamp)::TIMESTAMP_NTZ          AS event_ts_utc,\n           TRY_PARSE_JSON(fe.variable_attr):vehicle_id::STRING                AS vehicle_id,\n           TRY_TO_NUMBER(TRY_PARSE_JSON(fe.variable_attr):route_id::STRING)   AS route_id,\n           TRY_PARSE_JSON(fe.variable_attr):order_id::STRING                  AS order_external_id\n    FROM PROD_CURATED.PARTLOAD_ANALYTICS.PTL_FE_EVENTS fe\n    WHERE fe.app_session_id IS NOT NULL\n      AND fe.event_name IN (\n            'vehicleselectionscreen_confirm_clicked',\n            'ptlbookingdetailspage_quote_viewed',\n            'ptlbookingdetailspage_booknow_clicked')\n),\nroutes AS (\n    SELECT route_id, route_name, pickup_city\n    FROM PROD_CURATED.PARTLOAD_ANALYTICS.PTL_ROUTES\n    QUALIFY ROW_NUMBER() OVER (PARTITION BY route_id ORDER BY route_updated_at DESC NULLS LAST) = 1\n),\nfirst_completed AS (\n    SELECT customer_id AS customer_uuid,\n           MIN(CONVERT_TIMEZONE('UTC','Asia/Kolkata', created_at)) AS first_completed_ist\n    FROM PROD_CURATED.PARTLOAD_APPLICATION.ORDERS\n    WHERE state = 3\n    GROUP BY 1\n),\nev AS (\n    SELECT pe.*,\n           x.group_name AS variant,\n           CONVERT_TIMEZONE('UTC','Asia/Kolkata', pe.event_ts_utc) AS ts_ist\n    FROM ptl_events pe\n    JOIN exposures x\n      ON pe.customer_id = x.statsig_customer_id\n     AND CONVERT_TIMEZONE('UTC','Asia/Kolkata', pe.event_ts_utc) >= x.exposure_ist\n),\nbooked_orders AS (\n    -- every order created from a Book-now click in the session\n    SELECT ev.app_session_id,\n           MAX(1)                         AS order_placed,\n           MAX(IFF(o.state = 3, 1, 0))    AS order_completed\n    FROM ev\n    JOIN PROD_CURATED.PARTLOAD_APPLICATION.ORDERS o\n      ON o.external_id = ev.order_external_id\n    WHERE ev.event_name = 'ptlbookingdetailspage_booknow_clicked'\n    GROUP BY 1\n),\nsess AS (\n    SELECT app_session_id,\n           MIN(variant)           AS variant,\n           COUNT(DISTINCT variant) AS n_variants,  -- >1 = events from customers in both arms\n           MIN(customer_id)       AS customer_id,\n           MAX(route_id)          AS route_id,\n           MIN(CASE WHEN event_name='vehicleselectionscreen_confirm_clicked'\n                     AND vehicle_id='1159' THEN ts_ist END) AS t1,\n           MAX(CASE WHEN event_name='ptlbookingdetailspage_quote_viewed'    THEN ts_ist END) AS t2,\n           MAX(CASE WHEN event_name='ptlbookingdetailspage_booknow_clicked' THEN ts_ist END) AS t3\n    FROM ev\n    GROUP BY 1\n),\nfiltered AS (\n    SELECT s.*,\n           r.pickup_city, r.route_name,\n           CASE WHEN c.frequency IN (1,2,3,4) THEN 'Business' ELSE 'Personal' END AS customer_category,\n           CASE c.platform WHEN 0 THEN 'Android' WHEN 1 THEN 'iOS' ELSE 'Other' END AS device_platform,\n           CASE WHEN fc.first_completed_ist IS NULL\n                     OR fc.first_completed_ist >= s.t1\n                THEN 'New' ELSE 'Repeat' END AS customer_tenure,\n           IFF(s.t2 >= s.t1, 1, 0)                                         AS is_quote,\n           IFF(s.t2 >= s.t1 AND s.t3 >= s.t2, 1, 0)                        AS is_booknow,\n           IFF(s.t2 >= s.t1 AND s.t3 >= s.t2\n               AND COALESCE(bo.order_placed, 0) = 1, 1, 0)                 AS is_placed,\n           IFF(s.t2 >= s.t1 AND s.t3 >= s.t2\n               AND COALESCE(bo.order_completed, 0) = 1, 1, 0)              AS is_completed\n    FROM sess s\n    LEFT JOIN cust c             ON c.customer_id = s.customer_id\n    LEFT JOIN routes r           ON r.route_id    = s.route_id\n    LEFT JOIN first_completed fc ON fc.customer_uuid = c.customer_uuid\n    LEFT JOIN booked_orders bo   ON bo.app_session_id = s.app_session_id\n    WHERE s.t1 IS NOT NULL\n      AND s.n_variants = 1          -- drop sessions that mix arms (shared device / re-login)\n      AND (c.customer_uuid IS NULL OR c.customer_uuid NOT IN (SELECT customer_uuid FROM internal_users))\n      [[AND s.t1 >= {{start_date}}]]\n      [[AND s.t1 <  DATEADD('day', 1, {{end_date}}::date)]]\n      [[AND r.pickup_city IN ({{pickup_city}})]]\n      [[AND r.route_name  IN ({{route}})]]\n),\nscoped AS (\n    SELECT * FROM filtered\n    WHERE 1=1\n      [[AND customer_category IN ({{customer_category}})]]\n      [[AND customer_tenure   IN ({{new_repeat}})]]\n      [[AND device_platform   IN ({{device_platform}})]]\n),\nper_cust AS (\n    SELECT variant, customer_id,\n           COUNT(*) AS den, SUM(is_quote) AS q, SUM(is_booknow) AS b,\n           SUM(is_placed) AS p, SUM(is_completed) AS c\n    FROM scoped GROUP BY 1,2\n),\nlng AS (\n              SELECT 1 AS ord, 'Confirm \u2192 Quote Viewed' AS metric, variant, den, q AS num FROM per_cust\n    UNION ALL SELECT 2, 'Quote Viewed \u2192 Book Now', variant, q, b FROM per_cust WHERE q > 0\n    UNION ALL SELECT 3, 'Confirm \u2192 Book Now',     variant, den, b FROM per_cust\n    UNION ALL SELECT 4, 'Confirm \u2192 Order Placed', variant, den, p FROM per_cust\n    UNION ALL SELECT 5, 'Confirm \u2192 Completed',    variant, den, c FROM per_cust\n),\narm AS (\n    SELECT ord, metric, variant,\n           IFF(LOWER(variant) IN ('control','fail'), 'C', 'T') AS role,\n           COUNT(*) AS n, SUM(num) AS sx, SUM(den) AS sy,\n           AVG(num) AS mx, AVG(den) AS my,\n           VAR_POP(num) AS vx, VAR_POP(den) AS vy, COVAR_POP(num, den) AS cxy\n    FROM lng GROUP BY 1,2,3\n),\narm2 AS (\n    SELECT *, sx/NULLIF(sy,0) AS r,\n           (vx/POWER(my,2) - 2*mx*cxy/POWER(my,3) + POWER(mx,2)*vy/POWER(my,4)) / n AS var_r\n    FROM arm\n),\npair AS (\n    SELECT c.ord, c.metric, c.variant AS control_arm, t.variant AS test_arm,\n           c.n AS cust_c, t.n AS cust_t, c.sy AS sess_c, t.sy AS sess_t,\n           c.r AS rc, t.r AS rt, SQRT(c.var_r + t.var_r) AS se,\n           ABS(t.r - c.r) / NULLIF(SQRT(c.var_r + t.var_r),0) / SQRT(2) AS x\n    FROM arm2 c JOIN arm2 t ON t.metric = c.metric AND c.role = 'C' AND t.role = 'T'\n),\npv AS (\n    SELECT *, 1/(1+0.3275911*x) AS tt FROM pair\n)\nSELECT metric                                   AS \"Metric\",\n       control_arm || ' vs ' || test_arm         AS \"Arms\",\n       cust_c                                   AS \"Control Customers\",\n       cust_t                                   AS \"Test Customers\",\n       sess_c                                   AS \"Control Sessions\",\n       sess_t                                   AS \"Test Sessions\",\n       ROUND(100*rc, 2)                         AS \"Control %\",\n       ROUND(100*rt, 2)                         AS \"Test %\",\n       ROUND(100*(rt-rc), 2)                    AS \"\u0394 (pp)\",\n       ROUND(100*(rt/NULLIF(rc,0)-1), 2)        AS \"Lift %\",\n       ROUND(100*(rt-rc-1.96*se), 2)            AS \"95% CI Low (pp)\",\n       ROUND(100*(rt-rc+1.96*se), 2)            AS \"95% CI High (pp)\",\n       ROUND(tt*(0.254829592+tt*(-0.284496736+tt*(1.421413741+tt*(-1.453152027+tt*1.061405429))))\n             * EXP(-x*x), 4)                    AS \"p-value\",\n       IFF(tt*(0.254829592+tt*(-0.284496736+tt*(1.421413741+tt*(-1.453152027+tt*1.061405429))))\n             * EXP(-x*x) < 0.05, 'Yes', 'No')   AS \"Significant (95%)\"\nFROM pv\nORDER BY ord, test_arm;\n"
+   }
+  ]
+ },
+ "dimension_mappings": null,
+ "id": 63201,
+ "legacy_query": null,
+ "parameter_mappings": [],
+ "can_manage_db": false,
+ "display": "table",
+ "archived_directly": false,
+ "entity_id": "b6fhzhlirH0neUnmmvM9Y",
+ "param_fields": {},
+ "collection_preview": true,
+ "last-edit-info": {
+  "id": 4411,
+  "email": "devansh.sharma@theporter.in",
+  "first_name": "Devansh",
+  "last_name": "Sharma",
+  "timestamp": "2026-10-23T09:31:28.791798Z"
+ },
+ "visualization_settings": {
+  "table.column_formatting": [
+   {
+    "columns": [
+     "\u0394 (pp)",
+     "Lift %"
+    ],
+    "type": "single",
+    "operator": ">",
+    "value": 0,
+    "color": "#84BB4C",
+    "highlight_row": false
+   },
+   {
+    "columns": [
+     "\u0394 (pp)",
+     "Lift %"
+    ],
+    "type": "single",
+    "operator": "<",
+    "value": 0,
+    "color": "#ED6E6E",
+    "highlight_row": false
+   }
+  ],
+  "column_settings": {
+   "[\"name\",\"p-value\"]": {
+    "decimals": 4
+   }
+  }
+ },
+ "collection": {
+  "authority_level": null,
+  "description": null,
+  "archived": false,
+  "workspace_id": null,
+  "slug": "a_b",
+  "archive_operation_id": null,
+  "name": "A/B",
+  "is_remote_synced": false,
+  "personal_owner_id": null,
+  "type": null,
+  "is_sample": false,
+  "id": 5404,
+  "archived_directly": null,
+  "entity_id": "dlneB7c2zV_Bo25pqgt_8",
+  "location": "/5134/",
+  "namespace": null,
+  "is_personal": false,
+  "created_at": "2025-07-31T11:46:12.389116Z"
+ },
+ "metabase_version": "v0.60.3.8 (95ddde1)",
+ "parameters": [],
+ "dashboard_id": null,
+ "created_at": "2026-10-23T09:20:04.029545Z",
+ "parameter_usage_count": 0,
+ "public_uuid": null,
+ "can_delete": false
+}

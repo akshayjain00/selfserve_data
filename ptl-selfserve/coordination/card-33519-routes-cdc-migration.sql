@@ -1,0 +1,219 @@
+-- ============================================================================
+-- Route lookup migration — APPLIED to TWO cards, both db83, "Raw tables":
+--   card 33519 "Ops - Orders Details"          2026-09-04T17:11:45Z   93,521 views
+--   card 49438 "Overall Ops - Orders Details"  2026-09-04T17:24:55Z  115,352 views
+-- Backups:
+--   coordination/card-33519.pre-migration-2026-09-04.sql
+--   coordination/card-49438.pre-migration-2026-09-04.sql
+-- See the CARD 49438 section for its specifics, and
+-- coordination/task-insert-order-snapshot-final-v2.sql for the Snowflake task
+-- (NOT yet applied — it needs a RESUME step, see that file).
+--
+-- IMPORTANT — the cards were ALREADY HALF-MIGRATED before this change.
+-- An edit on 2026-08-25 had already added the CDC join and repointed
+-- route_name to it:
+--     REPLACE(r.route_label, '-', ' - ') AS route_name
+--     LEFT JOIN PROD_CURATED.PARTLOAD_APPLICATION.ROUTES r
+--            ON r.id = ORDERS.route_id
+--           AND r.is_active = TRUE          <-- the bug
+-- but left `city` on ptl_routes and left the active-flag predicate in place.
+-- That predicate is why new routes never appeared: it is a real lifecycle flag
+-- on the CDC table (23 of 97 routes are inactive), unlike ptl_routes.is_active
+-- which excluded nothing and existed only to dedupe 132 rows down to 96.
+-- ============================================================================
+
+
+-- ---------------------------------------------------------------------------
+-- CHANGE 1 — drop the active-flag predicate from the CDC join, add SERVICE_ZONES
+-- ---------------------------------------------------------------------------
+-- ROUTES is CDC and holds exactly 1 row per route id (97 rows / 97 ids,
+-- verified), so the predicate did no dedupe work. It only hid routes the app
+-- has not activated yet, which still take orders.
+--
+-- BEFORE:
+--   LEFT JOIN PROD_CURATED.PARTLOAD_APPLICATION.ROUTES r
+--          ON r.id = ORDERS.route_id
+--         AND r.is_active = TRUE
+-- AFTER:
+--   LEFT JOIN PROD_CURATED.PARTLOAD_APPLICATION.ROUTES r
+--          ON r.id = ORDERS.route_id
+--   LEFT JOIN PROD_CURATED.PARTLOAD_APPLICATION.SERVICE_ZONES pz
+--          ON pz.id = r.pickup_service_zone_id
+
+
+-- ---------------------------------------------------------------------------
+-- CHANGE 2 — city falls back to the service zone for routes ptl_routes lacks
+-- ---------------------------------------------------------------------------
+-- BEFORE:  ptl_routes.zone AS city,
+-- AFTER:
+--   COALESCE(
+--       ptl_routes.zone,
+--       CASE pz.service_zone_name
+--           WHEN 'Pune'       THEN 'Mumbai'
+--           WHEN 'Surat'      THEN 'Mumbai'
+--           WHEN 'Ahmedabad'  THEN 'Mumbai'
+--           WHEN 'Nashik'     THEN 'Mumbai'
+--           WHEN 'Coimbatore' THEN 'Chennai'
+--           WHEN 'Tiruppur'   THEN 'Chennai'
+--           WHEN 'Kochi'      THEN 'Bangalore'
+--           ELSE pz.service_zone_name
+--       END
+--   ) AS city,
+--
+-- ptl_routes.zone is an OPS HUB grouping, not a pickup city --
+-- SERVICE_ZONE_NAME alone reproduces it for only 74 of 95 routes. The 7
+-- rollups close the other 21. COALESCE (rather than outright replacement)
+-- keeps all 95 pre-existing routes byte-identical; only routes absent from
+-- ptl_routes take the new branch.
+
+
+-- ---------------------------------------------------------------------------
+-- NOT DONE on the cards, deliberately: the route_name spelling fixups
+-- ---------------------------------------------------------------------------
+-- An earlier draft proposed a 4-row CASE mapping CDC labels back to
+-- ptl_routes spellings (Mysore->Mysuru, Bellari->Bellary,
+-- Devanagere->Davanagere, HubliDharwad->Hubli_Dharwad) to stay compatible with
+-- saved filter values. That was based on comparing the two TABLES.
+--
+-- It was NOT applied to the cards, because their route_name had already moved
+-- to CDC labels on 2026-08-25. Applying the CASE would have CHANGED 4 routes'
+-- current output, not preserved it -- the opposite of the intent.
+--
+-- NOTE: the opposite call was made for the Snowflake TASK, and correctly so --
+-- a card recomputes from scratch on every run, so it cannot hold mixed
+-- spellings, whereas the task's target table accumulates 120k rows and would.
+-- See coordination/task-insert-order-snapshot-final-v2.sql.
+
+
+-- ---------------------------------------------------------------------------
+-- STILL OPEN — the filter widgets are NOT migrated
+-- ---------------------------------------------------------------------------
+-- The ptl_routes join is deliberately RETAINED. Both filter widgets are
+-- Metabase *field filters* bound to physical ptl_routes columns:
+--     {{route_name}} -> field 4268447 = PARTLOAD_ANALYTICS.PTL_ROUTES.ROUTE_NAME
+--     {{city}}       -> field 4268450 = PARTLOAD_ANALYTICS.PTL_ROUTES.ZONE
+-- used in the SQL as `[[AND {{route_name}}]]` / `[[AND {{city}}]]`, which
+-- Metabase expands into a predicate on the BOUND field's own table. Dropping
+-- the ptl_routes join would make those predicates reference a table no longer
+-- in the FROM clause -- the card would error for anyone using either filter.
+--
+-- Consequences to be aware of, all pre-existing:
+--   (a) New routes appear in the unfiltered card but are INVISIBLE to the
+--       route_name / city filters, because they have no ptl_routes row and the
+--       dropdowns are scanned from ptl_routes columns (has_field_values=list).
+--   (b) The dropdown offers legacy spellings ('Bangalore - Mysuru') while the
+--       column now renders app spellings ('Bangalore - Mysore'). Filtering
+--       still works -- it filters ptl_routes.ROUTE_NAME, which is still joined.
+--   (c) {{city}} cannot simply be rebound: city is now a COALESCE/CASE
+--       expression, and a Metabase field filter must bind to a physical
+--       column. Rebinding it means either demoting the widget to a plain text
+--       parameter (losing the multi-select dropdown) or materialising the
+--       route dimension somewhere.
+--
+-- The durable fix for all three is a governed route dimension in the dbt layer
+-- that carries route_id, route_name and the ops hub as real columns. Until
+-- then ptl_routes survives purely as filter scaffolding.
+
+
+-- ---------------------------------------------------------------------------
+-- VERIFICATION performed before saving (via POST /api/dataset, unsaved)
+-- ---------------------------------------------------------------------------
+--   baseline vs patched, card's own CURRENT_DATE -1..+2 window:
+--     rows                        1237 -> 1237   (delta 0)
+--     columns                       39 -> 39     (identical set and order)
+--     route_ids with changed (route_name, city)  0
+--     route_ids added / removed from the view    0 / 0
+--     rows with NULL route_name or city          0 -> 0
+--   with is_test=True (to reach the excluded test order):
+--     route 98 -> route_name 'Mysore - Bangalore', city 'Mysore'
+--
+-- Post-save run of the live card: 1237 rows, 70 routes, 0 NULLs,
+-- cities unchanged at Bangalore / Chennai / Hyderabad / Mumbai.
+--
+-- 2026-09-07 follow-up: route 98 went fully live (IS_ACTIVE flipped true at
+-- 16:01 on 2026-09-04) and now carries 22 orders, 21 from real users. It is
+-- visible on 33519's default view (12 orders in window). It is NOT visible on
+-- 49438 by default -- that card's date range defaults to 2026-01-01..2026-04-30
+-- on created_at, and route 98's orders were all created in September. Widening
+-- the range to September surfaces 21 of them.
+
+
+-- ---------------------------------------------------------------------------
+-- WHY Mysore-Bangalore WAS NOT VISIBLE ON 2026-09-04
+-- ---------------------------------------------------------------------------
+-- The fix was working; the data did not qualify. Route 98's only order at that
+-- point was a CANCELLED order (state=4) placed by an INTERNAL/TEST user, and
+-- the is_test parameter defaults to False, so it was correctly excluded.
+-- Route 97 (Tiruppur-Chennai) was likewise absent from 33519: its 4 orders
+-- have pickup slots on 2026-08-11, outside CURRENT_DATE -1..+2.
+--
+-- OPEN QUESTION for ops: route 98 renders city='Mysore', a city value these
+-- cards had never emitted before (only Bangalore, Chennai, Hyderabad, Mumbai).
+-- If Mysore belongs to the Bangalore hub -- as Kochi does -- the rollup needs
+-- an 8th row. Not derivable from any table; needs an ops decision. As of
+-- 2026-09-07 real orders exist, so this is no longer a free change.
+
+
+-- ============================================================================
+-- CARD 49438 "Overall Ops - Orders Details"  —  APPLIED 2026-09-04T17:24:55Z
+-- ============================================================================
+-- Same two changes, same rationale. It had been half-migrated in the same
+-- batch as 33519 (updated_at 07:26:47 vs 07:23:47 on 2026-08-25) and carried
+-- the identical active-flag predicate.
+--
+-- Differences from 33519 worth knowing:
+--
+-- 1. WINDOW. 33519 is hard-bounded to CURRENT_DATE -1..+2. 49438 takes a
+--    user-supplied {{start_date}}/{{end_date}} range on orders.created_at
+--    (defaults 2026-01-01 .. 2026-04-30). So the deactivated-route history is
+--    fully reachable here, which made the flag predicate an ACTIVE reporting
+--    bug rather than a latent one.
+--
+-- 2. THREE ptl_routes references, all retained:
+--      line ~15  LEFT JOIN ... ptl_routes      -> CTE, supplies drop_city
+--      line ~37  FROM partload_analytics.ptl_routes -> return_route_id CTE,
+--                supplies return_trip_cutoff_days
+--      line ~261 LEFT JOIN ... ptl_routes      -> main query; backs the
+--                {{route_name}} / {{city}} field filters and the city COALESCE
+--    Only the third is affected by this change. The CTE dependencies on
+--    drop_city and return_trip_cutoff_days have NO CDC equivalent yet and were
+--    left alone.
+--
+-- 3. `and {{city}}` is NOT wrapped in [[ ]] here, unlike 33519's
+--    `[[AND {{city}}]]`. Metabase substitutes `1 = 1` for an unset field
+--    filter, so it is harmless, but it means the tag cannot simply be deleted.
+--    It also means the mandatory date predicate cannot be bypassed by
+--    supplying only {{order_id}} -- see the 2026-09-07 note above.
+--
+-- 4. Field filters bind to the SAME two ptl_routes fields as 33519
+--    (4268447 ROUTE_NAME, 4268450 ZONE), so the same "new routes are invisible
+--    to the filters" caveat applies verbatim.
+--
+-- VERIFICATION (POST /api/dataset, unsaved, window narrowed to
+-- 2026-06-01..2026-06-11 because the default range exceeds the API timeout):
+--     rows                    2000 -> 2000   (delta 0)
+--     columns                   36 -> 36     (identical set and order)
+--     rows with NULL route_name  26 -> 0
+--     rows with NULL city         0 -> 0
+--     route_ids added / removed   0 / 0
+--     route_ids whose name/city CHANGED from a non-NULL value: 0
+--     nine deactivated routes recovered their names:
+--       16 Bangalore - Krishnagiri   23 Bangalore - Puducherry
+--       31 Bangalore - Bellari       32 Bangalore - Kurnool
+--       33 Bangalore - Anantapur     34 Bangalore - Raichur
+--       61 Hyderabad - Medak         77 Chennai - Tirupati
+--       78 Chennai - Nellore
+--
+-- CAVEAT ON THAT VERIFICATION: Metabase's /api/dataset caps results at 2000
+-- rows (rows_truncated=2000 on both runs), so the row-level diff covers the
+-- first 2000 rows of that window, not the whole window. The route-level
+-- conclusion is sound for the routes observed; it is not a full-table proof.
+--
+-- Post-save run of the saved card over the same window: 2000 rows, 81 routes,
+-- 0 NULL route_name, 0 NULL city, cities unchanged at
+-- Bangalore / Chennai / Hyderabad / Mumbai.
+--
+-- NOTE: route 31 now renders 'Bangalore - Bellari' (app spelling). ptl_routes
+-- spells it 'Bangalore - Bellary'. This is the pre-existing dropdown-vs-column
+-- divergence described above, not a new defect -- but it is now VISIBLE on
+-- this card where before the name was simply blank.

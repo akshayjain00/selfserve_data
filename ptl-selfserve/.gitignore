@@ -1,0 +1,21 @@
+# Secrets — never commit
+.env
+*.env
+!*.env.example
+statsig-mcp/.env
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Claude Code worktrees (each is its own checkout)
+.claude/worktrees/
+
+# Row-level data exports — this repo is PUBLIC; keep them local or on Drive
+*.csv
+*.xlsx
+*.zip

@@ -1,0 +1,77 @@
+WITH total_orders AS (
+    SELECT DATE_TRUNC('month', CONVERT_TIMEZONE('UTC','Asia/Kolkata', TO_TIMESTAMP(ORDERS.created_at))) AS period,
+           COUNT(DISTINCT id) AS placed_orders,
+           COUNT(DISTINCT CASE WHEN orders.state = 3 THEN id END) AS completed_orders
+    FROM PROD_CURATED.PARTLOAD_APPLICATION.ORDERS
+    LEFT JOIN PROD_CURATED.PARTLOAD_ANALYTICS.PTL_INTERNAL_USERS ON PTL_INTERNAL_USERS.mobile = ORDERS.customer_mobile
+    WHERE ptl_internal_users.mobile IS NULL
+      AND CONVERT_TIMEZONE('UTC','Asia/Kolkata', TO_TIMESTAMP(ORDERS.created_at))::date >= DATE '2026-01-01'
+      AND CONVERT_TIMEZONE('UTC','Asia/Kolkata', TO_TIMESTAMP(ORDERS.created_at))::date <= DATE '2026-09-30'
+    GROUP BY 1
+),
+base AS (
+    SELECT o.id AS order_id, ocr.reason,
+           CONVERT_TIMEZONE('UTC','Asia/Kolkata', TO_TIMESTAMP(o.created_at)) AS order_created_at_ist,
+           TRIM(REGEXP_REPLACE(LOWER(ocr.reason), '[:]+$','')) AS normalized_reason
+    FROM PROD_CURATED.PARTLOAD_APPLICATION.ORDER_CANCELLATION_REASONS ocr
+    LEFT JOIN PROD_CURATED.PARTLOAD_APPLICATION.ORDERS o ON ocr.order_external_id = o.external_id
+    LEFT JOIN PROD_CURATED.PARTLOAD_ANALYTICS.PTL_INTERNAL_USERS ON PTL_INTERNAL_USERS.mobile = o.customer_mobile
+    WHERE o.state = 4 AND ptl_internal_users.mobile IS NULL
+      AND CONVERT_TIMEZONE('UTC','Asia/Kolkata', TO_TIMESTAMP(o.created_at))::date >= DATE '2026-01-01'
+      AND CONVERT_TIMEZONE('UTC','Asia/Kolkata', TO_TIMESTAMP(o.created_at))::date <= DATE '2026-09-30'
+),
+reason_bucketed AS (
+    SELECT order_id, reason, order_created_at_ist,
+      CASE WHEN normalized_reason ILIKE 'other%' OR normalized_reason ILIKE 'अन्य%'
+                OR normalized_reason IN ('na','n/a') THEN 'text box'
+           ELSE normalized_reason END AS standardized_reason
+    FROM base
+),
+mapped AS (
+  SELECT order_id, order_created_at_ist,
+    CASE
+      WHEN standardized_reason = 'change of mind' THEN 'Customer'
+      WHEN standardized_reason = 'want to reschedule order' THEN 'Porter'
+      WHEN standardized_reason = 'need faster pickup' THEN 'Porter'
+      WHEN standardized_reason = 'vehicle not allocated yet' THEN 'Porter'
+      WHEN standardized_reason = 'found better price elsewhere' THEN 'Porter'
+      WHEN standardized_reason = 'ops requested cancellation' THEN 'Porter'
+      WHEN standardized_reason = 'need larger vehicle' THEN 'Porter'
+      WHEN standardized_reason = 'shipment not ready' THEN 'Customer'
+      WHEN standardized_reason = 'customer not responding' THEN 'Customer'
+      WHEN standardized_reason = 'booked by mistake' THEN 'Customer'
+      WHEN standardized_reason = 'not ready to pay wd charges' THEN 'Customer'
+      WHEN standardized_reason = 'partner denied to pickup' THEN 'Partner'
+      WHEN standardized_reason = 'address issues' THEN 'Customer'
+      WHEN standardized_reason = 'need helper' THEN 'Porter'
+      WHEN standardized_reason = 'unable to contact partner' THEN 'Partner'
+      WHEN standardized_reason = 'not available at drop location' THEN 'Customer'
+      WHEN standardized_reason = 'supply issue' THEN 'Porter'
+      WHEN standardized_reason = 'vehicle breakdown' THEN 'Partner'
+      WHEN standardized_reason = 'partner demanding extra money' THEN 'Partner'
+      WHEN standardized_reason = 'cancelling as seized by tax officials' THEN 'Customer'
+      WHEN standardized_reason='text box' AND (reason ILIKE '%test%' OR reason ILIKE '%mistake%' OR reason ILIKE '%demo%') THEN 'Customer'
+      WHEN standardized_reason='text box' AND (reason ILIKE '%mind%' OR reason ILIKE '%shipment%' OR reason ILIKE '%double%' OR reason ILIKE '%dummy%' OR reason ILIKE '%twice%' OR reason ILIKE '%address%' OR reason ILIKE '%change%' OR reason ILIKE '%checking%' OR reason ILIKE '%response%' OR reason ILIKE '%wrong%' OR reason ILIKE '%fake%' OR reason ILIKE '%2 order%') THEN 'Customer'
+      WHEN standardized_reason='text box' AND ((reason ILIKE '%customer%' OR reason ILIKE '%cx%') AND (reason ILIKE '%unavailable%' OR reason ILIKE '%connect%' OR reason ILIKE '%cancel%' OR reason ILIKE '%change%' OR reason ILIKE '%request%' OR reason ILIKE '%not%' OR reason ILIKE '%not responding%')) THEN 'Customer'
+      WHEN standardized_reason='text box' AND (reason ILIKE '%large%' OR reason ILIKE '%vehicle%' OR reason ILIKE '%capacity%' OR reason ILIKE '%size%' OR reason ILIKE '%bigger%' OR reason ILIKE '%small%' OR reason ILIKE '%supply%' OR reason ILIKE '%reschedule%') THEN 'Porter'
+      WHEN standardized_reason='text box' AND (reason ILIKE '%separate%' OR reason ILIKE '%full%' OR reason ILIKE '%dedicated%' OR reason ILIKE '%exclusive%' OR reason ILIKE '%ftl%') THEN 'Customer'
+      WHEN standardized_reason='text box' AND (reason ILIKE '%ops%' OR reason ILIKE '%operation%' OR reason ILIKE '%partner%' OR reason ILIKE '%availability%' OR reason ILIKE '%fleet%' OR reason ILIKE '%available%' OR reason ILIKE '%driver%' OR reason ILIKE '%not picked%' OR reason ILIKE '%rude%') THEN 'Partner'
+      WHEN standardized_reason='text box' AND (reason ILIKE '%fast%' OR reason ILIKE '%urgent%' OR reason ILIKE '%time%' OR reason ILIKE '%delay%' OR reason ILIKE '%schedule%' OR reason ILIKE '%slot%' OR reason ILIKE '%pickup%' OR reason ILIKE '%delivery%' OR reason ILIKE '%late%') THEN 'Partner'
+      WHEN standardized_reason='text box' AND (reason ILIKE '%extra%' OR reason ILIKE '%money%' OR reason ILIKE '%rate%' OR reason ILIKE '%fare%' OR reason ILIKE '%price%' OR reason ILIKE '%cost%' OR reason ILIKE '%charge%' OR reason ILIKE '%payment%' OR reason ILIKE '%expensive%' OR reason ILIKE '%cheap%' OR reason ILIKE '%amount%') THEN 'Porter'
+      WHEN standardized_reason='text box' AND (reason ILIKE '%address%' OR reason ILIKE '%location%' OR reason ILIKE '%pin%' OR reason ILIKE '%area%' OR reason ILIKE '%zone%' OR reason ILIKE '%distance%' OR reason ILIKE '%route%' OR reason ILIKE '%pickup%' OR reason ILIKE '%drop%' OR reason ILIKE '%wd%') THEN 'Customer'
+      WHEN standardized_reason='text box' AND (reason ILIKE '%helper%' OR reason ILIKE '%labour%' OR reason ILIKE '%loading%' OR reason ILIKE '%unloading%' OR reason ILIKE '%loader%' OR reason ILIKE '%handling%' OR reason ILIKE '%service%' OR reason ILIKE '%assistance%' OR reason ILIKE '%packing%' OR reason ILIKE '%load assist%') THEN 'Porter'
+      WHEN standardized_reason='text box' AND (reason ILIKE '%item%' OR reason ILIKE '%product%' OR reason ILIKE '%material%' OR reason ILIKE '%goods%' OR reason ILIKE '%cargo%' OR reason ILIKE '%fragile%' OR reason ILIKE '%heavy%' OR reason ILIKE '%weight%') THEN 'Porter'
+      WHEN standardized_reason='text box' AND (reason ILIKE '%app%' OR reason ILIKE '%technical%' OR reason ILIKE '%system%' OR reason ILIKE '%error%' OR reason ILIKE '%bug%' OR reason ILIKE '%problem%') THEN 'Porter'
+      WHEN standardized_reason='text box' AND (reason ILIKE '%duplicate%' OR reason ILIKE '%multiple%' OR reason ILIKE '%repeat%' OR reason ILIKE '%already%' OR reason ILIKE '%again%') THEN 'Customer'
+      ELSE 'Others' END AS major_category
+  FROM reason_bucketed
+),
+customer_cancellations AS (
+    SELECT DATE_TRUNC('month', order_created_at_ist) AS period,
+           COUNT(DISTINCT CASE WHEN major_category='Customer' THEN order_id END) AS customer_cancellations
+    FROM mapped GROUP BY 1
+)
+SELECT t.period::DATE AS period, t.placed_orders, t.completed_orders,
+       COALESCE(cc.customer_cancellations,0) AS customer_cancellations,
+       ROUND(100.0*t.completed_orders/NULLIF(t.placed_orders - COALESCE(cc.customer_cancellations,0),0),2) AS effective_ff_pct
+FROM total_orders t LEFT JOIN customer_cancellations cc ON t.period = cc.period ORDER BY 1

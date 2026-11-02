@@ -1,0 +1,27 @@
+{
+ "rekeyed": [
+  54215,
+  54216,
+  54217,
+  54218,
+  54219,
+  54220,
+  54221,
+  54222,
+  54223,
+  54224,
+  54225,
+  54226,
+  56215
+ ],
+ "new_cards": {
+  "conv_booknow": 63199,
+  "conv_completed": 63200,
+  "significance": 63201,
+  "trend_booknow": 63202,
+  "trend_completed": 63203,
+  "segments": 63204,
+  "time_to_book": 63205,
+  "conv_quote_booknow": 63206
+ }
+}

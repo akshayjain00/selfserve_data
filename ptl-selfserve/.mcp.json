@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "slack-upload": {
+      "command": "uv",
+      "args": ["run", "--script", "slack-upload-mcp/server.py"]
+    }
+  }
+}

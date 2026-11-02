@@ -1,0 +1,357 @@
+-- ============================================================================
+-- TASK  PROD_CURATED.PARTLOAD_ANALYTICS.INSERT_ORDER_SNAPSHOT_FINAL_V2
+-- Route lookup: partload_analytics.ptl_routes -> partload_application.ROUTES
+--
+-- STATUS: NOT APPLIED. Needs the 3-step runbook at the foot of this file --
+-- CREATE OR REPLACE TASK leaves the task SUSPENDED, and this one is currently
+-- `started`. Running only the CREATE silently stops the pipeline.
+--
+-- Authored 2026-09-07. Validated by EXPLAIN (compiles; ORDERS.ROUTE_ID = R.ID,
+-- only ID + ROUTE_LABEL scanned, PTL_ROUTES absent from the plan) and by
+-- value-level comparison against the 95 route names already materialised in
+-- the target table.
+-- ============================================================================
+--
+-- WHY THIS DIFFERS FROM THE TWO CARDS
+-- The cards recompute from scratch every run, so they cannot hold mixed
+-- spellings. This task MERGEs into a table that has accumulated 120,474 rows
+-- since 2025-05-23 and only reprocesses orders whose watermark moved. Emitting
+-- raw CDC labels would leave 7,075 historical rows on 'Bangalore - Mysuru'
+-- while new rows said 'Bangalore - Mysore' -- one route splitting into two in
+-- any Google Sheet pivot. So here the 4-row spelling map IS applied, keeping
+-- the stored value domain identical. Opposite call to the cards, same reason:
+-- preserve what the consumer already sees.
+--
+-- WHY COALESCE RATHER THAN A STRAIGHT SWAP
+-- Route 52 'Bangalore - Tiruvallur' exists in ptl_routes (is_active='True')
+-- but is ABSENT from the CDC table -- it is the one gap in ids 1..98. It has
+-- 1 order (2025-12-26) and 1 row in the target. A pure swap would blank it.
+-- ptl_routes is therefore kept as a FALLBACK, not dropped:
+--     CDC label  -> for the 97 routes CDC knows (incl. 97, 98)
+--     ptl_routes -> only where CDC has no row at all (route 52)
+--
+-- The ptl_routes join also GAINS the is_active filter it was missing. That
+-- table holds 132 rows for 96 ids, so the unfiltered join fans out on 35 of
+-- them. It happens to be harmless today (0 routes carry conflicting
+-- route_names, so GROUP BY ALL collapses the duplicates) but it is a live
+-- landmine: the moment one duplicate row disagrees, an order splits into two
+-- groups. Closes G-158 for this artifact.
+
+
+-- ---------------------------------------------------------------------------
+-- THE TWO EDITS, in isolation
+-- ---------------------------------------------------------------------------
+-- (1) select list.   BEFORE:  route_name,
+--                    AFTER:
+--        COALESCE(
+--            REPLACE(CASE r.route_label
+--                WHEN 'Bangalore-Mysore'       THEN 'Bangalore-Mysuru'
+--                WHEN 'Bangalore-HubliDharwad' THEN 'Bangalore-Hubli_Dharwad'
+--                WHEN 'Bangalore-Bellari'      THEN 'Bangalore-Bellary'
+--                WHEN 'Bangalore-Devanagere'   THEN 'Bangalore-Davanagere'
+--                ELSE r.route_label
+--            END, '-', ' - '),
+--            ptl_routes.route_name
+--        ) AS route_name,
+--
+-- (2) joins.  BEFORE:
+--        LEFT JOIN partload_analytics.ptl_routes ON orders.route_id = ptl_routes.route_id
+--             AFTER:
+--        LEFT JOIN PROD_CURATED.PARTLOAD_APPLICATION.ROUTES r
+--               ON r.id = orders.route_id
+--        LEFT JOIN partload_analytics.ptl_routes
+--               ON ptl_routes.route_id = orders.route_id
+--              AND ptl_routes.is_active = 'True'
+--
+-- Everything else in the task is byte-identical to the deployed definition.
+
+
+-- ---------------------------------------------------------------------------
+-- VALIDATION RESULTS
+-- ---------------------------------------------------------------------------
+--   EXPLAIN of the full modified source SELECT: compiles.
+--     Adding ROUTES introduces ID / CREATED_AT / UPDATED_AT / IS_ACTIVE into
+--     the name scope. No unqualified reference collides -- every created_at /
+--     updated_at / id / is_active in the task is already table-qualified, and
+--     the ones inside changed_order_ids and the `bo` subquery are scoped to a
+--     single table. Snowflake resolved them to ORDERS / LOAD_DETAILS as before.
+--
+--   Value-level, against the 95 route names already in the target table:
+--     reproduced exactly                     94 / 95
+--     new routes now resolving                97 = 'Tiruppur - Chennai'
+--                                             98 = 'Mysore - Bangalore'
+--     fallback preserved                      52 = 'Bangalore - Tiruvallur'
+--     routes rendering NULL                   0
+--
+--   The 1 non-reproduced name is route 45, stored as 'Chennai - Puducherry '
+--   WITH A TRAILING SPACE. The new expression emits it correctly trimmed.
+--   648 rows in the target carry that trailing space. Left deliberately
+--   unencoded -- see step 4 of the runbook.
+
+
+-- ---------------------------------------------------------------------------
+-- KNOWN LIMITATION (unchanged by this edit, worth recording)
+-- ---------------------------------------------------------------------------
+-- The watermark in changed_order_ids only tracks ORDERS.updated_at and
+-- LOAD_DETAILS.updated_at. A route being RENAMED or newly added in the CDC
+-- table does not make any order "changed", so existing rows keep their old
+-- route_name until that order is touched for some other reason. Backfilling a
+-- rename is a manual UPDATE. This was equally true before the change.
+
+
+-- ===========================================================================
+-- RUNBOOK — run steps in order. Step 2 is not optional.
+-- ===========================================================================
+--
+-- STEP 1 — capture the current definition so a rollback is possible:
+--     SELECT GET_DDL('TASK','PROD_CURATED.PARTLOAD_ANALYTICS.INSERT_ORDER_SNAPSHOT_FINAL_V2');
+--   (a copy of the pre-change definition is also in this repo's git history
+--    via the pasted DDL in the session log)
+--
+-- STEP 2 — CREATE OR REPLACE below, then IMMEDIATELY:
+--     ALTER TASK PROD_CURATED.PARTLOAD_ANALYTICS.INSERT_ORDER_SNAPSHOT_FINAL_V2 RESUME;
+--   CREATE OR REPLACE TASK always yields a SUSPENDED task. The task is
+--   currently `started` on CRON 0,15,30,45 6-23 Asia/Kolkata. Skipping the
+--   RESUME stops the Google Sheet feed with no error anywhere.
+--
+-- STEP 3 — confirm it came back:
+--     SHOW TASKS LIKE 'INSERT_ORDER_SNAPSHOT_FINAL_V2'
+--       IN SCHEMA PROD_CURATED.PARTLOAD_ANALYTICS;   -- state must read 'started'
+--     SELECT name, state, scheduled_time, error_message
+--       FROM TABLE(PROD_CURATED.INFORMATION_SCHEMA.TASK_HISTORY(
+--            TASK_NAME=>'INSERT_ORDER_SNAPSHOT_FINAL_V2'))
+--      ORDER BY scheduled_time DESC LIMIT 5;
+--
+-- STEP 4 — OPTIONAL one-time cleanups, only if you want the stored column
+--          internally consistent:
+--     -- (a) trim the 648 trailing-space route names (route 45)
+--     UPDATE PROD_CURATED.PARTLOAD_ANALYTICS.ORDER_SNAPSHOT_FOR_GHSEET
+--        SET route_name = RTRIM(route_name)
+--      WHERE route_name <> RTRIM(route_name);
+--     -- (b) fill route_name on the 26 rows for routes 97 / 98 that the
+--     --     incremental merge will not revisit on its own
+--     --     (verify the SELECT before running the UPDATE)
+--
+-- ROLLBACK — re-run the STEP 1 definition, then RESUME again.
+-- ===========================================================================
+
+
+CREATE OR REPLACE TASK PROD_CURATED.PARTLOAD_ANALYTICS.INSERT_ORDER_SNAPSHOT_FINAL_V2
+	warehouse=WH_PROD_ANALYTICS_ADHOC_XS_MC
+	schedule='USING CRON 0,15,30,45 6-23 * * * Asia/Kolkata'
+	as MERGE INTO prod_curated.partload_analytics.order_snapshot_for_ghseet AS tgt
+USING (
+    WITH watermark AS (
+        SELECT CONVERT_TIMEZONE('Asia/Kolkata', 'UTC', MAX(updated_at)) AS wm
+        FROM prod_curated.partload_analytics.order_snapshot_for_ghseet
+    ),
+    -- an order qualifies for reprocessing if EITHER the order itself changed
+    -- OR any of its load_details rows changed (e.g. a weight revision) since
+    -- the last successful merge. This is a set of order_ids only — the actual
+    -- aggregation below still joins ALL of that order's load_details rows,
+    -- unfiltered, so a weight-triggered refresh doesn't drop the customer's
+    -- original declaration (or vice versa) out of the aggregation.
+    changed_order_ids AS (
+        SELECT id AS order_id
+        FROM PROD_CURATED.PARTLOAD_APPLICATION.ORDERS
+        WHERE TO_TIMESTAMP(updated_at) >= (SELECT wm FROM watermark)
+        UNION
+        SELECT order_id
+        FROM PROD_CURATED.PARTLOAD_APPLICATION.LOAD_DETAILS
+        WHERE TO_TIMESTAMP(updated_at) >= (SELECT wm FROM watermark)
+    ),
+    final AS (
+        SELECT
+            orders.id AS order_id,
+            CONVERT_TIMEZONE('UTC', 'Asia/Kolkata', TO_TIMESTAMP(ORDERS.created_at))::date AS dated,
+            external_id,
+            CASE
+                WHEN ORDERS.state = 0 THEN 'Open'
+                WHEN ORDERS.state = 1 THEN 'Assigned'
+                WHEN ORDERS.state = 2 THEN 'Picked_up'
+                WHEN ORDERS.state = 3 THEN 'Completed'
+                WHEN ORDERS.state = 4 THEN 'Cancelled'
+            END AS order_status,
+            CONVERT_TIMEZONE('UTC', 'Asia/Kolkata', TO_TIMESTAMP(ORDERS.created_at)) AS created_at,
+            -- reflects the last time EITHER the order or its load_details changed,
+            -- so it stays self-consistent with the watermark comparison above.
+            -- Both sides must be MAX()-wrapped: this expression contains an
+            -- aggregate, so GROUP BY ALL will NOT treat a bare ORDERS.updated_at
+            -- here as a grouping key (compile error). The inner COALESCE guards
+            -- against GREATEST returning NULL when an order has no load_details
+            -- rows at all -- a NULL here would corrupt the stored watermark.
+            GREATEST(
+                MAX(CONVERT_TIMEZONE('UTC', 'Asia/Kolkata', TO_TIMESTAMP(ORDERS.updated_at))),
+                COALESCE(
+                    MAX(CONVERT_TIMEZONE('UTC', 'Asia/Kolkata', TO_TIMESTAMP(load_details.updated_at))),
+                    MAX(CONVERT_TIMEZONE('UTC', 'Asia/Kolkata', TO_TIMESTAMP(ORDERS.updated_at)))
+                )
+            ) AS updated_at,
+            date(CONVERT_TIMEZONE('UTC', 'Asia/Kolkata', TO_TIMESTAMP(ORDERS.pickup_slot_start))) AS pick_up_date,
+            TO_CHAR(CONVERT_TIMEZONE('UTC', 'Asia/Kolkata', TO_TIMESTAMP(ORDERS.pickup_slot_start)), 'HH24:MI')
+                || ' - ' ||
+            TO_CHAR(CONVERT_TIMEZONE('UTC', 'Asia/Kolkata', TO_TIMESTAMP(ORDERS.pickup_slot_end)), 'HH24:MI') AS pickup_slot,
+            CONCAT(pickup_lat, ' , ', pickup_lng) AS pickup_lat_lng,
+            CONCAT(drop_lat, ' , ', drop_lng) AS drop_lat_lng,
+            ROUND(MAX(CASE WHEN load_details.entry_type = 'CUSTOMER_DECLARED' THEN load_details.chargeable_weight END) / 1000, 0) AS customer_declared_weight,
+            ROUND(MAX(CASE WHEN load_details.entry_type = 'OPS_DECLARED' AND load_details.is_active = TRUE THEN load_details.chargeable_weight END) / 1000, 0) AS ops_declared_weight,
+            COALESCE(
+                MAX(CASE WHEN load_details.entry_type = 'OPS_DECLARED' AND load_details.is_active = TRUE THEN material_type.display_name END),
+                MAX(CASE WHEN load_details.entry_type = 'CUSTOMER_DECLARED' THEN material_type.display_name END)
+            ) AS goods_type,
+            customer_name AS booker_name,
+            customer_mobile AS booker_mobile_no,
+            MAX(CASE WHEN contact_details.type = 0 THEN contact_details.name END) AS sender_name,
+            MAX(CASE WHEN contact_details.type = 0 THEN contact_details.mobile END) AS sender_mobile,
+            MAX(CASE WHEN contact_details.type = 1 THEN contact_details.name END) AS receiver_name,
+            MAX(CASE WHEN contact_details.type = 1 THEN contact_details.mobile END) AS receiver_mobile,
+            MAX(CASE WHEN contact_details.type = 0 THEN contact_details.address_line END) AS pickup_address,
+            MAX(CASE WHEN contact_details.type = 1 THEN contact_details.address_line END) AS drop_address,
+            CASE WHEN ptl_internal_users.mobile IS NULL THEN 'False' ELSE 'True' END AS is_test,
+            driver_name,
+            driver_mobile,
+            VEHICLE_REGISTRATION_NUMBER,
+            vehicle_type,
+            round(estimated_fare / 100, 0) AS final_fare,
+            round(coalesce(max(CASE WHEN order_fares.fare_reason_code = 'INITIAL_BOOKING' THEN (total_fare / 100) END), MAX(estimated_fare / 100)), 0) AS customer_upfront_fare,
+            max(CASE WHEN order_fares.fare_reason_code = 'WEIGHT_REVISION_CHANGE' AND load_details.is_active = TRUE THEN round(total_fare / 100, 0) END) AS ops_declared_fare,
+            CASE WHEN payment_status = 0 THEN 'Pending' ELSE 'Completed' END AS payment_status,
+            customers.email,
+            batch_id,
+            -- 2026-09-07: route lookup moved to the CDC table
+            -- PROD_CURATED.PARTLOAD_APPLICATION.ROUTES. ptl_routes is hand-
+            -- maintained, stops at route id 96 and had not been written since
+            -- 2026-06-03, so routes 97/98 stored a NULL route_name (26 rows).
+            --
+            -- The CASE maps 4 CDC labels back to the spellings already present
+            -- in this table's 120k rows. Do NOT remove it: without it, changed
+            -- orders would store 'Bangalore - Mysore' while 7,075 untouched
+            -- historical rows keep 'Bangalore - Mysuru', splitting one route
+            -- into two in the Google Sheet. The cards do not need this because
+            -- they recompute in full on every run; a MERGE target does.
+            --
+            -- The COALESCE fallback exists for route 52 'Bangalore -
+            -- Tiruvallur', which ptl_routes has but the CDC table does not
+            -- (the one gap in ids 1..98). Without it that route's name blanks.
+            COALESCE(
+                REPLACE(CASE r.route_label
+                    WHEN 'Bangalore-Mysore'       THEN 'Bangalore-Mysuru'
+                    WHEN 'Bangalore-HubliDharwad' THEN 'Bangalore-Hubli_Dharwad'
+                    WHEN 'Bangalore-Bellari'      THEN 'Bangalore-Bellary'
+                    WHEN 'Bangalore-Devanagere'   THEN 'Bangalore-Davanagere'
+                    ELSE r.route_label
+                END, '-', ' - '),
+                ptl_routes.route_name
+            ) AS route_name,
+            (CASE WHEN orders.state = '3' THEN date(orders.updated_at + interval '330 minutes') ELSE NULL END) AS delivery_date,
+            (
+                SELECT COUNT_IF(o2.state = 3)
+                FROM PROD_CURATED.PARTLOAD_APPLICATION.orders o2
+                WHERE o2.customer_id = orders.customer_id
+                AND (o2.created_at < orders.created_at OR (o2.created_at = orders.created_at AND o2.id <= orders.id))
+            ) AS customer_lto,
+            ROUND(quotations.discount_amount_minor_units / 100, 0) AS discount,
+            ROUND(estimated_fare / 100, 0) + ROUND(COALESCE(quotations.discount_amount_minor_units, 0) / 100, 0) AS total_fare_without_discount
+        FROM PROD_CURATED.PARTLOAD_APPLICATION.ORDERS
+            JOIN changed_order_ids c ON c.order_id = orders.id
+            LEFT JOIN PROD_CURATED.PARTLOAD_APPLICATION.contact_details ON ORDERS.id = contact_details.order_id
+            LEFT JOIN PROD_CURATED.PARTLOAD_APPLICATION.LOAD_DETAILS ON ORDERS.id = LOAD_DETAILS.order_id
+            LEFT JOIN PROD_CURATED.PARTLOAD_APPLICATION.material_type ON LOAD_DETAILS.material_type_id = material_type.material_type_id
+            LEFT JOIN PROD_CURATED.PARTLOAD_APPLICATION.ORDER_VEHICLES ON ORDERS.external_id = ORDER_VEHICLES.order_external_id AND order_vehicles.is_active = TRUE
+            LEFT JOIN PROD_CURATED.PARTLOAD_ANALYTICS.ptl_internal_users ON ptl_internal_users.mobile = ORDERS.customer_mobile
+            LEFT JOIN prod_curated.oms_public.customers ON customers.uuid = orders.customer_id
+            -- primary route source: CDC, 1 row per route id, no dedupe predicate needed
+            LEFT JOIN PROD_CURATED.PARTLOAD_APPLICATION.ROUTES r
+                   ON r.id = orders.route_id
+            -- fallback only (route 52). is_active IS required here: ptl_routes
+            -- holds 132 rows for 96 ids and without it this join fans out on 35
+            -- of them. Harmless today only because no route has conflicting
+            -- names across its duplicate rows.
+            LEFT JOIN partload_analytics.ptl_routes
+                   ON ptl_routes.route_id = orders.route_id
+                  AND ptl_routes.is_active = 'True'
+            LEFT JOIN (
+                SELECT * FROM PROD_CURATED.PARTLOAD_APPLICATION.batched_orders_v1
+                QUALIFY ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY updated_at DESC) = 1
+            ) bo ON bo.order_id = orders.id
+            LEFT JOIN prod_curated.partload_application.order_fares ON ARRAY_CONTAINS(load_details.id, order_fares.load_details_ids)
+            LEFT JOIN PROD_CURATED.PARTLOAD_APPLICATION.QUOTATIONS quotations ON orders.quotation_uuid = quotations.quotation_uuid
+        GROUP BY ALL
+        -- NOTE: the ORDER BY must spell the expression out in full rather than
+        -- referencing the `updated_at` alias -- a bare `updated_at` here is
+        -- ambiguous against the raw updated_at columns on the joined tables.
+        QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY orders.external_id
+            ORDER BY GREATEST(
+                MAX(CONVERT_TIMEZONE('UTC', 'Asia/Kolkata', TO_TIMESTAMP(ORDERS.updated_at))),
+                COALESCE(
+                    MAX(CONVERT_TIMEZONE('UTC', 'Asia/Kolkata', TO_TIMESTAMP(load_details.updated_at))),
+                    MAX(CONVERT_TIMEZONE('UTC', 'Asia/Kolkata', TO_TIMESTAMP(ORDERS.updated_at)))
+                )
+            ) DESC
+        ) = 1
+        ORDER BY 1
+    )
+    SELECT * FROM final
+) AS src ON tgt.external_id = src.external_id
+WHEN MATCHED THEN UPDATE SET
+    tgt.order_id = src.order_id,
+    tgt.dated = src.dated,
+    tgt.order_status = src.order_status,
+    tgt.created_at = src.created_at,
+    tgt.updated_at = src.updated_at,
+    tgt.pick_up_date = src.pick_up_date,
+    tgt.pickup_slot = src.pickup_slot,
+    tgt.pickup_lat_lng = src.pickup_lat_lng,
+    tgt.drop_lat_lng = src.drop_lat_lng,
+    tgt.customer_declared_weight = src.customer_declared_weight,
+    tgt.ops_declared_weight = src.ops_declared_weight,
+    tgt.goods_type = src.goods_type,
+    tgt.booker_name = src.booker_name,
+    tgt.booker_mobile_no = src.booker_mobile_no,
+    tgt.sender_name = src.sender_name,
+    tgt.sender_mobile = src.sender_mobile,
+    tgt.receiver_name = src.receiver_name,
+    tgt.receiver_mobile = src.receiver_mobile,
+    tgt.pickup_address = src.pickup_address,
+    tgt.drop_address = src.drop_address,
+    tgt.is_test = src.is_test,
+    tgt.driver_name = src.driver_name,
+    tgt.driver_mobile = src.driver_mobile,
+    tgt.vehicle_registration_number = src.vehicle_registration_number,
+    tgt.vehicle_type = src.vehicle_type,
+    tgt.final_fare = src.final_fare,
+    tgt.customer_upfront_fare = src.customer_upfront_fare,
+    tgt.ops_declared_fare = src.ops_declared_fare,
+    tgt.payment_status = src.payment_status,
+    tgt.email = src.email,
+    tgt.batch_id = src.batch_id,
+    tgt.route_name = src.route_name,
+    tgt.delivery_date = src.delivery_date,
+    tgt.customer_lto = src.customer_lto,
+    tgt.discount = src.discount,
+    tgt.total_fare_without_discount = src.total_fare_without_discount
+WHEN NOT MATCHED THEN INSERT (
+    order_id, dated, external_id, order_status, created_at, updated_at,
+    pick_up_date, pickup_slot, pickup_lat_lng, drop_lat_lng,
+    customer_declared_weight, ops_declared_weight, goods_type,
+    booker_name, booker_mobile_no, sender_name, sender_mobile,
+    receiver_name, receiver_mobile, pickup_address, drop_address,
+    is_test, driver_name, driver_mobile, vehicle_registration_number,
+    vehicle_type, final_fare, customer_upfront_fare, ops_declared_fare,
+    payment_status, email, batch_id, route_name, delivery_date, customer_lto,
+    discount, total_fare_without_discount
+)
+VALUES (
+    src.order_id, src.dated, src.external_id, src.order_status, src.created_at, src.updated_at,
+    src.pick_up_date, src.pickup_slot, src.pickup_lat_lng, src.drop_lat_lng,
+    src.customer_declared_weight, src.ops_declared_weight, src.goods_type,
+    src.booker_name, src.booker_mobile_no, src.sender_name, src.sender_mobile,
+    src.receiver_name, src.receiver_mobile, src.pickup_address, src.drop_address,
+    src.is_test, src.driver_name, src.driver_mobile, src.vehicle_registration_number,
+    src.vehicle_type, src.final_fare, src.customer_upfront_fare, src.ops_declared_fare,
+    src.payment_status, src.email, src.batch_id, src.route_name, src.delivery_date, src.customer_lto,
+    src.discount, src.total_fare_without_discount
+);
+
+ALTER TASK PROD_CURATED.PARTLOAD_ANALYTICS.INSERT_ORDER_SNAPSHOT_FINAL_V2 RESUME;

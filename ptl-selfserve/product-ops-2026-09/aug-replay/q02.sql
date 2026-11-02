@@ -1,0 +1,1 @@
+DESCRIBE TABLE PROD_ELDORIA.raw.metabase_public_report_card

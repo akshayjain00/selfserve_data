@@ -1,0 +1,1 @@
+SELECT LEFT(dataset_query, 1200) AS head FROM PROD_ELDORIA.raw.metabase_public_report_card WHERE card_id = 33462
