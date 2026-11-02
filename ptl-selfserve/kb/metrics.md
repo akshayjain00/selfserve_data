@@ -495,6 +495,62 @@ qualitatively different from "never looked at."
 
 ---
 
+## 1e. Promoted 2026-09-01 — Metabase MCP session
+
+### M-021 — Unique Fulfilment % ⚠️ `verified` (mechanic) / ⚠️ one live construction defect
+- **Definition:** fulfilment measured on **deduplicated demand**. Orders collapse into one "unique
+  order" (a *cluster*) when they share customer mobile, the same clock hour of `created_at`, and
+  pickup + drop coordinates rounded to 3 decimals (~100 m).
+- **Cluster key, verbatim:**
+  ```sql
+  customer_mobile || '-' || DATE_TRUNC('HOUR', created_at) || '-' ||
+  ROUND(pickup_lat, 3) || '-' || ROUND(pickup_lng, 3) || '-' ||
+  ROUND(drop_lat, 3)   || '-' || ROUND(drop_lng, 3)   AS cluster_id
+  ```
+- **Formula as written:** `SUM(is_fulfilled) / COUNT(cluster_id)`, where per cluster
+  `is_fulfilled = SUM(CASE WHEN state = 3 THEN 1 ELSE 0 END)`.
+- **source_ref:** `metabase:card/33466` · `source_updated_at: 2026-08-11T16:40:21Z`, and
+  `metabase:card/43238` · `source_updated_at: 2026-08-11T16:40:41Z`. The clustering block is
+  **byte-identical across both cards**. `database_id: 73`, collection 5199 "Business Observability".
+- **No catalog #** — this metric is **not** one of the 85 catalogue rows. It rides along as the 5th
+  returned column of two cards titled for a different metric, which is why it had no definition
+  anywhere until now. This is the concrete instance behind `G-022`.
+- **confidence: `verified` as to mechanic** — both cards read and the logic re-executed 2026-09-01.
+  ⚠️ **Verified does not mean correct here**: the metric as written carries **one live defect**
+  (`G-177`) plus two artifacts that are currently inert, below.
+- ⚠️ **Defect 1 — numerator and denominator are in different units** (`G-177`). The numerator counts
+  completed **orders**; the denominator counts **clusters**. A cluster with 3 completions adds 3 on
+  top and 1 on the bottom, so the ratio is **unbounded above 100%** by construction. Correct form is
+  `SUM(CASE WHEN is_fulfilled > 0 THEN 1 ELSE 0 END)`.
+- **Defect 2 — a different base from its four sibling columns on the same row, but inert.**
+  `clustered_orders` filters `customer_mobile IS NOT NULL`, which drops **all offline orders**, while
+  `fulfillment_perc` / `cancellation_perc` / `inprocess_order_perc` in the same `SELECT` run on the
+  online+offline union. One row, two populations **in SQL** — but ruling `G-142` (2026-08-14,
+  Devansh) deprecates the offline flow and the gsheet table stopped receiving data in July 2025, so
+  the union contributes an empty set for every current period. **Not a live defect; do not "fix" it.**
+  It matters only if 2025 history is ever reprocessed.
+- ⚠️ **Dating artifact:** `cluster_level_agg` groups by `cluster_id` alone and takes `MIN(dated)`.
+  The cluster key truncates **raw UTC** `created_at` to the hour, but `dated` is IST-derived; the IST
+  day boundary falls at 18:30 UTC, mid-hour. A cluster in UTC hour 18:00–19:00 therefore straddles
+  two IST dates and is assigned wholly to the earlier one.
+- **Measured 2026-09-01** (Aug-2026, online base, `period=Month`):
+
+  | quantity | value |
+  |---|---|
+  | distinct orders | 15,281 |
+  | clusters | 14,519 |
+  | demand collapsed by clustering | **5.0%** |
+  | unique FF **as written** | **54.32%** |
+  | unique FF **unit-corrected** | 54.30% |
+  | order-level FF, same base (M-003 shape) | 51.61% |
+
+  The as-written/corrected gap is 0.02pp today (only 2 clusters held 2 completions), so Defect 1 is
+  **real by construction but immaterial at current clubbing levels**. It grows with clubbing.
+- **Do not quote unique FF beside M-003 without saying so** — the ~2.7pp spread over order-level
+  fulfilment is entirely a denominator effect, not an ops improvement.
+
+---
+
 ## 2. Index-only — the remaining 62 catalog metrics
 
 Not covered in depth this pass — ruling **D6** bounds v1 to 11 metrics, and the owner ratified

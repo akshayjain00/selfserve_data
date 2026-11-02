@@ -128,6 +128,8 @@ Previously **2026-08-14** — 11 owner rulings applied; 6 gaps closed, 4 narrowe
 | [G-174](#g-174) | Return Trips % 14% vs 28% — reconciled, denominator scope | `OPEN` | P1 |
 | [G-175](#g-175) | Return Trips %: reverse-route predicate and cutoff-days bound | `CLOSED` | P2 |
 | [G-176](#g-176) | `ptl_routes` joined without `is_active` in 42081 / 48581 | `OPEN` | P2 |
+| [G-177](#g-177) | `unique_fulfillment_perc` divides orders by clusters | `OPEN` | P2 |
+| [G-178](#g-178) | Proposed unique-FF redefinition — 6 open design decisions | `BLOCKED` | P2 |
 
 Coverage inventories are indexed separately — see [§10](#10-coverage--74-catalogue-metrics) and
 [§11](#11-coverage--93-dashboard-cards-not-opened).
@@ -743,6 +745,115 @@ those filters** while applying `G-174`.
 
 **Next.** Add `AND ptl_routes.is_active = 'True'` to the join in 42081 (one line) and to both joins
 in 48581 (defensive). Re-check 42081's published P50 after.
+
+### G-177
+**`unique_fulfillment_perc` divides orders by clusters — unbounded above 100%**
+`OPEN` · P2 · *cards 33466, 43238 · see `M-021`*
+
+The clustered fulfilment column in both cards computes:
+
+```sql
+SUM(is_fulfilled) * 1.0 / NULLIF(COUNT(cluster_id), 0)   -- is_fulfilled = SUM(state=3) per cluster
+```
+
+**The numerator counts completed orders; the denominator counts clusters.** A cluster holding 3
+completions contributes 3 to the numerator and 1 to the denominator, so the ratio has no upper bound
+at 100%. The intended cluster-level form is
+`SUM(CASE WHEN is_fulfilled > 0 THEN 1 ELSE 0 END)`.
+
+**Measured 2026-09-01, Aug-2026, online base:** 15,281 orders → 14,519 clusters. As written
+**54.32%**; unit-corrected **54.30%**. Only 2 clusters held more than one completion, so the live
+error is **0.02pp** — real by construction, immaterial at current clubbing levels, and it grows as
+clubbing grows. `max(order_count)` in a single cluster was 5.
+
+Note this column is also the **only** aggregate in either card not protected by `COUNT(DISTINCT …)`
+— it is a raw row `SUM` sitting downstream of the `ocr`, `ptl_routes` and (in 43238) `slot_intervals`
+joins. Empirically inert today because completed orders rarely carry a cancellation-reason row, but
+it is the unguarded one. Same shape as the `G-176` finding on 42081.
+
+**Next.** One-line fix in both cards, applied together so the two stay byte-identical. Superseded if
+`G-178` proceeds — do not fix twice.
+
+### G-178
+**Proposed redefinition of unique FF — clustering key change, awaiting design decisions**
+`BLOCKED` · P2 · *owner-proposed 2026-09-01 (Devansh) · see `M-021`*
+
+**Proposal as stated:** replace the current cluster key with **same pickup + drop, same weight**, and
+replace the same-hour time bucket with a **cancellation + 1 day** window.
+
+This is not a key swap. The current key is a hash → `GROUP BY`; "within 1 day of a cancellation" is a
+**linkage rule between orders**, which needs a gaps-and-islands walk, not a group-by. Six decisions
+must be settled before it can be implemented — recorded in the session note, not resolved here:
+
+1. **Transitive or pairwise?** A→B→C retry chains can extend arbitrarily; does a 14-day retry streak
+   collapse to one unique demand?
+2. **Which period does a multi-day chain land in?** Anchoring on first attempt makes recent periods
+   permanently incomplete until the retry window closes — a live trend card cannot show a number that
+   is still moving.
+3. **Which weight column** — declared/booked or measured? A cancelled order may never acquire a
+   measured weight, which would NULL the key on exactly the rows the rule needs to link. Weight
+   discrepancy is an established fact here (card 34284).
+4. **Exact weight equality or banded?** Exact match on a continuous field will under-merge.
+5. **Does `customer_mobile` stay in the key?** The proposal does not mention it. Dropping it merges
+   different customers shipping the same lane at the same weight.
+6. **Which cancellation timestamp** — `ocr.created_at` (used by the `<60s` metric) or
+   `orders.updated_at` (used by cards 35252/35253)? `G-002` already records these as different time
+   sources.
+
+**Also note the semantic shift.** Anchoring on cancellation means only *post-failure* rebookings
+collapse; two simultaneous duplicate bookings that both complete would no longer merge. That is a
+defensible metric — but it is "unique demand after a failure", not "unique demand", and needs a
+different name so it is never read as a restatement of the current column.
+
+**Measured 2026-09-01** (Jul–Aug 2026, 12,798 cancelled orders carrying an `ocr` timestamp; a
+"rebooking" = a later order, same `customer_mobile`, same pickup+drop rounded to 3dp):
+
+| latency from cancellation | share of cancelled orders | cumulative |
+|---|---:|---:|
+| ≤ 1 hour | 11.42% | 11.42% |
+| 1–6 hours | 2.48% | 13.90% |
+| 6–24 hours | 4.24% | **18.14%** |
+| 24–48 hours | 0.90% | 19.04% |
+| 2–7 days | 0.88% | 19.92% |
+| > 7 days | 0.73% | 20.65% |
+| never rebooked | 79.34% | — |
+
+*(exact-weight match required; see below)*
+
+**The proposed 1-day window is empirically well-chosen.** It captures **88%** of every rebooking that
+ever happens; extending to 48h buys 4pp more, and 7 days buys 9pp. There is no elbow past 24h.
+
+**Weight availability — resolved, and better than feared.** `PARTLOAD_APPLICATION.LOAD_DETAILS`
+carries `WEIGHT` / `VOLUMETRIC_WEIGHT` / `CHARGEABLE_WEIGHT`. Aug-2026 coverage is **100%** of
+orders — including **all 7,146 cancelled ones** — so decision 3 above is answered: weight is present
+on cancelled orders and the rule is implementable. **But `LOAD_DETAILS` is per-line, not per-order**
+(avg 1.04 lines, max 4, 4.0% of orders multi-line), so it must be pre-aggregated to
+`SUM(weight) GROUP BY order_id` or it fans out — the same class of defect as `G-176`/`G-177`.
+
+**Weight equality is the expensive condition, not the window.** Same cohort, links found within 24h
+of cancellation:
+
+| link rule | cancelled orders linked | share of links kept |
+|---|---:|---:|
+| customer + lane, **any** weight | 3,509 (27.4%) | 100% |
+| + weight within ±10% | 2,529 | 72.1% |
+| + weight **exactly** equal | 2,322 | **66.2%** |
+
+**Requiring exact weight discards a third of the rebookings the rule would otherwise catch**; a ±10%
+band recovers only 6pp of that, so the remaining ~28% are genuine load changes. That is the real
+design question — see `M-021` and the session note: *is a same-lane rebooking at a different weight
+the same demand or a new one?* Note the bias direction: exact-weight **under**-merges, inflating the
+denominator and pushing unique FF back down toward order-level FF, which defeats the metric's purpose.
+
+**Rough level impact, Aug-2026** — directional only, does not model chains: denominator 15,281 orders
+→ ~13,985 clusters (exact weight) or ~13,323 (any weight), against 14,519 under the current hour-bucket
+rule. Unique FF would move from **54.30%** to roughly **56%–59%**, against order-level **51.61%**.
+**Do not quote these** — they are an arithmetic sketch, not an executed metric.
+
+**Next.** Settle decisions 1, 2, 4 and 5 with the owner (the window and weight availability are now
+answered). Then build it as a **new column alongside** the existing one on 33466/43238 rather than
+in place — both cards have 25k+ views and an in-place level shift of 2–5pp would be read as an ops
+movement.
 
 ---
 

@@ -109,7 +109,7 @@ Route Level, OKR, Order Share, Clubbing.
 |---|---|---|---|
 | 33483 | Total Orders | `COUNT(DISTINCT external_id)`, online+offline union | M-002 |
 | 33485 / 37419 | Fulfilment % | `state=3 / all states` — **same formula, NOT byte-identical**: the SQL text differs (`is_active` vs `ptl_routes.is_active` join qualifier) and the display type differs (smartscalar vs bar) | M-003 |
-| 33466 / 43238 / 37104 | Fulfilment excl-60s | `completed / (all − cancels ≤60s)`, `<60s` **dropped from the DENOMINATOR** — verbatim: `COUNT(DISTINCT external_id) - COUNT(DISTINCT CASE WHEN DATEDIFF(SECOND, created_at, ocr_created_at) <= 60 THEN external_id END)`, numerator untouched. **33466 and 43238 return 5 metrics; 37104 returns only 3** (split by EDD dimension instead) | M-003, `G-002` |
+| 33466 / 43238 / 37104 | Fulfilment excl-60s | `completed / (all − cancels ≤60s)`, `<60s` **dropped from the DENOMINATOR** — verbatim: `COUNT(DISTINCT external_id) - COUNT(DISTINCT CASE WHEN DATEDIFF(SECOND, created_at, ocr_created_at) <= 60 THEN external_id END)`, numerator untouched. **33466 and 43238 return 5 metrics; 37104 returns only 3** (split by EDD dimension instead). 5th column is `unique_fulfillment_perc` → **`M-021`**, defective → `G-177` | M-003, `M-021`, `G-002` |
 | 43897 | Fulfilment Rate — Route | completed/all per route percentile bucket | — |
 | 33462 | Order Funnel | raw counts only (total/completed/cancelled/in-process); **no ratio in SQL** | — |
 | 33539 / 34506 / 39941 | Cancellation % | `state=4 / all` — **flat, no CBDF/CADF split** | `G-001` |
@@ -127,7 +127,11 @@ Route Level, OKR, Order Share, Clubbing.
 | 43896 | Same-day reorder after cancellation | — | — |
 
 **Title-vs-SQL mismatches:** the three "Fullfillment %" cards each return **5 metrics**, not one
-(cancellation %, in-process %, and a clustered "unique fulfilment %" ride along). "Total Revenue"
+(cancellation %, in-process %, and a clustered "unique fulfilment %" — now defined as **`M-021`**,
+read 2026-09-01 — ride along). ⚠️ **43238's real title is "Fullfillment excluding 60sec
+cancellations %"**, not "Fullfillment %" as previously recorded here; and 43238 joins `ptl_routes`
+on an **unqualified** `is_active = 'True'` where 33466 qualifies it — the same latent pattern as
+`G-026` / `G-176`, now recorded against this card too. "Total Revenue"
 (37413) also returns AOV, vendor cost and gross margin. → `G-022`
 
 **⚠️ This dashboard contains no CBDF/CADF split.** All 11 cancellation cards use flat `state = 4`
