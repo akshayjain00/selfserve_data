@@ -497,7 +497,7 @@ qualitatively different from "never looked at."
 
 ## 1e. Promoted 2026-09-01 — Metabase MCP session
 
-### M-021 — Unique Fulfilment % ⚠️ `verified` (mechanic) / ⚠️ one live construction defect
+### M-027 — Unique Fulfilment % ⚠️ `verified` (mechanic) / ⚠️ one live construction defect
 - **Definition:** fulfilment measured on **deduplicated demand**. Orders collapse into one "unique
   order" (a *cluster*) when they share customer mobile, the same clock hour of `created_at`, and
   pickup + drop coordinates rounded to 3 decimals (~100 m).

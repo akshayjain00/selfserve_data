@@ -748,7 +748,7 @@ in 48581 (defensive). Re-check 42081's published P50 after.
 
 ### G-177
 **`unique_fulfillment_perc` divides orders by clusters — unbounded above 100%**
-`OPEN` · P2 · *cards 33466, 43238 · see `M-021`*
+`OPEN` · P2 · *cards 33466, 43238 · see `M-027`*
 
 The clustered fulfilment column in both cards computes:
 
@@ -776,7 +776,7 @@ it is the unguarded one. Same shape as the `G-176` finding on 42081.
 
 ### G-178
 **Proposed redefinition of unique FF — clustering key change, awaiting design decisions**
-`BLOCKED` · P2 · *owner-proposed 2026-09-01 (Devansh) · see `M-021`*
+`BLOCKED` · P2 · *owner-proposed 2026-09-01 (Devansh) · see `M-027`*
 
 **Proposal as stated:** replace the current cluster key with **same pickup + drop, same weight**, and
 replace the same-hour time bucket with a **cancellation + 1 day** window.
@@ -841,7 +841,7 @@ of cancellation:
 
 **Requiring exact weight discards a third of the rebookings the rule would otherwise catch**; a ±10%
 band recovers only 6pp of that, so the remaining ~28% are genuine load changes. That is the real
-design question — see `M-021` and the session note: *is a same-lane rebooking at a different weight
+design question — see `M-027` and the session note: *is a same-lane rebooking at a different weight
 the same demand or a new one?* Note the bias direction: exact-weight **under**-merges, inflating the
 denominator and pushing unique FF back down toward order-level FF, which defeats the metric's purpose.
 
