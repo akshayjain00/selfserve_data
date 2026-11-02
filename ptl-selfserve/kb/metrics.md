@@ -1,7 +1,10 @@
 # metrics.md — PTL metric definitions
 
 `M-###` rows. Schema and rules: see [CONTRIBUTING.md](./CONTRIBUTING.md). Entry point: [CONTEXT.md](./CONTEXT.md).
-All rows `last_verified: 2026-07-29`.
+All rows `last_verified: 2026-07-29` **except** those carrying an inline `last_verified 2026-08-07`
+override — `M-007`, `M-009`, `M-017`, `M-018`, `M-024`, `M-025`, `M-026`. Per CONTRIBUTING §5 the
+file-level date is a claim about every row, so it is deliberately **not** bumped: only those seven
+were re-checked against source on 2026-08-07.
 
 **Scope (ratified):** the **11 v1 metrics** (ruling D6) get full treatment below. The remaining
 **74** catalog metrics are index-only — see §2 — with one `G-###` row each in [GAPS.md](./GAPS.md).
@@ -138,11 +141,22 @@ and denominator at the cut you need, *then* divide. Never average daily ratios.
 - **Reported values:** see the snapshot in [business.md](./business.md). ⚠️ the source states a
   "+1.2pp" movement but its own figures give 13.81 − 12.99 = **0.82pp** → `G-117`.
 
-### M-007 — Avg Orders per Trip (clubbing) ✅ `verified` / ⚠️ filter gap
-- **Formula:** `clubbed_orders / clubbing_trips`, over batches containing ≥2 orders.
-- **source_ref:** `repo@7a43470:ptl-selfserve/selfserve_nlq/metrics_registry.py` · `metabase:card/33461` · catalog #46
-- **confidence: `verified`** (formula) — but the prototype's `trips_sql` applies **neither the
-  internal-user exclusion nor the business-user filter**, unlike every other builder. → `G-010`
+### M-007 — Avg Orders per Trip (clubbing) ✅ `verified` — **formula corrected 2026-08-07**
+- **Formula (canonical, read from card SQL):**
+  `COUNT(DISTINCT order_external_id) / NULLIF(COUNT(DISTINCT batch_id), 0)` over
+  `batched_orders_v1` where `status = 3`, online ∪ offline, IST-bucketed on `orders.created_at`.
+  **There is no ≥2-orders-per-batch restriction.**
+- **source_ref:** `metabase:card/33461` · `source_updated_at: 2026-02-09T10:07:25Z` ·
+  `repo@7a43470:ptl-selfserve/selfserve_nlq/metrics_registry.py` · catalog #46
+- **confidence: `verified`** — SQL read in full and **replicated to 4 decimal places** against the
+  card's own output (2026-08-07, `last_verified 2026-08-07`).
+- ⚠️ **CORRECTION.** This row previously read *"`clubbed_orders / clubbing_trips`, over batches
+  containing ≥2 orders"* and was marked `verified` against this same card. The card applies **no such
+  restriction** — it is an all-batches average. The two are different metrics and the ≥2 variant is
+  the **higher** number (singleton route-days drag the all-batches mean down), so the error flattered
+  nothing; it just described a metric nobody computes. → `G-182`
+- **note:** the prototype's `trips_sql` applies **neither the internal-user exclusion nor the
+  business-user filter**, unlike every other builder. → `G-010`
 - **note:** clubbing population scope differs across 4198 cards — 33460 counts all non-cancelled
   states, while 47540 / 48449 / 49365 restrict to completed only. → `G-011`
 - ⚠️ **CONFLICT — the denominator itself is disputed, not just the population scope.**
@@ -185,13 +199,23 @@ and denominator at the cut you need, *then* divide. Never average daily ratios.
 - **`last_verified 2026-08-11`** for the corrected paragraph only; the rows above retain 2026-07-29.
 - Fares are stored in **paise** (`T-010`). **Reported values:** see [business.md](./business.md).
 
-### M-009 — Business Session Conversion % ✅ `verified` / ⚠️ definition clash
-- **Formula:** `100 × orders / sessions`, business identified by `ptl_fe_events.user_type = 'Business'`.
-- **source_ref:** `repo@7a43470:ptl-selfserve/selfserve_nlq/metrics_registry.py#L76` · catalog #14
-- **confidence: `verified`** (formula)
-- ⚠️ **This metric uses a different "business" definition from every other metric here:**
-  `ptl_fe_events.user_type = 'Business'`, versus `oms_public.customers.frequency IN (1,2,3,4)`
-  (`T-020`). Whether the two populations agree is unverified. → `G-012`
+### M-009 — Business Session Conversion % ⚠️ `unverified` — **downgraded 2026-08-07**
+- **Intended formula:** `100 × orders / sessions`, business-filtered.
+- **source_ref:** `repo@7a43470:ptl-selfserve/selfserve_nlq/metrics_registry.py#L76` ·
+  `metabase:card/44410` · catalog #14
+- **confidence: `unverified`** (was `verified`; `last_verified 2026-08-07`) — **two independent
+  defects found, either one sufficient to downgrade:**
+  1. **The column this row names does not exist.** `ptl_fe_events` has no `user_type` field
+     (`T-062`, corrected). Any builder written against it cannot run. The only available business
+     rule is `T-020` via `customer_mobile_number` → `oms_public.customers.frequency`.
+  2. **The cited card computes a different metric.** `metabase:card/44410`'s `CONVERSION_PCT` is
+     `book_now_sessions / vss_sessions` — a **click**, with no join to order creation — and it applies
+     **no business filter at all**, so its denominator is all users. This is the same defect already
+     recorded for catalogue #17 at `G-148`, now found on the card `M-009` itself cites. → `G-183`
+- ✅ **`both_bases = False` here is CORRECT, not a defect.** Ruling **D6's build note explicitly
+  exempts this metric** from the dual-base requirement. Do not "fix" it. → `G-119`
+- **note:** `G-012` (two competing "business user" definitions) is **CLOSED by elimination** — there
+  was only ever one, because the other column is not in the table.
 - ✅ **`both_bases = False` here is CORRECT, not a defect.** Ruling **D6's build note explicitly
   exempts this metric** from the dual-base requirement. Do not "fix" it. → `G-119`
 - ⚠️ **Production argues this metric's terminal event is wrong.** `[unverified · notion:36a9…]` The
@@ -217,6 +241,8 @@ and denominator at the cut you need, *then* divide. Never average daily ratios.
   a D3 violation** — retention is not among the metrics D3 enumerates. → `G-010`
 - **note:** dashboard 4569 carries **two incompatible retention taxonomies** —
   new/retained/reactivated (38287, 39117) vs a binary lifetime-based new/repeat (39107, 39149). → `G-023`
+  Owner ruled 2026-08-14 that the **repeat basis is lifetime order count**, not in-period order
+  count; card 39118 was rewritten to match the same day. → `G-172`
 
 ---
 
@@ -271,15 +297,82 @@ the source catalogue (kept `unverified`, but for a specific, evidenced reason �
 - **source_ref:** `metabase:card/48919` · catalog #43 · executed 2026-07-30: **3.93%–5.06%** across 6 monthly rows, Jan–Jun 2026
 - **confidence: `verified`** — correct table, correct business filter.
 
-### M-017 — Perfect Order Experience % ✅ `verified`
-- **Formula:** `ontime_pickup_flag = 1 AND ontime_delivery_flag = 1` (both required).
+### M-017 — Perfect Order Experience % 🛑 `unverified` — **CARD IS DEAD, downgraded 2026-08-07**
+- **Formula as authored:** `ontime_pickup_flag = 1 AND ontime_delivery_flag = 1` (both required),
+  where both flags derive from `gsheet_sync.ptl_table.PICKUP_REACHED_TIMESTAMP` /
+  `.DROP_START_TIMESTAMP`, parsed with two `TRY_TO_TIMESTAMP` patterns.
+  Delivery SLA gate = `DATE_TRUNC('day', pickup_slot_start IST) + 36 hours` — **not**
+  `estimated_delivery_ts`.
 - **source_ref:** `metabase:card/34052` (+ trend card `34364`) · catalog #32
-- **confidence: `verified`** — direct SQL match to the catalogue's stated definition.
+- **confidence: `unverified`** (was `verified`; `last_verified 2026-08-07`).
+- 🛑 **The definition is intact; the metric is not.** `gsheet_sync.ptl_table` **stopped receiving rows
+  after Jan-2026** (`T-077`). The card joins it with `LEFT JOIN`, so no error is raised and no empty
+  result is returned — both flags resolve `NULL`, `COUNT(CASE WHEN … THEN 1 END)` counts nothing, and
+  the tile renders a clean **0%**. Confirmed by execution 2026-08-07: zero perfect orders for every
+  month from Feb-26 onward, on a live leadership dashboard. → `G-179`
+- ✅ **A working equivalent exists elsewhere: `M-025` (`metabase:card/43551`, `OPOD`).** It is filed
+  under collection 5780 "Partner & Vendor Metrics", **not** on dashboard 4198 where this dead card
+  sits. → `G-180`
+- ⚠️ **The catalogue's four-gate framing was never implemented.** Catalogue #32 describes
+  "SLA adherence **and no damage / weight discrepancy**"; the card only ever computed the two SLA
+  gates. Damage is uninstrumented (`G-150`, reconfirmed — `ptl_table.DAMAGED_AT` is a free-text
+  column, not a flag).
 
-### M-018 — On-Time Pickup % / On-Time Delivery % ✅ `verified`
-- **Formula:** Pickup: `onTime / total_pickup`. Delivery: `count(delayed_by <= 0) / count(*)`.
+### M-018 — On-Time Pickup % / On-Time Delivery % 🛑 `unverified` — **CARDS ARE DEAD, downgraded 2026-08-07**
+- **Formula as authored:** Pickup: `onTime / total_pickup`. Delivery: `count(delayed_by <= 0) / count(*)`.
 - **source_ref:** Pickup `metabase:card/33784`/`33823`; Delivery `metabase:card/33785`/`33824` · catalog #33, #34, #35
-- **confidence: `verified`** — shown as a companion pair, not a blended ratio, matching the catalogue's framing.
+- **confidence: `unverified`** (was `verified`; `last_verified 2026-08-07`) — **same root cause as
+  `M-017`**: these cards read the same dead `gsheet_sync.ptl_table`. Card 33784 executed 2026-08-07
+  for May–Jun 2026 returns **zero rows**. → `G-179`
+- ✅ Live replacement: `M-025`'s card reports both legs separately (`pickup_sla_pct`,
+  `drop_sla_pct`) alongside the combined `OPOD`.
+
+### M-024 — VSS Top-of-Funnel, PTL-Serviceable Sessions ✅ `verified` — **new 2026-08-07**
+- **Definition:** distinct `app_session_id` with a `vehicleselectionscreen_vehicles_loaded` event,
+  optionally filtered to Business. Closes catalogue #4 and supersedes the dead Amplitude references
+  in #5/#6.
+- **Implementation:** `metabase:card/52812` ("PTL position on VSS"), column `TOTAL_SESSIONS` ·
+  `source_updated_at: 2026-06-17T07:51:39Z` · `database_id: 73`
+- **confidence: `verified`** — SQL read in full; independently replicated from
+  `partload_analytics.ptl_fe_events` to within **0.013%** (2026-08-07).
+- ✅ **Serviceability is structural, not a filter.** Every `vehicles_loaded` row in this table carries
+  PTL (`vehicle_id 1159`) in `vehicle_ids_seq` from Jan-2026 onward, so the event count *is* the
+  PTL-serviceable TOF. Before Jan-2026 the scoping was partial → `G-181`.
+- ⚠️ **Business is resolved here via `prod_eldoria.core.dim_customers` on `customer_id`**, a third
+  pattern alongside 4198's and 4569's (`G-005`, now quantified and closed).
+- **note:** the card also emits PTL's **position** on the VSS list (`pos_0`…`pos_4+`) and a
+  `DEFAULT_SELECTED_PCT`. Its SQL labels the `vehicleselectionscreen_vehicl_a_selected` CTE verbatim
+  as *"Sessions where PTL was auto/default selected"* — see `M-026`.
+
+### M-025 — OPOD (On-time Pickup + On-time Drop) ✅ `verified` — **new 2026-08-07**
+- **Formula:** `reached_pickup_at <= pickup_slot_end + 330min + 1 hour` **AND**
+  `reached_drop_at <= estimated_delivery_ts + 330min`, over `NULLIF(total_orders_drop, 0)`.
+  A no-buffer pickup variant (`pickup_sla_without_buffer`) is emitted alongside.
+- **source_ref:** `metabase:card/43551` ("SLA App sheet", collection 5780) ·
+  `source_updated_at: 2026-06-08T10:41:23Z` · `database_id: 73`
+- **Source tables:** `partload_analytics.ptl_app_sheet_backfilled_data` ∪
+  `gsheet_sync.ptl_app_sheet_data`, deduped per `order_id`, inner-joined to `orders` on `state = '3'`.
+  **These are live**, unlike `M-017`'s source.
+- **confidence: `verified`** — SQL read in full and executed 2026-08-07.
+- ⚠️ **Coverage is partial and ops-discretionary.** The denominator counts only orders with an
+  ops-filled drop timestamp — roughly a fifth to a quarter of completed orders. A movement in this
+  metric may be a movement in ops data-entry behaviour rather than in service quality. → `G-181`
+- **note:** the **1-hour pickup buffer is a real definitional choice**, not a rounding allowance —
+  it moves the pickup leg by roughly 17pp. Quote which variant you mean.
+
+### M-026 — PTL Card Selection on VSS ⚠️ `unverified` — **new 2026-08-07**
+- **The three events are distinct and must not be conflated:**
+  | event | meaning | evidence |
+  |---|---|---|
+  | `vehicleselectionscreen_vehicl_selected` | user **tapped** the PTL card | fires in 21% of sessions where PTL was *not* pre-selected, 4% where it was |
+  | `vehicleselectionscreen_vehicl_a_selected` | system **auto/default-selected** PTL | fires in 98% of sessions where PTL *was* pre-selected, 4% where it was not; `metabase:card/52812` labels it "auto/default selected" in its own SQL comment |
+  | `vehicleselectionscreen_confirm_clicked` | "Proceed With Part Load" | **not PTL-exclusive** — must be filtered on `vehicle_id = '1159'` |
+- **source_ref:** `metabase:card/52812` · `partload_analytics.ptl_fe_events` (event-level test, 2026-08-07)
+- **confidence: `unverified`** — the mechanic is verified, but **no card computes a tap *rate***, and
+  no owner has ruled which event constitutes "engagement". Catalogue #6's chart id never resolved
+  (`G-043`). The three readings span ~10× on the same denominator. → `G-184`
+- ⚠️ **The naming is a trap.** `vehicl_a_selected` is the highest-volume and most tap-like-sounding
+  event, and it measures **placement**, not engagement.
 
 ### M-019 — Time to Allocate — P50 ✅ `verified` — deferral note lifted
 - **Formula:** `PERCENTILE_CONT(0.5)` of minutes from order-created to first vehicle-assigned.
@@ -402,6 +495,62 @@ qualitatively different from "never looked at."
 
 ---
 
+## 1e. Promoted 2026-09-01 — Metabase MCP session
+
+### M-027 — Unique Fulfilment % ⚠️ `verified` (mechanic) / ⚠️ one live construction defect
+- **Definition:** fulfilment measured on **deduplicated demand**. Orders collapse into one "unique
+  order" (a *cluster*) when they share customer mobile, the same clock hour of `created_at`, and
+  pickup + drop coordinates rounded to 3 decimals (~100 m).
+- **Cluster key, verbatim:**
+  ```sql
+  customer_mobile || '-' || DATE_TRUNC('HOUR', created_at) || '-' ||
+  ROUND(pickup_lat, 3) || '-' || ROUND(pickup_lng, 3) || '-' ||
+  ROUND(drop_lat, 3)   || '-' || ROUND(drop_lng, 3)   AS cluster_id
+  ```
+- **Formula as written:** `SUM(is_fulfilled) / COUNT(cluster_id)`, where per cluster
+  `is_fulfilled = SUM(CASE WHEN state = 3 THEN 1 ELSE 0 END)`.
+- **source_ref:** `metabase:card/33466` · `source_updated_at: 2026-08-11T16:40:21Z`, and
+  `metabase:card/43238` · `source_updated_at: 2026-08-11T16:40:41Z`. The clustering block is
+  **byte-identical across both cards**. `database_id: 73`, collection 5199 "Business Observability".
+- **No catalog #** — this metric is **not** one of the 85 catalogue rows. It rides along as the 5th
+  returned column of two cards titled for a different metric, which is why it had no definition
+  anywhere until now. This is the concrete instance behind `G-022`.
+- **confidence: `verified` as to mechanic** — both cards read and the logic re-executed 2026-09-01.
+  ⚠️ **Verified does not mean correct here**: the metric as written carries **one live defect**
+  (`G-177`) plus two artifacts that are currently inert, below.
+- ⚠️ **Defect 1 — numerator and denominator are in different units** (`G-177`). The numerator counts
+  completed **orders**; the denominator counts **clusters**. A cluster with 3 completions adds 3 on
+  top and 1 on the bottom, so the ratio is **unbounded above 100%** by construction. Correct form is
+  `SUM(CASE WHEN is_fulfilled > 0 THEN 1 ELSE 0 END)`.
+- **Defect 2 — a different base from its four sibling columns on the same row, but inert.**
+  `clustered_orders` filters `customer_mobile IS NOT NULL`, which drops **all offline orders**, while
+  `fulfillment_perc` / `cancellation_perc` / `inprocess_order_perc` in the same `SELECT` run on the
+  online+offline union. One row, two populations **in SQL** — but ruling `G-142` (2026-08-14,
+  Devansh) deprecates the offline flow and the gsheet table stopped receiving data in July 2025, so
+  the union contributes an empty set for every current period. **Not a live defect; do not "fix" it.**
+  It matters only if 2025 history is ever reprocessed.
+- ⚠️ **Dating artifact:** `cluster_level_agg` groups by `cluster_id` alone and takes `MIN(dated)`.
+  The cluster key truncates **raw UTC** `created_at` to the hour, but `dated` is IST-derived; the IST
+  day boundary falls at 18:30 UTC, mid-hour. A cluster in UTC hour 18:00–19:00 therefore straddles
+  two IST dates and is assigned wholly to the earlier one.
+- **Measured 2026-09-01** (Aug-2026, online base, `period=Month`):
+
+  | quantity | value |
+  |---|---|
+  | distinct orders | 15,281 |
+  | clusters | 14,519 |
+  | demand collapsed by clustering | **5.0%** |
+  | unique FF **as written** | **54.32%** |
+  | unique FF **unit-corrected** | 54.30% |
+  | order-level FF, same base (M-003 shape) | 51.61% |
+
+  The as-written/corrected gap is 0.02pp today (only 2 clusters held 2 completions), so Defect 1 is
+  **real by construction but immaterial at current clubbing levels**. It grows with clubbing.
+- **Do not quote unique FF beside M-003 without saying so** — the ~2.7pp spread over order-level
+  fulfilment is entirely a denominator effect, not an ops improvement.
+
+---
+
 ## 2. Index-only — the remaining 62 catalog metrics
 
 Not covered in depth this pass — ruling **D6** bounds v1 to 11 metrics, and the owner ratified
@@ -413,9 +562,9 @@ index-only treatment for the rest at the build's checkpoint 2. Each has a `G-###
 | # | metric | catalog status (verbatim) |
 |---|---|---|
 | 3 | PTL Awareness Rate amongst Porter Business MAU (L0) | unverified |
-| 4 | VSS Top-of-Funnel — PTL Serviceable Sessions (L1) | **checked, chart `3jh9upju` matches** — counts unique *users* not *sessions* as titled → `G-041`, not yet given a full `M-###` row → `G-153` |
-| 5 | PTL Serviceable VSS as % of Overall Porter Sessions on VSS (L1) | **checked, chart id `42065` does not resolve** — likely stale pre-migration reference → `G-145` |
-| 6 | PTL Card Tap Rate in Serviceable Sessions (Business) (L1) | **checked, chart id `49312` does not resolve** — same pattern as #5 → `G-145` |
+| ~~4~~ | ~~VSS Top-of-Funnel — PTL Serviceable Sessions (L1)~~ | **promoted → `M-024`** (`metabase:card/52812`). The Amplitude route (`3jh9upju`, users-not-sessions → `G-041`) is superseded by a Metabase card that emits sessions directly |
+| 5 | PTL Serviceable VSS as % of Overall Porter Sessions on VSS (L1) | **numerator now available** via `M-024`; the *denominator* (all Porter VSS sessions, not just PTL-serviceable) is still not sourced — `ptl_fe_events` is PTL-scoped by construction. Chart `42065` remains dead → `G-145` narrowed |
+| ~~6~~ | ~~PTL Card Tap Rate in Serviceable Sessions (Business) (L1)~~ | **promoted → `M-026`**, `unverified` — the mechanic is resolved, but which event counts as a "tap" is an open owner ruling → `G-184`. Chart `49312` remains dead |
 | 7 | PTL Selection Rate vs FTL (L1) | **checked, chart `gjvatdh3` matches, verified** → `G-044`, not yet given a full `M-###` row → `G-153` |
 | 8 | Outstation Search Rate (Business Users) (L1) | **checked, chart `l9brfm70` matches cleanly, verified** → `G-045`, not yet given a full `M-###` row → `G-153` |
 | 9 | PTL Activation Rate — Business (First Order ≤7d of Card View) (L0) | unverified |
@@ -435,10 +584,10 @@ index-only treatment for the rest at the build's checkpoint 2. Each has a `G-###
 | 27 | Cancellation Attribution % — Customer/Porter/Partner (L1) | **contradicted—conflict** (no card + column-shift) |
 | 29 | Customer/Porter Attributed CBDF % (L2) | **contradicted—conflict** |
 | 31 | Customer/Porter/Partner Attributed CADF % (L2) | **contradicted—conflict** |
-| ~~32~~ | ~~Perfect Order Experience % (L0)~~ | **promoted → `M-017`** |
-| ~~33~~ | ~~On-Time Pickup % + On-Time Delivery % (L1)~~ | **promoted → `M-018`** |
-| ~~34~~ | ~~On-Time Pickup % (L2)~~ | **promoted → `M-018`** |
-| ~~35~~ | ~~On-Time Delivery % (L2)~~ | **promoted → `M-018`** |
+| ~~32~~ | ~~Perfect Order Experience % (L0)~~ | **`M-017`** — 🛑 **its card has returned 0% since Feb-26**; live equivalent is **`M-025`** → `G-179`, `G-180` |
+| ~~33~~ | ~~On-Time Pickup % + On-Time Delivery % (L1)~~ | **`M-018`** — 🛑 **cards dead**, same cause; use `M-025`'s two legs → `G-179` |
+| ~~34~~ | ~~On-Time Pickup % (L2)~~ | **`M-018`** — 🛑 dead → `G-179` |
+| ~~35~~ | ~~On-Time Delivery % (L2)~~ | **`M-018`** — 🛑 dead → `G-179` |
 | 36 | Damage % (L1) | **searched 2026-07-30 — genuinely not found.** Only PnM-vertical damage dashboards exist; nothing PTL-specific → `G-150` |
 | 37 | Orders with Weight Discrepancy % (L1) | **contradicted—conflict** (missing `route_name`) |
 | 40 | Repeat Rate (Business, ≥2 Lifetime PTL Orders) (L1) | confirmed · offline-union; column-shift |
@@ -455,7 +604,7 @@ index-only treatment for the rest at the build's checkpoint 2. Each has a `G-###
 | 52 | % Organic Allocation (No Manual Ops Intervention) (L1) | **searched, zero hits anywhere in Metabase** → `G-150` |
 | 53 | Reallocation Rate (L1) | **searched, zero hits.** Loose unverified lead: card 48535 "Vehicle Change %" — not confirmed → `G-150` |
 | ~~54~~ | ~~GM% per PTL Order (L0)~~ | **promoted → `M-020`** (canonical card corrected: 37416, not 37413) |
-| 56 | Return Trip % (Bidirectional Routes) (L1) | confirmed-via-metadata |
+| 56 | Return Trip % (Bidirectional Routes) (L1) | **verified 2026-08-20** — card 44691. The 14 % vs 28 % conflict is a denominator-scope difference, not a computation error: "Bidirectional Routes" in this name *is* the denominator, and the published ~28 % is the bidirectional read → `G-174`; two semantics still open → `G-175` |
 | 57 | Monthly Active Owners (MAO) (L0) | **structural gap, see G-151** |
 | 58 | New Owners Onboarded per Month (L1) | **structural gap, see G-151** |
 | 59 | Monthly Active Vehicles (MAV) (L0) | **structural gap, see G-151** |
@@ -495,14 +644,15 @@ Every count below is in **catalogue rows** (not M-numbers — one M-### can clos
 e.g. `M-014` closes both #10 and #11, `M-018` closes #33/#34/#35; that mismatch is what produced a
 wrong "65 remaining" figure earlier the same day, corrected here to the real number, 62):
 
-- **12 rows promoted** to a full, verified `M-###` entry (via 9 distinct M-numbers) — §1b/§1c.
+- **14 rows promoted** to a full `M-###` entry (via 11 row-closing M-numbers; `M-025` is a
+  *replacement source* for #32 rather than a new row) — §1b/§1c.
 - **3 rows found to be catalogue errors** (#16, #17, #44) — wrong card or wrong table, not just
   unchecked (§1d, a more valuable finding than plain "unverified").
-- **3 rows verified from an Amplitude chart definition** (#4, #7, #8) but not yet promoted to a full
-  `M-###` row — a real asymmetry versus the Metabase-sourced promotions, tracked as `G-153` rather
-  than left silently inconsistent.
-- **2 rows have a known-but-unresolvable reference** (#5, #6 — chart ids that predate the Jan-2026
-  Mixpanel→Amplitude migration and no longer resolve).
+- **2 rows verified from an Amplitude chart definition** (#7, #8) but not yet promoted to a full
+  `M-###` row — tracked as `G-153` rather than left silently inconsistent. (#4 left this group
+  2026-08-07 on promotion to `M-024`.)
+- **1 row has a known-but-unresolvable reference** (#5 — chart id predating the Jan-2026
+  Mixpanel→Amplitude migration; its numerator is now available via `M-024`, its denominator is not).
 - **1 row has a candidate that measures the wrong thing** (#18 — ends at "book now clicked", not
   "order placed").
 - **7 rows confirmed genuinely absent** after a real search (#3, #36, #48, #49, #50, #52, #53).
@@ -510,4 +660,9 @@ wrong "65 remaining" figure earlier the same day, corrected here to the real num
   not exist at the grain the catalogue assumes.
 - **32 rows remain genuinely untouched** — no investigation attempted yet.
 
-12 + 3 + 3 + 2 + 1 + 7 + 14 + 32 = 74, minus the 12 promoted = **62 metrics remain index-only** (§2).
+14 + 3 + 2 + 1 + 1 + 7 + 14 + 32 = 74, minus the 14 promoted = **60 metrics remain index-only** (§2).
+
+> ⚠️ **Promoted ≠ working.** 4 of the 14 promoted rows (#32, #33, #34, #35 → `M-017`/`M-018`) have
+> **dead cards**: correctly documented definitions producing nothing since Feb-26 (`G-179`).
+> Coverage, confidence and *liveness* are three independent axes; this file previously tracked only
+> the first two, which is why four broken metrics sat at ✅ `verified` for a full quarter.
