@@ -47,18 +47,17 @@ reading its gap row first.
 | M-004 | Effective Fulfilment % | `100 × completed / (placed − cbdf_cancels)` | ⚠️ `unverified` (`G-002`) |
 | M-005 | CBDF % | `100 × cancels(state=4, **no** vehicle) / placed_orders` | `verified` mechanic, ⚠️ `G-001` |
 | M-006 | CADF % | `100 × cancels(state=4, vehicle assigned) / placed_orders` | `verified` mechanic, ⚠️ `G-001` |
-| M-007 | Avg Orders per Trip (clubbing) | `clubbed_orders / clubbing_trips` (batches ≥2 orders) | `verified`, ⚠️ filter gap `G-010` |
+| M-007 | Avg Orders per Trip (clubbing) | `orders / batches` — **all batches, no ≥2 restriction** | `verified` (formula **corrected** 2026-08-07, `G-182`), ⚠️ `G-010` |
 | M-008 | AOV | `SUM(revenue WHERE state=3) / completed` | ⚠️ `unverified` — 3 revenue bases (`G-004`) |
-| M-009 | Business Session Conversion % | `100 × orders / sessions` | `verified`, ⚠️ different "business" def (`G-012`) |
+| M-009 | Business Session Conversion % | `100 × orders / sessions` | ⚠️ **`unverified`** — cited card counts a *click*, no business filter (`G-183`); `ptl_fe_events.user_type` **does not exist** |
 | M-010 | New Business Users (monthly) | first-order count in month | ⚠️ `unverified` — not implemented (`G-010`) |
 | M-011 | M1 Business Retention % | `100 × m0_retained / m0_business_users` | `verified`, ⚠️ base gap (`G-010`) |
 
-**23 of 85 catalogue rows now have a full `M-###` entry** (via **20 M-numbers** — 2 of them each
-close more than one row, so the two counts legitimately differ). **62 rows remain index-only**
-([metrics.md](./metrics.md) §2) — 23+62=85. The original catalog audit (frozen) = **85 rows**: 15
-`confirmed`, 6 `contradicted`, 64 `unverified` → 70 not confirmed *at audit time* — 3 of those 64
-turned out to be **catalogue mapping errors** (`G-148`, `G-149`). See [GAPS.md](./GAPS.md) §F3/§F4,
-incl. 14 owner/vehicle-supply rows possibly untrackable (`G-151`).
+**25 of 85 catalogue rows** have a full `M-###` entry (via 23 M-numbers — some close >1 row);
+**60 remain index-only** ([metrics.md](./metrics.md) §2). ⚠️ **4 of the 25 are documented but dead**
+(`G-179`). Frozen original audit: 15 `confirmed` · 6 `contradicted` · 64 `unverified`, 3 of which
+were **mapping errors** (`G-148`, `G-149`). Detail + the 14 possibly-untrackable supply rows
+(`G-151`): [GAPS.md](./GAPS.md) §F3–§F5.
 
 ### Three facts that prevent most errors
 - **`orders.state`**: `3=Completed, 4=Cancelled` — `T-001`, verified on db73. The `0/1/2` labels are db83-only (`T-001a`).
@@ -150,7 +149,15 @@ imported 2026-08-11. Import spec and rationale:
 
 ## State of the work — read before promising anything
 
+- 🛑 **FOUR METRICS ARE DEAD, NOT JUST UNVERIFIED (2026-08-07).** `M-017` Perfect Order Experience
+  returns **0% for every month since Feb-26** on a live leadership dashboard; `M-018`'s on-time cards
+  return **zero rows**. Cause: `gsheet_sync.ptl_table` stopped syncing after Jan-2026 (`T-077`), and
+  the `LEFT JOIN` renders the failure as a confident `0%` instead of an error. All four were ✅
+  `verified` here for a quarter — **this KB tracked whether definitions were right, never whether
+  metrics still produced a number.** Live replacement: `M-025` (`card/43551`). → `G-179`, `G-180`
 - **Resolved:** `state` enum and business-customer rule, both from card SQL (`T-001`, `T-020`).
+- **Closed 2026-08-07:** `G-005` (customer masters agree to ~0.013% at session grain — closed by
+  *measurement*, not a ruling) · `G-012` (`ptl_fe_events.user_type` never existed) · `G-041` → `M-024`.
 - **NSM is RECONCILED** (2026-07-30) — card 39117 reproduces Mar/Apr-26 exactly, so the leadership
   figure inherits its defects (`G-141` internal users, `G-142` D3). **Still unverified:** the `<60s`
   treatment for **CBDF/CADF/fulfilment** — three incompatible semantics live in production.
@@ -170,5 +177,8 @@ imported 2026-08-11. Import spec and rationale:
   `verified` row was upgraded, and several long-standing facts are now marked contested.
 - ⚠️ **The imported source postdates this KB's `last_verified` (2026-07-29).** A staleness sweep
   across every card-sourced row is outstanding → `G-160`.
-- Reviewed by a blind accuracy checker and a zero-context loadability test. **No number here has
-  been validated against the warehouse — no query has been run.** Nothing is stakeholder-ready.
+- ⚠️ **Rule 1 has been relaxed twice under explicit owner go-ahead** (2026-07-30 card execution,
+  2026-08-07 card execution + read-only warehouse queries). Every fact so sourced says so inline.
+  Definitions here are documentation; **no metric *value* is recorded in this KB** (CONTRIBUTING §7/§9).
+  The 2026-08-07 pass found four `verified` metrics with dead cards → [GAPS.md](./GAPS.md) §13.
+- Reviewed by a blind accuracy checker and a zero-context loadability test. Nothing is stakeholder-ready.

@@ -32,6 +32,7 @@ Coverage inventories (§10, §11) stay as tables; they are genuinely tabular.
 
 Last updated **2026-08-20** — Return Trips % (card 44691) reconciled; 3 gaps added (`G-174`–`G-176`).
 **`G-154`…`G-171`** (weekly-report playbook import) live in [§12](#12-imported-from-the-ptl-weekly-report-playbook--g-154g-171); not yet counted below.
+**`G-179`…`G-185`** (2026-08-07 card-execution pass) live in [§13](#13-liveness-failures-found-by-card-execution--g-179g-185-2026-08-07); also not yet counted.
 Previously **2026-08-14** — 11 owner rulings applied; 6 gaps closed, 4 narrowed, 1 corrected.
 
 | Status | Count | Change |
@@ -420,6 +421,8 @@ ruling, so left as-is.
 these numeric ids are likely stale Mixpanel references never carried forward.
 
 **Next.** Ask the metric owner for the current chart backing #5/#6, or confirm neither was rebuilt.
+
+**NARROWED 2026-08-07 (eval-set line).** Both are now largely moot. `metabase:card/52812` (built Jun-2026) computes the PTL-serviceable VSS session count directly in Metabase → `M-024`, and the card-tap mechanic is resolved in `M-026`. Search Metabase before declaring a metric uncomputable.
 
 **Decision needed.** Current ids for catalogue **#5** and **#6**. WARNING — **this entry's premise looks wrong**: it calls 42065 and 49312 "Amplitude chart ids", but the July'26 review links `metabase.prod-internal.porter.in/question/42065-ptl-coverage-based-on-os-quotes`. They appear to be **Metabase question ids**, and 42065 resolves. If so this is not a migration casualty at all — confirm and re-scope.
 
@@ -1100,9 +1103,9 @@ availability before any SQL work is possible.
 | id | # | metric | state |
 |---|---:|---|---|
 | G-040 | 3 | PTL Awareness Rate | **checked** — no matching chart in 100 search results; not substituted. Genuinely no known source |
-| G-041 | 4 | VSS TOF | **checked** — chart `3jh9upju` matches, but counts unique *users* not *sessions* as the title claims |
+| G-041 | 4 | VSS TOF | **CLOSED 2026-08-07 → `M-024`** (`metabase:card/52812`). The card emits **sessions**; users are a separate column |
 | G-042 | 5 | PTL Serviceable VSS % of Sessions | **checked** — id `42065` does not resolve; likely stale Mixpanel-era id → `G-145` |
-| G-043 | 6 | PTL Card Tap Rate | **checked** — id `49312` does not resolve; same pattern as #5 → `G-145` |
+| G-043 | 6 | PTL Card Tap Rate | **PARTIALLY CLOSED 2026-08-07 → `M-026`** — events identified (tap vs auto-select vs proceed); owner must pick the numerator → `G-184` |
 | G-044 | 7 | PTL Selection Rate vs FTL | **checked** — chart `gjvatdh3` matches, `verified`. "FTL" is not a literal taxonomy term, see `B-053b` |
 | G-045 | 8 | Outstation Search Rate | **checked** — chart `l9brfm70` matches cleanly, `verified` |
 | G-046 | 9 | PTL Activation Rate | not covered |
@@ -1251,6 +1254,26 @@ why they are out of scope.
 | **G-168** | **The imported source contradicts itself in twelve places — recorded because a self-contradicting source gets less weight in every ruling above.** (a) bans `DATE_TRUNC('week')`, then uses it in its own discount query — this weakens `G-154`; (b) its mistakes register argues **both** sides of the sub-60s denominator, naming each as the error → `G-157`; (c) spells one route two ways (`Dharmpuri` / `Dharmapuri`), one of them inside a zero-rows debugging tip; (d) dates the network slot change Jun 14 throughout and Jun 11 once → `B-076`; (e) forbids `+ interval '330 mins'` at slot boundaries, then uses it inside its own slot-anchored allocation clock — the most boundary-sensitive computation it contains; IST has no DST and no mechanism is given → `B-034`, `T-030`; (f) mandates the `prod_curated`-prefixed internal-users table, then writes *"same table as order queries, no prod_curated prefix"* and uses the unprefixed form in four queries — **this undercuts `G-155`'s own premise**; (g) an allocation branch heading says "ORDER's PICKUP SLOT DATE" while the SQL beneath compares `created_at` to `pickup_slot_start`; (h) **three** routes it records as closed still appear in its corridor map; (i) **Rule 2 states `updated_at` is "NOT used", flatly**, while its monthly rules mandate it — so `G-158`'s orderly cadence split is presented by the source itself as a prohibition; (j) section numbering is broken — **no `Step 10` or `Step 12` heading exists**, `§10.x` is nested under Step 11 and `§12.x` sits after Step 13, so **any section anchor cited into this document is unstable**; (k) the funnel's Business filter joins `dim_customers.customer_id = el.customer_id` but the CTE never projects `customer_id` — **that filter cannot execute**, which weakens `G-163`'s "two join keys" to one; (l) two byte-identical duplicated lines. **⚠️ Separately and most consequentially: its dashboard-4793 reconciliation claim is FALSIFIED.** It says *"match Metabase dashboard 4793 exactly"* and then mandates `state IN (3,4)` denominators, while `metrics.md` records 4793's own card 43237 using an unconditional count. That is why the terminal-denominator claim sits at **tier 5, not tier 3** (CONTRIBUTING §6), and why `B-060` was annotated rather than corrected → `G-161`. **A future owner may reasonably use this row to retire tier 3 altogether** — that option was considered and declined on 2026-08-11, *before* this evidence was in hand | **OPEN** |
 
 
+## 13. Liveness failures found by card execution — `G-179`…`G-185` (2026-08-07)
+
+> From the `claude/eval-set-questions-0752c9` line, consolidated 2026-11-02. Its ids were `G-154`…`G-160`
+> on that branch and are renumbered here to avoid colliding with §12 and with `G-172`…`G-178`. Its new
+> metrics `M-021`…`M-023` are `M-024`…`M-026` and its tables `T-074`/`T-075` are `T-077`/`T-078`.
+
+*Owner authorised card execution and read-only warehouse queries for this pass. **This is the first
+time KB rows were checked for whether their metric still **produces a number**, rather than only
+whether its definition was right.** Four `verified` rows failed that check.*
+
+| id | gap | detail | next_action | status |
+|---|---|---|---|---|
+| **G-179** | 🛑 **`gsheet_sync.ptl_table` sync died after Jan-2026, silently taking four `verified` metrics with it** | `M-017` (Perfect Order Experience, `metabase:card/34052`) has returned **0% for every month Feb-26 → Jul-26** on a live leadership dashboard. `M-018`'s cards (33784/33823/33785/33824) return **zero rows**. Root cause is `T-077`: no completed order created after Jan-2026 has a row in `ptl_table`, and the Jan-2026 rows had already drifted past both `TRY_TO_TIMESTAMP` patterns. **The `LEFT JOIN` is what makes it dangerous** — a dead upstream produces a plausible `0%`, not an error and not an empty result. Nothing alerted, for roughly two quarters | Two decisions, both owner: (a) repoint card 34052 at the live AppSheet tables — a drop-in rewrite is prepared at `repo:ptl-selfserve/fixes/card-34052-repointed.sql` — **or** retire 34052 and promote `metabase:card/43551` (`M-025`) onto dashboard 4198; (b) decide whether the Feb–Jul 2026 zeros need a public correction, since the tile has been read as real | **BLOCKED** — owner, **high** |
+| **G-180** | **Two Perfect-Order metrics exist in different collections; the working one is where nobody looks** | The dead `metabase:card/34052` sits in collection 5199 "Business Observability", on the leadership dashboard. The live `metabase:card/43551` (`OPOD`) sits in collection 5780 "Partner & Vendor Metrics". They are the same concept with different gates (43551 adds a **1-hour pickup buffer** and uses `estimated_delivery_ts` rather than a 36-hour-from-midnight rule) | Pick one canonical Perfect-Order definition including the buffer question, then delete or clearly alias the other. Do not leave both live | **BLOCKED** — owner |
+| **G-181** | **`M-025`'s coverage is partial and ops-discretionary** | `OPOD` counts only orders with an ops-filled drop timestamp — roughly a fifth to a quarter of completed orders. Coverage is not random: it is whatever the ops team entered. A movement in this metric may be a movement in **data-entry behaviour**, not service quality | Measure the coverage rate as a metric in its own right and publish it beside `OPOD`; a service-quality number whose denominator moves for unrelated reasons cannot be trended safely | **OPEN — high** |
+| **G-182** | **`M-007`'s recorded formula did not match its own cited card** | The row claimed *"over batches containing ≥2 orders"* and was `verified` against `metabase:card/33461`, which applies **no such restriction**. Corrected 2026-08-07; the card's SQL was replicated to 4 decimal places. **How it happened matters more than the error**: the formula was taken from the prototype registry and the card was cited alongside it without the two being diffed | When a row cites both a card and the prototype, diff them explicitly. Audit the other rows that cite both — `M-002`, `M-004`, `M-008`, `M-011` | **OPEN** |
+| **G-183** | **`M-009`'s cited card measures a click, not an order, and has no business filter** | `metabase:card/44410`'s `CONVERSION_PCT` = `book_now_sessions / vss_sessions`, across **all users**. `M-009`'s stated formula is `100 × orders / sessions`, business-filtered. Same defect already recorded at `G-148` for catalogue #17 — **it recurs on the card `M-009` itself cites**, which suggests a pattern rather than two isolated mistakes | Ask the owner whether PTL's session-conversion metric is intended to terminate at book-now-click or at order creation. If the latter, 44410 needs rebuilding and every conversion figure sourced from it is a click-through rate | **BLOCKED** — owner |
+| **G-184** | **No card computes a PTL card-*tap* rate, and the three candidate events span ~10×** | `M-026` resolves the mechanic — `vehicl_selected` is a user tap, `vehicl_a_selected` is system auto-selection (confirmed by `metabase:card/52812`'s own SQL comment), `confirm_clicked` is proceed-with-PTL and is **not** PTL-exclusive. But no card divides any of them by sessions, and no ruling says which is "engagement" | Owner picks the numerator. Recommendation on file: `vehicl_selected` as the literal tap, with proceed-with-PTL reported beside it as intent — and `vehicl_a_selected` renamed or documented, since it is the most tap-sounding and least tap-like of the three | **BLOCKED** — owner |
+| **G-185** | **`G-005` was closed at session grain only** | The `dim_customers` vs `oms_public.customers` equivalence was measured on VSS sessions (~0.013% divergence). Order-grain metrics — where the join is on `customer_mobile` rather than `customer_id`, and where unmatched rows fall silently to Personal (`T-021`) — were **not** measured | Repeat the comparison on completed orders for one month; if divergence is similarly negligible, `T-020`/`T-022` can be simplified to "either source, stated" | **OPEN — low, mechanical** |
+
 ## Closed gaps
 
 Kept for the record — a closed gap documents that a trap once existed.
@@ -1337,6 +1360,8 @@ stands unchanged.
 Consequence: `G-148`'s customer-source half is answered by this ruling; only its #17 labelling
 question remains.
 
+**Earlier evidence, 2026-08-07 (eval-set line).** On VSS sessions, `dim_customers` (joined `customer_id`, per `metabase:card/52812`) and `oms_public.customers` (joined `mobile`) classified Business/Personal identically to within ~0.013% of sessions — consistent with the ruling. Order grain was not measured then → `G-185`.
+
 ### G-012 — Two different definitions of "business user"
 `CLOSED 2026-08-14`
 
@@ -1350,7 +1375,8 @@ carry the segment as an event attribute — it is an eventing artifact, not a co
 **Additional finding 2026-08-14:** the premise of this gap was partly stale. `ptl_fe_events` has
 **no `user_type` column at all** in the current schema. Session cards derive the segment by joining
 out to a customer master — card 48491 does so via `prod_eldoria.core.dim_customers` on
-`customer_id`, which is the `G-005` deviation rather than a separate definition.
+`customer_id`, which is the `G-005` deviation rather than a separate definition. The eval-set line reached the same
+finding independently on 2026-08-07 and corrected `T-062` to the table's actual columns → `G-183`.
 
 ### G-135 — AOV family disagrees on revenue base and date basis
 `CLOSED 2026-08-14` → merged into `G-004`
