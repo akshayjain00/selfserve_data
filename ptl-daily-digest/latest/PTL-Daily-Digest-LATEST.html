@@ -182,7 +182,7 @@ thead th.stick{background:var(--page)}
   <div class="pagehead">
     <div>
       <h1>PTL Daily Digest</h1>
-      <p class="sub">Latest day Sat 31 Oct (2 days ago) &middot; week 26 Oct&ndash;31 Oct &middot; month 1 Oct&ndash;31 Oct &middot; internal test users excluded &middot; generated 02 Nov 04:19 IST</p>
+      <p class="sub">Latest day Sat 31 Oct (2 days ago) &middot; week 26 Oct&ndash;31 Oct &middot; month 1 Oct&ndash;31 Oct &middot; internal test users excluded &middot; generated 02 Nov 11:25 IST</p>
     </div>
   </div>
 
@@ -388,8 +388,8 @@ thead th.stick{background:var(--page)}
 
   <div class="tabpanel" id="tab-deepdive" hidden>
     <section aria-labelledby="deephead">
-      <h2 class="sectitle" id="deephead">Route trends, weekly (last 13 full weeks)</h2>
-      <p class="note">Orders completed and Fulfilment Rate per full Monday&ndash;Sunday week for the top 10 routes; latest full week is 19 Oct&ndash;25 Oct.</p>
+      <h2 class="sectitle" id="deephead">Route trends, weekly (last 13 weeks, latest is week to date)</h2>
+      <p class="note">Orders completed and Fulfilment Rate per Monday&ndash;Sunday week for the top 10 routes. The last point (marked *) is the week to date, 26 Oct&ndash;31 Oct (6 days), so its orders are lower than a full week and its Fulfilment % is still settling.</p>
       <div class="route-grid" id="routeGrid"></div>
     </section>
   </div>
@@ -411,12 +411,13 @@ var SERIES = {
   ret: {"unit":"pct","vals":[19.85,17.57,14.29,15.58,14.02,16.85,17.54,13.82,16.45,17.69,16.77,16.77,20.12,17.74,17.83,17.06,17.52,18.75,16.07,17.39,19.41,14.69,19.28,18.1,19.1,15.15,18.23,12.24,16.75,13.64]}
 };
 
-var ROUTES = {"Mumbai → Pune":{"orders":[288,337,293,306,277,313,346,263,284,319,316,316,315],"ff":[51.89,54.98,48.59,52.04,54.42,51.65,51.56,53.56,54.62,51.53,49.22,47.59,49.3]},"Pune → Mumbai":{"orders":[213,195,175,213,202,229,256,200,227,250,249,253,225],"ff":[54.06,51.45,46.92,56.95,47.98,56.4,56.14,58.82,54.7,57.87,56.98,50.91,50.56]},"Bangalore → Chennai":{"orders":[135,109,101,132,116,108,100,96,115,95,110,111,105],"ff":[52.53,52.66,50.5,55.7,49.57,51.43,49.75,50.0,54.25,50.26,54.19,45.31,53.3]},"Chennai → Bangalore":{"orders":[84,94,86,92,102,106,89,90,101,109,123,98,76],"ff":[62.22,67.63,62.77,58.97,53.4,54.92,57.42,61.22,62.35,60.22,59.13,64.47,53.9]},"Mumbai → Surat":{"orders":[81,64,72,76,74,65,70,54,50,63,79,78,66],"ff":[69.83,78.05,73.47,64.41,66.07,75.58,63.06,53.47,64.94,60.0,64.23,59.54,55.0]},"Mumbai → Ahmedabad":{"orders":[50,49,36,47,47,46,52,48,52,62,63,66,55],"ff":[62.5,63.64,41.86,50.0,55.29,61.33,52.53,55.81,55.32,58.49,70.0,63.46,62.5]},"Bangalore → Mysuru":{"orders":[82,75,61,61,75,66,84,66,95,81,90,84,62],"ff":[61.19,49.34,52.14,44.85,46.58,44.59,57.93,50.0,54.91,53.29,51.43,56.0,59.62]},"Bangalore → Hyderabad":{"orders":[56,66,68,59,65,70,61,55,59,59,69,56,58],"ff":[51.85,58.93,53.12,48.76,44.83,53.03,38.12,54.46,48.76,46.83,52.27,44.09,49.15]},"Surat → Mumbai":{"orders":[29,25,22,20,28,18,21,27,21,39,22,33,46],"ff":[60.42,56.82,57.89,36.36,37.33,39.13,38.18,45.0,52.5,51.32,43.14,47.83,52.27]},"Mumbai → Nagpur":{"orders":[42,45,52,49,43,46,51,49,50,62,63,51,42],"ff":[65.62,73.77,71.23,74.24,63.24,82.14,78.46,75.38,67.57,79.49,77.78,86.44,73.68]}};
+var ROUTES = {"Mumbai → Pune":{"orders":[337,293,306,277,313,346,263,284,319,316,316,315,407],"ff":[54.98,48.59,52.04,54.42,51.65,51.56,53.56,54.62,51.53,49.22,47.59,49.3,51.72]},"Pune → Mumbai":{"orders":[195,175,213,202,229,256,200,227,250,249,253,225,276],"ff":[51.45,46.92,56.95,47.98,56.4,56.14,58.82,54.7,57.87,56.98,50.91,50.56,53.8]},"Bangalore → Chennai":{"orders":[109,101,132,116,108,100,96,115,95,110,111,105,124],"ff":[52.66,50.5,55.7,49.57,51.43,49.75,50.0,54.25,50.26,54.19,45.31,53.3,57.14]},"Chennai → Bangalore":{"orders":[94,86,92,102,106,89,90,101,109,123,98,76,114],"ff":[67.63,62.77,58.97,53.4,54.92,57.42,61.22,62.35,60.22,59.13,64.47,53.9,57.87]},"Mumbai → Surat":{"orders":[64,72,76,74,65,70,54,50,63,79,78,66,70],"ff":[78.05,73.47,64.41,66.07,75.58,63.06,53.47,64.94,60.0,64.23,59.54,55.0,57.38]},"Mumbai → Ahmedabad":{"orders":[49,36,47,47,46,52,48,52,62,63,66,55,73],"ff":[63.64,41.86,50.0,55.29,61.33,52.53,55.81,55.32,58.49,70.0,63.46,62.5,57.94]},"Bangalore → Mysuru":{"orders":[75,61,61,75,66,84,66,95,81,90,84,62,75],"ff":[49.34,52.14,44.85,46.58,44.59,57.93,50.0,54.91,53.29,51.43,56.0,59.62,57.25]},"Bangalore → Hyderabad":{"orders":[66,68,59,65,70,61,55,59,59,69,56,58,62],"ff":[58.93,53.12,48.76,44.83,53.03,38.12,54.46,48.76,46.83,52.27,44.09,49.15,52.54]},"Surat → Mumbai":{"orders":[25,22,20,28,18,21,27,21,39,22,33,46,53],"ff":[56.82,57.89,36.36,37.33,39.13,38.18,45.0,52.5,51.32,43.14,47.83,52.27,60.92]},"Mumbai → Nagpur":{"orders":[45,52,49,43,46,51,49,50,62,63,51,42,49],"ff":[73.77,71.23,74.24,63.24,82.14,78.46,75.38,67.57,79.49,77.78,86.44,73.68,62.82]}};
+var PARTIAL = 6;
 
 var LABELS = {orders:"Orders Completed",netrev:"Net Revenue",grossrev:"Gross Revenue",ff:"Fulfilment Rate",aov:"Average Order Value",util:"Truck Utilization",opt:"Orders per Trip",ret:"Return Trip Share"};
 var PROV = {ff:1,aov:1,util:1,opt:1};
 var DAY_TICKS = [[0, "02 Oct"], [7, "09 Oct"], [14, "16 Oct"], [21, "23 Oct"], [29, "31 Oct"]];
-var WEEK_ALL = [[0, "27 Jul"], [1, "03 Aug"], [2, "10 Aug"], [3, "17 Aug"], [4, "24 Aug"], [5, "31 Aug"], [6, "07 Sep"], [7, "14 Sep"], [8, "21 Sep"], [9, "28 Sep"], [10, "05 Oct"], [11, "12 Oct"], [12, "19 Oct"]];
+var WEEK_ALL = [[0, "03 Aug"], [1, "10 Aug"], [2, "17 Aug"], [3, "24 Aug"], [4, "31 Aug"], [5, "07 Sep"], [6, "14 Sep"], [7, "21 Sep"], [8, "28 Sep"], [9, "05 Oct"], [10, "12 Oct"], [11, "19 Oct"], [12, "26 Oct*"]];
 
 function fmt(v, unit){
   if (unit === "pct") return Math.round(v) + "%";
@@ -486,7 +487,8 @@ for (var i=0;i<discs.length;i++){
   });
 }
 
-function chg(cur, prev, pp){
+function chg(cur, prev, pp, noprev){
+  if (noprev) return '<span class="chg flat">week to date (Mon&ndash;latest day)</span>';
   var d = pp ? cur - prev : (cur - prev) / prev * 100;
   var cls = Math.abs(d) < (pp ? 1 : 2) ? "flat" : (d > 0 ? "up" : "down");
   var arrow = cls === "flat" ? "▬" : (d > 0 ? "▲" : "▼");
@@ -497,8 +499,9 @@ var grid = document.getElementById("routeGrid");
 var html = "";
 for (var name in ROUTES){
   var r = ROUTES[name], n = r.orders.length;
+  var part = (typeof PARTIAL !== 'undefined' && PARTIAL > 0);
   html += '<div class="route-card"><h3>' + name + '</h3>' +
-    '<div class="rstat"><span><b>' + r.orders[n-1] + '</b>orders, latest full week' + chg(r.orders[n-1], r.orders[n-2], false) + '</span>' +
+    '<div class="rstat"><span><b>' + r.orders[n-1] + '</b>orders, week to date' + chg(r.orders[n-1], r.orders[n-2], false, part) + '</span>' +
     '<span><b>' + r.ff[n-1].toFixed(1) + '%</b>fulfilment' + chg(r.ff[n-1], r.ff[n-2], true) + '</span></div>' +
     '<div class="charts">' +
       '<div><p class="chartlabel">Orders / week</p>' + draw(r.orders, "count", 900, 250, WEEK_ALL, true, true) + '</div>' +

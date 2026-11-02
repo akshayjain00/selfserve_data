@@ -351,7 +351,9 @@ def build(D, res, per, w, ago):
     tl = lambda d: f"{d.day:02d} {d.strftime('%b')}"
     d0 = D - dd(days=29)
     day_ticks = [[0, tl(d0)], [7, tl(d0 + dd(days=7))], [14, tl(d0 + dd(days=14))], [21, tl(d0 + dd(days=21))], [29, tl(D)]]
-    week_all = [[i, tl(sd)] for i, sd in enumerate(starts)]
+    pdays = (D - w["cur_mon"]).days + 1
+    partial = 0 if pdays >= 7 else pdays
+    week_all = [[i, tl(sd) + ("*" if partial and i == len(starts) - 1 else "")] for i, sd in enumerate(starts)]
 
     this_sp, last_sp = span(mt0, kd), span(lm0, kd)
     mix = f" against {last_sp} last month, so weekday mix differs" if this_sp != last_sp else " against the same days last month"
@@ -437,14 +439,14 @@ def build(D, res, per, w, ago):
 
   <div class="tabpanel" id="tab-deepdive" hidden>
     <section aria-labelledby="deephead">
-      <h2 class="sectitle" id="deephead">Route trends, weekly (last 13 full weeks)</h2>
-      <p class="note">Orders completed and Fulfilment Rate per full Monday&ndash;Sunday week for the top 10 routes; latest full week is {rg(w["last_mon"], w["weekly1"])}.</p>
+      <h2 class="sectitle" id="deephead">Route trends, weekly (last 13 weeks, latest is week to date)</h2>
+      <p class="note">Orders completed and Fulfilment Rate per Monday&ndash;Sunday week for the top 10 routes. The last point (marked *) is the week to date, {rg(w["cur_mon"], D)} ({pdays} day{"s" if pdays > 1 else ""}), so its orders are lower than a full week and its Fulfilment % is still settling.</p>
       <div class="route-grid" id="routeGrid"></div>
     </section>
   </div>
 
 </main>'''
-    return body, js_series, js_routes, day_ticks, week_all
+    return body, js_series, js_routes + "\nvar PARTIAL = " + str(partial) + ";", day_ticks, week_all
 
 
 def main():
@@ -463,10 +465,10 @@ def main():
     tpl = open(os.path.join(c.ROOT, "template.html")).read()
     tpl = re.sub(r"<main>.*?</main>", lambda m: body, tpl, flags=re.S)
     tpl = re.sub(r"var SERIES = \{.*?\n\};", lambda m: js_series, tpl, flags=re.S)
-    tpl = re.sub(r"var ROUTES = .*?;\n", lambda m: js_routes + "\n", tpl)
+    tpl = re.sub(r"var ROUTES = .*?;\n(var PARTIAL = \d+;\n)?", lambda m: js_routes + "\n", tpl)
     tpl = re.sub(r"var DAY_TICKS = .*?;\n", lambda m: "var DAY_TICKS = " + json.dumps(day_ticks) + ";\n", tpl)
     tpl = re.sub(r"var WEEK_ALL = .*?;\n", lambda m: "var WEEK_ALL = " + json.dumps(week_all) + ";\n", tpl)
-    tpl = tpl.replace("orders this week", "orders, latest full week")
+    tpl = tpl.replace("orders this week", "orders, week to date")
     # chart axis labels should reflect that routes use full weeks
     os.makedirs(c.OUT, exist_ok=True)
     name = f"PTL-Daily-Digest-{D}.html"

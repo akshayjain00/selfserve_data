@@ -472,7 +472,8 @@ for (var i=0;i<discs.length;i++){
   });
 }
 
-function chg(cur, prev, pp){
+function chg(cur, prev, pp, noprev){
+  if (noprev) return '<span class="chg flat">week to date (Mon&ndash;latest day)</span>';
   var d = pp ? cur - prev : (cur - prev) / prev * 100;
   var cls = Math.abs(d) < (pp ? 1 : 2) ? "flat" : (d > 0 ? "up" : "down");
   var arrow = cls === "flat" ? "▬" : (d > 0 ? "▲" : "▼");
@@ -483,8 +484,9 @@ var grid = document.getElementById("routeGrid");
 var html = "";
 for (var name in ROUTES){
   var r = ROUTES[name], n = r.orders.length;
+  var part = (typeof PARTIAL !== 'undefined' && PARTIAL > 0);
   html += '<div class="route-card"><h3>' + name + '</h3>' +
-    '<div class="rstat"><span><b>' + r.orders[n-1] + '</b>orders this week' + chg(r.orders[n-1], r.orders[n-2], false) + '</span>' +
+    '<div class="rstat"><span><b>' + r.orders[n-1] + '</b>orders this week' + chg(r.orders[n-1], r.orders[n-2], false, part) + '</span>' +
     '<span><b>' + r.ff[n-1].toFixed(1) + '%</b>fulfilment' + chg(r.ff[n-1], r.ff[n-2], true) + '</span></div>' +
     '<div class="charts">' +
       '<div><p class="chartlabel">Orders / week</p>' + draw(r.orders, "count", 900, 250, WEEK_ALL, true, true) + '</div>' +

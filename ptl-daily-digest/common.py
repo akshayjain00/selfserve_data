@@ -47,8 +47,9 @@ def windows(D, hist):
     route0 = D - timedelta(days=6)                                    # last 7 days ending D
     last_sun = D - timedelta(days=(D.weekday() + 1) % 7)              # most recent Sunday <= D
     last_mon = last_sun - timedelta(days=6)
-    weekly0 = last_mon - timedelta(weeks=12)                          # 13 full weeks
-    return dict(start=start, end=D, route0=route0, weekly0=weekly0, weekly1=last_sun, last_mon=last_mon)
+    cur_mon = D - timedelta(days=D.weekday())                         # Monday of D's week (partial week unless D is Sunday)
+    weekly0 = cur_mon - timedelta(weeks=12)                           # 13 weeks, the last one week-to-date
+    return dict(start=start, end=D, route0=route0, weekly0=weekly0, weekly1=D, last_mon=last_mon, cur_mon=cur_mon)
 
 
 def read_s(name):
