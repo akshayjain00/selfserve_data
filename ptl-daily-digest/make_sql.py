@@ -180,7 +180,56 @@ ret as (
 select listagg(to_char(t.d,'YYYYMMDD')||','||t.total||','||coalesce(r.ret,0), ';') within group (order by t.d) as s
 from tot t left join ret r on r.d = t.d"""
 
-Q["route_a"] = """with @EXCL@
+Q["daily_unique"] = """with @EXCL@,
+-- Unique demand / unique fulfilment (Metabase definition, online orders only).
+-- 1) drop orders cancelled within 60s of creation; 2) an order is a duplicate when the same customer's previous
+-- surviving order was created the same or previous IST day, pickup AND drop are within 100 m, and that previous
+-- order was not completed; duplicates chain onto the demand before them. One chain = one unit of demand, dated by
+-- its first order; fulfilled if any order in the chain completed. Orders from 30 days before the window are read
+-- so chains that started before it are not counted again. Internal users excluded by customer_uuid (mobiles masked).
+ocr as (select order_id, min(created_at) as ocr_created_at from @P@.order_cancellation_reasons group by 1),
+ptl_orders as (
+  select o.external_id, o.customer_id, o.created_at, o.state, o.pickup_lat, o.pickup_lng, o.drop_lat, o.drop_lng,
+         date(o.created_at + interval '330 minutes') as dated, ocr.ocr_created_at
+  from @P@.orders o left join ocr on ocr.order_id = o.id
+  where o.customer_id is not null and @NI@
+    and date(o.created_at + interval '330 minutes') >= dateadd(day, -30, '@SU@'::date)
+),
+survivors as (
+  select * from ptl_orders where not (state = 4 and datediff(second, created_at, ocr_created_at) <= 60)
+),
+with_prev as (
+  select *,
+    lag(created_at) over (partition by customer_id order by created_at, external_id) as prev_created_at,
+    lag(dated)      over (partition by customer_id order by created_at, external_id) as prev_dated,
+    lag(pickup_lat) over (partition by customer_id order by created_at, external_id) as prev_pickup_lat,
+    lag(pickup_lng) over (partition by customer_id order by created_at, external_id) as prev_pickup_lng,
+    lag(drop_lat)   over (partition by customer_id order by created_at, external_id) as prev_drop_lat,
+    lag(drop_lng)   over (partition by customer_id order by created_at, external_id) as prev_drop_lng,
+    lag(state)      over (partition by customer_id order by created_at, external_id) as prev_state
+  from survivors
+),
+flagged as (
+  select *,
+    coalesce(prev_created_at is not null
+      and datediff(day, prev_dated, dated) <= 1
+      and haversine(prev_pickup_lat, prev_pickup_lng, pickup_lat, pickup_lng) <= 0.1
+      and haversine(prev_drop_lat, prev_drop_lng, drop_lat, drop_lng) <= 0.1
+      and prev_state <> 3, false) as is_duplicate
+  from with_prev
+),
+chained as (
+  select *, sum(iff(is_duplicate, 0, 1)) over (partition by customer_id order by created_at, external_id rows unbounded preceding) as chain_no
+  from flagged
+),
+chains as (
+  select customer_id, chain_no, min_by(dated, created_at) as d, max(iff(state = 3, 1, 0)) as fulfilled
+  from chained group by 1, 2
+)
+select listagg(to_char(d,'YYYYMMDD')||','||ud||','||uf, ';') within group (order by d) as s
+from (select d, count(*) as ud, sum(fulfilled) as uf from chains where d between '@SU@' and '@E@' group by 1)"""
+
+Q["route_a"] ="""with @EXCL@
 select listagg(label||','||placed||','||completed||','||quick||','||est_rev, ';') within group (order by completed desc, label) as s
 from (
   select r.route_label as label, count(*) as placed, count(case when o.state=3 then 1 end) as completed,
@@ -245,6 +294,7 @@ from @P@.orders"""
 def render(sql, w):
     sql = sql.replace("@UTIL_CTES@", UTIL_CTES).replace("@OPT_CTES@", OPT_CTES)
     for k, v in {"@EXCL@": EXCL, "@NI@": NOT_INTERNAL, "@P@": P,
+                 "@SU@": str(w.get("start_unique", w["start"])),
                  "@S@": str(w["start"]), "@E@": str(w["end"]), "@R0@": str(w["route0"]),
                  "@W0@": str(w["weekly0"]), "@W1@": str(w["weekly1"])}.items():
         sql = sql.replace(k, v)
@@ -256,7 +306,11 @@ if __name__ == "__main__":
     ap.add_argument("--end", default=None)
     a = ap.parse_args()
     D = date.fromisoformat(a.end) if a.end else c.default_end()
-    w = c.windows(D, c.load_hist())
+    hist = c.load_hist()
+    w = c.windows(D, hist)
+    # unique demand was added later: backfill it from the history floor until every stored day has it
+    if any(r.get("ud") is None for r in hist.values()):
+        w["start_unique"] = c.HISTORY_FLOOR
     os.makedirs(c.WORK, exist_ok=True)
     for old in os.listdir(c.WORK):
         os.remove(os.path.join(c.WORK, old))
