@@ -24,6 +24,7 @@ def merge_daily(hist):
         "daily_util": ("uw", "uc"),
         "daily_opt": ("on", "ot"),
         "daily_return": ("bt", "br"),
+        "daily_unique": ("ud", "uf"),
     }
     for name, keys in spec.items():
         s = c.read_s(name)
@@ -44,13 +45,15 @@ M = {
     "orders": ("add", lambda r: r["orders"]),
     "netrev": ("add", lambda r: r["net"]),
     "grossrev": ("add", lambda r: r["gross"] if r.get("gross") is not None else r["net"]),
+    "udem": ("add", lambda r: r["ud"]),
     "ff": ("ratio", lambda r: (r["completed"], r["placed"]), 100),
+    "uff": ("ratio", lambda r: (r["uf"], r["ud"]), 100),
     "aov": ("ratio", lambda r: (r["est_rev"], r["completed"]), 1),
     "util": ("ratio", lambda r: (r["uw"], r["uc"]), 100),
     "opt": ("ratio", lambda r: (r["on"], r["ot"]), 1),
     "ret": ("ratio", lambda r: (r["br"], r["bt"]), 100),
 }
-REQ = ["orders", "net", "placed", "completed", "est_rev", "uw", "uc", "on", "ot", "bt", "br"]
+REQ = ["orders", "net", "placed", "completed", "est_rev", "uw", "uc", "on", "ot", "bt", "br", "ud", "uf"]
 dd = timedelta
 
 
@@ -62,7 +65,7 @@ def compute(hist, D):
     ok = lambda x: str(x) in hist and all(hist[str(x)].get(k) is not None for k in REQ)
     if not ok(D):
         missing = [k for k in REQ if hist.get(str(D), {}).get(k) is None]
-        raise SystemExit(f"latest day {D} is missing fields {missing} - rerun the daily queries")
+        raise SystemExit(f"latest day {D} is missing fields {missing} - rerun the daily queries (ud/uf come from daily_unique)")
 
     def win(m, ds):
         sp = M[m]
@@ -125,10 +128,11 @@ def compute(hist, D):
 
 
 # ----------------------------------------------------------------------------- formatting
-LABEL = {"orders": "Orders Completed", "netrev": "Net Revenue", "grossrev": "Gross Revenue", "ff": "Fulfilment Rate",
+LABEL = {"orders": "Orders Completed", "netrev": "Net Revenue", "grossrev": "Gross Revenue", "udem": "Unique Demand",
+         "ff": "Fulfilment Rate", "uff": "Unique Fulfilment Rate",
          "aov": "Average Order Value", "util": "Truck Utilization", "opt": "Orders per Trip", "ret": "Return Trip Share"}
-ORDER = ["orders", "netrev", "grossrev", "ff", "aov", "util", "opt", "ret"]
-PROV = {"ff", "aov", "util", "opt", "ret"}
+ORDER = ["orders", "netrev", "grossrev", "udem", "ff", "uff", "aov", "util", "opt", "ret"]
+PROV = {"udem", "ff", "uff", "aov", "util", "opt", "ret"}
 ARW = {"good": "▲", "warn": "▬", "crit": "▼"}
 
 
@@ -148,11 +152,11 @@ def money(v):
 def fmtv(m, v):
     if v is None:
         return "&mdash;"
-    if m == "orders":
+    if m in ("orders", "udem"):
         return f"{round(v):,}"
     if m in ("netrev", "grossrev"):
         return money(v)
-    if m in ("ff", "util", "ret"):
+    if m in ("ff", "uff", "util", "ret"):
         return f"{v:.1f}%"
     if m == "aov":
         return f"₹{round(v):,}"
@@ -344,7 +348,7 @@ def build(D, res, per, w, ago):
         routes_js[disp_js(k)] = {"orders": [p[1] for p in pts],
                                  "ff": [round(100 * p[1] / p[0], 2) if p[0] else 0 for p in pts]}
 
-    series = {m: {"unit": {"orders": "count", "netrev": "rev", "grossrev": "rev", "ff": "pct", "aov": "rupee", "util": "pct", "opt": "ratio", "ret": "pct"}[m],
+    series = {m: {"unit": {"orders": "count", "udem": "count", "netrev": "rev", "grossrev": "rev", "ff": "pct", "uff": "pct", "aov": "rupee", "util": "pct", "opt": "ratio", "ret": "pct"}[m],
                   "vals": [round(v, 2) for v in res[m]["spark"]]} for m in ORDER}
     js_series = "var SERIES = {\n" + ",\n".join(f'  {m}: {json.dumps(v, separators=(",", ":"))}' for m, v in series.items()) + "\n};"
     js_routes = "var ROUTES = " + json.dumps(routes_js, ensure_ascii=False, separators=(",", ":")) + ";"
@@ -383,7 +387,7 @@ def build(D, res, per, w, ago):
       <div class="kpi-grid">
         {chr(10).join("        " + x for x in cards).strip()}
       </div>
-      <p class="fnotes">{mtd_note}{wtd_note}Fulfilment, Order Value, Orders per Trip and Utilization include {dl(D)}, which is still settling.</p>
+      <p class="fnotes">{mtd_note}{wtd_note}Unique Demand, Fulfilment, Unique Fulfilment, Order Value, Orders per Trip, Utilization and Return Trip Share include {dl(D)}, which is still settling.</p>
     </section>
 
     <section aria-labelledby="trendhead">
@@ -398,7 +402,8 @@ def build(D, res, per, w, ago):
       </div>
       <p class="fnotes"><b>Latest day</b> is the day before yesterday. Grey dots and &dagger; mark numbers that are still settling at that age (26 Sep read 49.6% Fulfilment at 2 days old and settled at 55.0%); Orders and Revenue are final.<br>
       <b>Compared with:</b> same weekday last week and 4 weeks ago; same first {kd} day{'s' if kd > 1 else ''} of last month; same Monday-to-date span 4 weeks earlier.<br>
-      <b>3-Mo / 6-Mo Avg:</b> per day for the day view; the same {kd}-day window of each previous 3 / 6 months for month; the same week-to-date span of the previous 13 / 26 weeks for week. Ratios are pooled, not averaged. Dots: green or red beyond &plusmn;2% (&plusmn;1pp for rates).</p>
+      <b>3-Mo / 6-Mo Avg:</b> per day for the day view; the same {kd}-day window of each previous 3 / 6 months for month; the same week-to-date span of the previous 13 / 26 weeks for week. Ratios are pooled, not averaged. Dots: green or red beyond &plusmn;2% (&plusmn;1pp for rates).<br>
+      <b>Unique Demand</b> counts each customer need once, online orders only: orders cancelled within 60 seconds are dropped, and a rebooking by the same customer on the same or next day with pickup and drop both within 100 m of an earlier order that was not completed counts as the same demand, dated by its first order. <b>Unique Fulfilment Rate</b> is the share of that demand where any of its orders was completed.</p>
     </section>
 
     <section aria-labelledby="routehead">
@@ -469,6 +474,8 @@ def main():
     tpl = re.sub(r"var DAY_TICKS = .*?;\n", lambda m: "var DAY_TICKS = " + json.dumps(day_ticks) + ";\n", tpl)
     tpl = re.sub(r"var WEEK_ALL = .*?;\n", lambda m: "var WEEK_ALL = " + json.dumps(week_all) + ";\n", tpl)
     tpl = tpl.replace("orders this week", "orders, week to date")
+    tpl = re.sub(r"var LABELS = \{.*?\};\n", lambda m: "var LABELS = " + json.dumps(LABEL, ensure_ascii=False) + ";\n", tpl)
+    tpl = re.sub(r"var PROV = \{.*?\};\n", lambda m: "var PROV = " + json.dumps({k: 1 for k in sorted(PROV)}) + ";\n", tpl)
     # chart axis labels should reflect that routes use full weeks
     os.makedirs(c.OUT, exist_ok=True)
     name = f"PTL-Daily-Digest-{D}.html"
@@ -484,7 +491,7 @@ def main():
     r = res
     print("\nKEY NUMBERS")
     for m in ORDER:
-        print(f"  {LABEL[m]:22s} day {fmtv(m, r[m]['day']):>10s} | MTD {fmtv(m, r[m]['mtd']):>10s} ({dtxt(r[m]['d_mtd'], r[m]['unit_pp'])}) | WTD {fmtv(m, r[m]['wtd']):>10s} ({dtxt(r[m]['d_wtd'], r[m]['unit_pp'])})")
+        print(f"  {LABEL[m] + (' †' if m in PROV else ''):24s} day {fmtv(m, r[m]['day']):>10s} | MTD {fmtv(m, r[m]['mtd']):>10s} ({dtxt(r[m]['d_mtd'], r[m]['unit_pp'])}) | WTD {fmtv(m, r[m]['wtd']):>10s} ({dtxt(r[m]['d_wtd'], r[m]['unit_pp'])})")
 
 
 if __name__ == "__main__":
