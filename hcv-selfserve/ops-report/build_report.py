@@ -66,11 +66,12 @@ def f_int(n: float) -> str:
 
 
 def f_money(v: float) -> str:
-    if abs(v) >= 1e7:
-        return f"₹{_q(v / 1e7, '0.01')} Cr"
-    if abs(v) >= 1e5:
-        return f"₹{_q(v / 1e5, '0.01')} L"
-    return "₹" + f_int(v)
+    sign, a = (MINUS if v < 0 else ""), abs(v)
+    if a >= 1e7:
+        return f"{sign}₹{_q(a / 1e7, '0.01')} Cr"
+    if a >= 1e5:
+        return f"{sign}₹{_q(a / 1e5, '0.01')} L"
+    return f"{sign}₹{f_int(a)}"
 
 
 def f_pct(v: float) -> str:
