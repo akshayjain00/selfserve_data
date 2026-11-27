@@ -1,6 +1,6 @@
 # BOARD — HCV intracity ops report: current state & handoff
 # Mutable, single-writer (orchestrator). Decisions are referenced by ID; see DECISIONS.md.
-Updated: 2026-11-27 20:10 IST (orchestrator)
+Updated: 2026-11-27 21:05 IST (orchestrator)
 
 **Goal:** a daily, self-contained HTML ops report for Porter HCV intracity (Tier 1, 9ft and
 above): yesterday, week to date, month to date. Re-run instructions: [../SKILL.md](../SKILL.md).
@@ -10,24 +10,20 @@ SEQUENTIAL — one deep build whose steps need each other's live output (D-001).
 
 ## Roster
 - orchestrator (me) — build, synthesis, sole writer of DECISIONS / BOARD
-- blind-checker (running, launched 2026-11-27 ~20:05 IST) — review of the built HTML against the
-  hcv-data definitions, given only the spec, the SQL and the raw exports → findings returned to
-  the orchestrator, then logged in DECISIONS
+- blind-checker (done) — review of the built HTML against the hcv-data definitions, given only
+  the spec, the SQL and the raw exports → no HIGH; findings and dispositions in D-013 to D-018
 
 ## Done-when status
 1. Pipeline produces `docs/YYYY-MM-DD-hcv-intracity-ops-report.html` — **DELIVERED**
    (`docs/2026-11-27-hcv-intracity-ops-report.html`, data to 2026-11-26; 5 queries, all exports
-   validated; 19 tests pass).
+   validated; 21 tests pass; status `reviewed`).
 2. One-week reconciliation vs dashboard 6406 card SQL — **DELIVERED**
    (`docs/2026-11-27-reconciliation-dashboard-6406.md`, week 2026-11-16 to 2026-11-22).
-3. Blind checker review — **IN PROGRESS**.
+3. Blind checker review — **DELIVERED** (D-013): no HIGH, 1,461 of 1,461 cells reproduced.
 4. `SKILL.md` — **DELIVERED**.
 
 ## Pending / next
-1. Receive the blind checker's findings; for each HIGH, name its class, add the author-side check
-   (test or installer rule), fix, re-run ALL checks (tests, install, build, render), log in DECISIONS.
-2. Set the report status to `reviewed` (`build_report.py --status reviewed`) once no HIGH remains.
-3. Owner decisions outstanding: see "Open for the owner" below.
+1. All four done-when items are delivered. Only owner decisions remain: see "Open for the owner".
 
 ## Shared context (facts the work depends on)
 - Branch `hcv-ops-report` of `~/dev/selfserve` (remote `akshayjain00/selfserve_data`), cut from
@@ -57,5 +53,6 @@ SEQUENTIAL — one deep build whose steps need each other's live output (D-001).
 - DAP carries the intracity vehicle filter (D-007) — undo: drop `INTRACITY_SQL` from `sql_daily_dap`.
 
 ## Open for the owner
+- An ex-dip month comparison (checker M1) would be a new window; not built without approval.
 - Revenue gap vs card 55587 (0.68%): accept as-is, or investigate the two fare sources?
 - Whether to merge the branch / open a PR, and whether and with whom to share the report.

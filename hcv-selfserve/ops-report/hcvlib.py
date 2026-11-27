@@ -190,8 +190,11 @@ som AS (
     SELECT SCHEDULE_ORDER_ID, MAX(NUM_BATCHES_CREATED) AS NB
     FROM PROD_ELDORIA.MART.HCV_SO_MATCHMAKING_MART GROUP BY 1
 ),
-attr AS (   -- keyed on ID, not CANCEL_REASON_ID: dedup before joining
-    SELECT CANCEL_REASON_ID, MAX(LOWER(ATTRIBUTION)) AS ATTRIBUTION
+attr AS (   -- one row per CANCEL_REASON_ID so the join cannot fan out; a reason
+            -- carrying two different attributions is labelled 'conflict', which
+            -- no split counts, so it surfaces as unattributed CADF in the report
+    SELECT CANCEL_REASON_ID,
+           IFF(COUNT(DISTINCT LOWER(ATTRIBUTION)) = 1, MAX(LOWER(ATTRIBUTION)), 'conflict') AS ATTRIBUTION
     FROM PROD_ELDORIA.CORE.DIM_CANCEL_REASONS_ATTRIBUTION GROUP BY 1
 ),
 base AS (

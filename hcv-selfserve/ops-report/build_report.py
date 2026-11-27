@@ -22,7 +22,9 @@ from decimal import ROUND_HALF_UP, Decimal
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from metrics import CUTS, META, METRICS, P_MIN_N, SUB_METRICS, Cube, delta  # noqa: E402
+from hcvlib import ORDER_TYPES  # noqa: E402
+from metrics import (CUTS, META, METRICS, P_MIN_N, SUB_METRICS,  # noqa: E402
+                     UNUSUAL_TOL, Cube, delta)
 
 MINUS = "−"
 
@@ -37,7 +39,8 @@ CUT_COLS = [("demand", True), ("alloc_pct", False), ("ff_pct", True), ("cadf_pct
             ("cadf_porter_pct", False), ("cbdf_pct", False), ("cbdf_so_pct", False),
             ("cbdf_mo_pct", False), ("revenue", True), ("aov", False), ("dap", False),
             ("alloc_p50", False), ("alloc_p90", True)]
-STRIP_COLS = ["demand", "alloc_pct", "ff_pct", "cadf_pct", "cbdf_pct", "cbdf_so_pct",
+STRIP_COLS = ["demand", "alloc_pct", "ff_pct", "cadf_pct", "cadf_customer_pct",
+              "cadf_partner_pct", "cadf_porter_pct", "cbdf_pct", "cbdf_so_pct",
               "cbdf_mo_pct", "revenue", "aov", "dap", "alloc_p50", "alloc_p90"]
 HEAD_KEYS = ["demand", "ff_pct", "revenue"]
 
@@ -152,6 +155,30 @@ def notes(cube: Cube) -> list[str]:
     if p.analysis_end.day <= 3:
         out.append(f"The month so far is {p.analysis_end.day} day(s); month-to-date "
                    "readings are thin until more days accumulate.")
+
+    def days(ds):
+        return ", ".join(f"{_dt.date.fromisoformat(d).strftime('%a %d %b')} "
+                         f"({f_delta(v, '%')})" for d, v in ds)
+
+    tol = f_int(100 * UNUSUAL_TOL)
+    for win, title in (("MTD", "This month to date"), ("LMTD", "The comparison month"),
+                       ("SW4", "Yesterday's four-weekday baseline")):
+        odd = cube.unusual_days(cube.dates(win))
+        if odd:
+            out.append(f"<b>{title}</b> contains {len(odd)} day(s) whose demand is more than "
+                       f"{tol}% away from the usual level for that weekday: {days(odd)}. "
+                       "Read the changes for that window with these days in mind; the figure "
+                       "in brackets is each day against the median of the same weekday over "
+                       "all days loaded.")
+    ip, dem = cube.in_progress("D1")
+    if ip > 0 and dem:
+        out.append(f"{f_int(ip)} of yesterday's orders ({f_pct(100.0 * ip / dem)} of demand) "
+                   "had a driver but were neither completed nor cancelled when the data was "
+                   "pulled, so yesterday's Fulfilment % can still rise by up to that much.")
+    absent = [lab for code, lab in ORDER_TYPES.items() if code not in cube.members("OT")]
+    if absent:
+        out.append(f"No order in this scope classifies as <b>{', '.join(absent)}</b> in the "
+                   "dates loaded, so the order-type cut has no row for it.")
     strip = [d.isoformat() for d in p.strip_days]
     no_dap = [d for d in strip if d not in cube.dap_days]
     if no_dap:
@@ -215,7 +242,8 @@ def _cut_head(first: str, delta_note: str) -> str:
         cls = ' class="subh"' if key in SUB_METRICS else ""
         ths.append(f'<th{cls}>{e(label)}<span class="basis">{e(basis)}</span></th>')
         if has_d:
-            ths.append(f'<th class="d">Change<span class="basis">{e(delta_note)}</span></th>')
+            ths.append(f'<th class="d">{e(label)} change<span class="basis">'
+                       f'{e(delta_note)}</span></th>')
     return f'<thead><tr><th class="lab">{e(first)}</th>{"".join(ths)}</tr></thead>'
 
 
@@ -295,7 +323,8 @@ DEFINITIONS = [
      "is the greater of the two production matchmaking marts "
      "(<code>HCV_FO_MATCHMAKING_MART</code>, <code>HCV_SO_MATCHMAKING_MART</code>). Dashboard "
      "card 55612 also reads a dev sandbox table here; this report does not, so its "
-     "Stockout / Missed split can differ slightly from that card while CBDF % itself matches."),
+     "Stockout / Missed split can differ slightly from that card. A schedule booking "
+     "cancelled before matchmaking starts has no batch, so it counts as Stockout."),
     ("Revenue", "<code>sum(FO_CUSTOMER_FARE_WITHOUT_PREVIOUS_DUE)</code> on completed orders."),
     ("AOV", "Revenue ÷ completed orders."),
     ("DAP",
@@ -306,8 +335,8 @@ DEFINITIONS = [
      "order type, because a partner is not an order type."),
     ("Allocation time",
      "Seconds from <code>order_time</code> to driver acceptance "
-     "(<code>fo_trip_accepted_time</code>), over orders that were accepted, as dashboard card "
-     "55527 computes it. P50 and P90 are computed in SQL for each window; a percentile cannot "
+     "(<code>fo_trip_accepted_time</code>), over orders that have an acceptance time and a "
+     "non-negative duration, as dashboard card 55527 computes it. P50 and P90 are computed in SQL for each window; a percentile cannot "
      f"be re-aggregated from daily values. A cell with fewer than {P_MIN_N} accepted orders "
      "is left blank."),
     ("Comparisons",
@@ -322,6 +351,15 @@ DEFINITIONS = [
      "Each order sits in exactly one city, one vehicle mapping and one order type, so every "
      "cut is a partition of the same orders and the Tier 1 total is computed from the orders "
      "themselves. No total is built by adding vehicle categories together."),
+    ("Data maturity",
+     "Orders are read as they stood when the data was pulled. The newest day can still hold "
+     "trips in progress, so its Fulfilment % may rise slightly on a later pull; a note at the "
+     "top of the page gives the count."),
+    ("Card and gap references",
+     "Card numbers are dashboard 6406 cards, whose stored SQL was read from "
+     "<code>PROD_ELDORIA.CORE.FACT_MB_CARDS</code> on 27 Nov 2026. G-numbers are entries in the "
+     "HCV knowledge base file <code>hcv-selfserve/kb/GAPS.md</code>. The week-level tie-out "
+     "to cards 55586 and 55587 is in the reconciliation note beside this report."),
     ("Blank cells", "A blank cell means there is nothing to measure (no demand, no completed "
      "order, DAP not loaded, or too few orders for a percentile). It never means zero."),
 ]
@@ -417,8 +455,12 @@ def build(cube: Cube, install: dict, status: str) -> str:
     nts = notes(cube)
     notes_html = (f'<ul class="notes">{"".join(f"<li>{n}</li>" for n in nts)}</ul>'
                   if nts else "")
+    cut_lead = {"OT": '<p class="lead">For Schedule orders, “Stockout” mostly means the '
+                'booking was cancelled before matchmaking began, because no batch exists '
+                'until then. It is not on its own evidence of a supply shortage.</p>'}
     cuts_html = "".join(
-        f'<h2>By {e(CUTS[c].lower())}</h2>{cut_section(cube, c)}' for c in CUTS)
+        f'<h2>By {e(CUTS[c].lower())}</h2>{cut_lead.get(c, "")}{cut_section(cube, c)}'
+        for c in CUTS)
     defs = "".join(f"<dt>{e(t)}</dt><dd>{d}</dd>" for t, d in DEFINITIONS)
     exp_rows = "".join(
         f'<tr><td><code>{e(n)}</code></td><td>{f_int(v["rows"])} rows</td>'

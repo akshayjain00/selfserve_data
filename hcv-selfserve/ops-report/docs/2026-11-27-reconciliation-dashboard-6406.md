@@ -2,7 +2,7 @@
 What this is:      Reconciliation of the HCV intracity ops report against dashboard 6406's card SQL for one full week.
 Who it's for:      The report owner, checking that the report ties to the dashboard.
 What to do with it: Accept or question the report's Demand, Fulfilment % and Revenue.
-Status:            draft
+Status:            reviewed
 ```
 
 # Reconciliation vs dashboard 6406 — 2026-11-16 to 2026-11-22
@@ -13,6 +13,9 @@ Scope on both sides: Tier 1, serviceability segment Vanilla (intracity).
 |---|---:|---:|---:|---:|---|
 | Demand | 1,54,961 | 1,54,961 | 0 | +0.00% | 55586 |
 | Completed orders | 93,255 | 93,255 | 0 | +0.00% | 55586 |
+| Allocated orders | 1,40,743 | 1,40,743 | 0 | +0.00% | 55586 |
+| CADF orders | 47,345 | 47,345 | 0 | +0.00% | 55586 |
+| CBDF orders | 14,198 | 14,198 | 0 | +0.00% | 55586 |
 | Fulfilment % | 60.18% | 60.18% | +0.00pp |  | 55586 |
 | Revenue | ₹17.86 Cr | ₹17.99 Cr | −₹12.15 L | -0.68% | 55587 |
 | Completed orders (revenue card) | 93,255 | 93,258 | −3 | -0.00% | 55587 |

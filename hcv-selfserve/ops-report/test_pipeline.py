@@ -230,6 +230,19 @@ class TestCube(unittest.TestCase):
         self.assertIsNone(c.cell("MTD", "OT", "SCHEDULE")["dap"])
         self.assertEqual(c.cell("MTD")["dap"], 20)                       # 2 cities x 2 vm x 5
 
+    def test_unusual_day_is_flagged(self):
+        c = metrics.Cube(self.tmp)
+        d = c.dates("MTD")[5]
+        for k in [k for k in c.orders if k[0] == d]:
+            c.orders[k] = dict(c.orders[k], DEMAND=c.orders[k]["DEMAND"] * 0.3)
+        self.assertEqual([x[0] for x in c.unusual_days(c.dates("MTD"))], [d])
+        self.assertEqual(self.cube.unusual_days(self.cube.dates("MTD")), [])
+
+    def test_in_progress_orders(self):
+        ip, dem = self.cube.in_progress("D1")
+        self.assertEqual(ip, 0)                     # synth: allocated = completed + cadf
+        self.assertGreater(dem, 0)
+
     def test_deltas(self):
         self.assertEqual(metrics.delta("ff_pct", 60.0, 57.5), (2.5, "pp"))
         self.assertEqual(metrics.delta("demand", 110, 100), (10.0, "%"))

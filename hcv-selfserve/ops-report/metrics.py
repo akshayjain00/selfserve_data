@@ -18,6 +18,7 @@ from collections import defaultdict
 from hcvlib import ORDER_TYPES, SUM_KEYS, Periods, load_export, num
 
 P_MIN_N = 30          # a percentile on fewer allocated orders is blanked
+UNUSUAL_TOL = 0.20    # a day this far from its same-weekday median is flagged
 
 CUTS = {"VM": "Vehicle", "OT": "Order type", "CITY": "City"}
 
@@ -198,6 +199,36 @@ class Cube:
             period = f"DAY|{dates[0]}" if win == "D1" else win
             out["alloc_p50"], out["alloc_p90"] = self._pctl(period, cut, k)
         return out
+
+    def daily_demand(self) -> dict[str, float]:
+        out: dict[str, float] = defaultdict(float)
+        for k, v in self.orders.items():
+            out[k[0]] += v["DEMAND"]
+        return dict(out)
+
+    def unusual_days(self, dates: list[str], tol: float = UNUSUAL_TOL) -> list[tuple[str, float]]:
+        """Days whose Tier 1 demand is more than ``tol`` away from the median of
+        the same weekday across every day loaded. Returns (date, % vs median)."""
+        dd = self.daily_demand()
+        by_wd = defaultdict(list)
+        for d, v in dd.items():
+            by_wd[_dt.date.fromisoformat(d).weekday()].append(v)
+        out = []
+        for d in dates:
+            vals = sorted(by_wd[_dt.date.fromisoformat(d).weekday()])
+            if len(vals) < 4 or d not in dd:
+                continue
+            n = len(vals)
+            med = vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2
+            dev = 100.0 * (dd[d] - med) / med
+            if abs(dev) > 100.0 * tol:
+                out.append((d, dev))
+        return out
+
+    def in_progress(self, win: str) -> tuple[int, int]:
+        """(allocated orders neither completed nor cancelled, demand)."""
+        s = self.sums(self.dates(win))
+        return s["ALLOCATED"] - s["COMPLETED"] - s["CADF"], s["DEMAND"]
 
     def cadf_unattributed(self, win: str) -> tuple[int, int]:
         """(CADF orders with no customer/partner/porter attribution, CADF orders)."""

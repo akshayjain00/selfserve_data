@@ -7,7 +7,7 @@ description: Daily HCV intracity ops report for Porter (9ft and above, Tier 1). 
 What this is:      How to re-run and maintain the HCV intracity ops report pipeline.
 Who it's for:      An agent or analyst re-running the report; assumes Snowflake access, not knowledge of this code.
 What to do with it: Follow "Run it" top to bottom; read "Rules" before changing anything.
-Status:            draft
+Status:            reviewed
 ```
 
 # HCV intracity ops report
@@ -28,7 +28,7 @@ python3 gen_sql.py                    # writes sql/*.sql + sql/manifest.json
 python3 capture_exports.py            # tool output -> inbox/hcv_<name>.json
 python3 install_exports.py            # validate against the manifest -> data/
 python3 build_report.py               # -> docs/<run-date>-hcv-intracity-ops-report.html
-python3 test_pipeline.py              # 19 tests; run after any code change
+python3 test_pipeline.py              # 21 tests; run after any code change
 ```
 
 `gen_sql.py --target-date YYYY-MM-DD` re-creates a past run (the target date is the run date).
