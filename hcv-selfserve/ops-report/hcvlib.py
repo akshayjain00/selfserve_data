@@ -36,7 +36,8 @@ ORDER_TYPE_SQL = """CASE
 
 # Composable columns of daily_orders (all plain sums over one-row-per-order).
 SUM_KEYS = ["DEMAND", "ALLOCATED", "COMPLETED", "CADF", "CADF_CUSTOMER",
-            "CADF_PARTNER", "CADF_PORTER", "CBDF", "CBDF_SO", "CBDF_MO", "REVENUE"]
+            "CADF_PARTNER", "CADF_PORTER", "CBDF", "CBDF_SO", "CBDF_MO", "REVENUE",
+            "CBDF_CUSTOMER", "CBDF_PORTER"]
 
 # The Snowflake MCP truncates a result at ~468 KB (measured 2026-11-27: 4,079 of
 # 4,274 rows came back). daily_orders is therefore emitted in date chunks; the
@@ -45,6 +46,7 @@ ORDERS_CHUNK_DAYS = 20
 
 REQUIRED_COLS = {
     "daily_orders": ["D", "CITY", "VM", "OT", "N_ROWS"] + SUM_KEYS,
+    "daily_reasons": ["D", "STAGE", "ATTRIBUTION", "REASON", "ORDERS"],
     "daily_dap": ["D", "CITY", "VM", "DAP", "DAP_DRIVERS"],
     "period_alloc": ["PERIOD", "CUT", "K", "LABEL", "ALLOC_N", "P50", "P90"],
 }
@@ -231,8 +233,42 @@ SELECT
     COUNT_IF(NOT ALLOC AND (ST = 5 OR ST IS NULL) AND NB = 0)   AS CBDF_SO,
     COUNT_IF(NOT ALLOC AND (ST = 5 OR ST IS NULL) AND NB > 0)   AS CBDF_MO,
     COALESCE(SUM(IFF(ALLOC AND ST = 4, FARE, 0)), 0)            AS REVENUE,
+    COUNT_IF(NOT ALLOC AND (ST = 5 OR ST IS NULL) AND ATTRIBUTION = 'customer') AS CBDF_CUSTOMER,
+    COUNT_IF(NOT ALLOC AND (ST = 5 OR ST IS NULL) AND ATTRIBUTION = 'porter')   AS CBDF_PORTER,
     1 AS "{tag(name, p)}"
 FROM base
+GROUP BY 1, 2, 3, 4
+ORDER BY 1, 2, 3, 4"""
+
+
+def sql_daily_reasons(p: Periods, name: str,
+                      rng: tuple[_dt.date, _dt.date]) -> str:
+    """Cancelled orders by stage x attribution x cancel reason, per day (Tier 1 total).
+
+    Same population as CADF / CBDF in daily_orders, so the two must add up to
+    the same totals; the installer asserts it. A cancellation with no
+    fo_cancel_reason_id (for example a schedule-only booking) has no reason row.
+    """
+    return f"""WITH attr AS (
+    SELECT CANCEL_REASON_ID,
+           IFF(COUNT(DISTINCT LOWER(ATTRIBUTION)) = 1, MAX(LOWER(ATTRIBUTION)), 'conflict') AS ATTRIBUTION,
+           MAX(TRIM(NAME)) AS REASON
+    FROM PROD_ELDORIA.CORE.DIM_CANCEL_REASONS_ATTRIBUTION GROUP BY 1
+)
+SELECT
+    DATE(o.order_time)                                          AS D,
+    IFF(o.fo_driver_id IS NOT NULL, 'CADF', 'CBDF')             AS STAGE,
+    COALESCE(a.ATTRIBUTION, 'none')                             AS ATTRIBUTION,
+    COALESCE(a.REASON, 'No cancel reason recorded')             AS REASON,
+    COUNT(DISTINCT o.unique_id)                                 AS ORDERS,
+    1 AS "{tag(name, p)}"
+FROM {MART} o
+JOIN PROD_ELDORIA.CORE.DIM_GEO_REGIONS g ON g.geo_region_id = o.geo_region_id
+JOIN PROD_ELDORIA.CORE.DIM_VEHICLES v    ON v.vehicle_id = o.vehicle_id
+LEFT JOIN attr a ON a.CANCEL_REASON_ID = o.fo_cancel_reason_id
+WHERE {_base_where(p, rng)}
+  AND ((o.fo_driver_id IS NOT NULL AND o.order_status = 5)
+       OR (o.fo_driver_id IS NULL AND (o.order_status = 5 OR o.order_status IS NULL)))
 GROUP BY 1, 2, 3, 4
 ORDER BY 1, 2, 3, 4"""
 
@@ -309,13 +345,23 @@ ORDER BY 1, 2, 3"""
 def queries_for(p: Periods) -> dict[str, str]:
     """name -> SQL for everything this run has to execute."""
     out = {n: sql_daily_orders(p, n, rng) for n, rng in orders_chunks(p).items()}
+    for n, rng in reasons_chunks(p).items():
+        out[n] = sql_daily_reasons(p, n, rng)
     out["daily_dap"] = sql_daily_dap(p)
     out["period_alloc"] = sql_period_alloc(p)
     return out
 
 
+def reasons_chunks(p: Periods) -> dict[str, tuple[_dt.date, _dt.date]]:
+    """daily_reasons uses the same date chunks as daily_orders."""
+    return {n.replace("orders", "reasons"): rng for n, rng in orders_chunks(p).items()}
+
+
 def required_cols(name: str) -> list[str]:
-    return REQUIRED_COLS["daily_orders" if name.startswith("daily_orders") else name]
+    for base in ("daily_orders", "daily_reasons"):
+        if name.startswith(base):
+            return REQUIRED_COLS[base]
+    return REQUIRED_COLS[name]
 
 
 # --------------------------------------------------------------------------

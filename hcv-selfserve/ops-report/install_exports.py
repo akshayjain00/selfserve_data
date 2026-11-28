@@ -11,6 +11,8 @@ the reason and exits non-zero. Checks, per export:
   * daily_orders: dates inside the chunk's range and every date of the range
     present; one row per key; N_ROWS == DEMAND (no join fan-out);
     CBDF_SO + CBDF_MO == CBDF; CADF splits <= CADF; COMPLETED + CADF <= ALLOCATED
+  * daily_reasons: dates as above, one row per key, and per day and stage the
+    reasons add up exactly to the CADF / CBDF of daily_orders (cross-export)
   * daily_dap: dates inside the run's range, one row per key
   * period_alloc: every window of the manifest present, one row per key
 
@@ -78,6 +80,39 @@ def check_orders(rows: list[dict], rng: list[str]) -> list[str]:
     return out
 
 
+def check_reasons(rows: list[dict], rng: list[str]) -> list[str]:
+    out = []
+    have = {r["D"] for r in rows}
+    if have - _dates(*rng):
+        out.append(f"dates outside {rng}: {sorted(have - _dates(*rng))[:5]}")
+    if _dates(*rng) - have:
+        out.append(f"dates with no rows: {sorted(_dates(*rng) - have)}")
+    if _dupes(rows, ("D", "STAGE", "ATTRIBUTION", "REASON")):
+        out.append("duplicate (D, STAGE, ATTRIBUTION, REASON) keys")
+    if any(r["STAGE"] not in ("CADF", "CBDF") or not num(r["ORDERS"]) for r in rows):
+        out.append("unknown STAGE or non-positive ORDERS")
+    return out
+
+
+def cross_check(orders: list[dict], reasons: list[dict]) -> list[str]:
+    """Cancel reasons must add up to the CADF / CBDF the order facts report,
+    per day and stage — same population, two queries."""
+    a: dict = {}
+    b: dict = {}
+    for r in orders:
+        for st in ("CADF", "CBDF"):
+            a[(r["D"], st)] = a.get((r["D"], st), 0) + num(r[st])
+    for r in reasons:
+        k = (r["D"], r["STAGE"])
+        b[k] = b.get(k, 0) + num(r["ORDERS"])
+    bad = sorted(k for k in set(a) | set(b) if a.get(k, 0) != b.get(k, 0))
+    if not bad:
+        return []
+    k = bad[0]
+    return [f"cancel reasons do not add up to order facts on {len(bad)} day-stage cells; "
+            f"first: {k} orders={a.get(k, 0)} reasons={b.get(k, 0)}"]
+
+
 def check_dap(rows: list[dict], rng: list[str]) -> list[str]:
     out = []
     have = {r["D"] for r in rows}
@@ -117,6 +152,8 @@ def validate(name: str, text: str, manifest: dict) -> tuple[list[dict], list[str
         return rows, probs + [f"missing columns {lacking}"]
     if name in manifest["orders_chunks"]:
         probs += check_orders(rows, manifest["orders_chunks"][name])
+    elif name in manifest.get("reasons_chunks", {}):
+        probs += check_reasons(rows, manifest["reasons_chunks"][name])
     elif name == "daily_dap":
         probs += check_dap(rows, manifest["date_range"])
     elif name == "period_alloc":
@@ -135,6 +172,7 @@ def main() -> None:
     manifest = json.loads((pathlib.Path(args.sql) / "manifest.json").read_text())
 
     report, problems, ok = {}, [], {}
+    all_orders, all_reasons = [], []
     for name in manifest["queries"]:
         f = inbox / f"hcv_{name}.json"
         if not f.exists():
@@ -147,6 +185,12 @@ def main() -> None:
             report[name] = {"rows": len(rows)}
             if name in manifest["orders_chunks"]:
                 report[name]["demand"] = sum(num(r["DEMAND"]) for r in rows)
+                all_orders += rows
+            elif name in manifest.get("reasons_chunks", {}):
+                all_reasons += rows
+    if not problems:
+        problems += [f"daily_reasons: {p} — NOT installed"
+                     for p in cross_check(all_orders, all_reasons)]
 
     warnings = []
     if not problems:

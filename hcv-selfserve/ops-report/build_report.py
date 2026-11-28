@@ -37,11 +37,17 @@ WINS = [
 CUT_COLS = [("demand", True), ("alloc_pct", False), ("ff_pct", True), ("cadf_pct", False),
             ("cadf_customer_pct", False), ("cadf_partner_pct", False),
             ("cadf_porter_pct", False), ("cbdf_pct", False), ("cbdf_so_pct", False),
-            ("cbdf_mo_pct", False), ("revenue", True), ("aov", False), ("dap", False),
+            ("cbdf_mo_pct", False), ("cbdf_customer_pct", False), ("cbdf_porter_pct", False),
+            ("cbdf_other_pct", False), ("revenue", True), ("aov", False), ("dap", False),
             ("alloc_p50", False), ("alloc_p90", True)]
 STRIP_COLS = ["demand", "alloc_pct", "ff_pct", "cadf_pct", "cadf_customer_pct",
               "cadf_partner_pct", "cadf_porter_pct", "cbdf_pct", "cbdf_so_pct",
-              "cbdf_mo_pct", "revenue", "aov", "dap", "alloc_p50", "alloc_p90"]
+              "cbdf_mo_pct", "cbdf_customer_pct", "cbdf_porter_pct", "cbdf_other_pct",
+              "revenue", "aov", "dap", "alloc_p50", "alloc_p90"]
+REASON_TOP = 12
+ATTR_LABEL = {"customer": "Customer", "partner": "Partner", "porter": "Porter",
+              "none": "None recorded", "conflict": "Conflicting"}
+STAGE_LABEL = {"CADF": "After driver found (CADF)", "CBDF": "Before driver found (CBDF)"}
 HEAD_KEYS = ["demand", "ff_pct", "revenue"]
 
 
@@ -276,6 +282,52 @@ def cut_section(cube: Cube, cut: str) -> str:
             f'{"".join(panes)}</div>')
 
 
+def reasons_section(cube: Cube) -> str:
+    """Cancelled orders by reason. Rows are ranked once, on month to date, so
+    the same reasons sit in the same order under every tab."""
+    rank = cube.reason_counts("MTD")
+    keys = sorted(rank, key=lambda k: (-rank[k], k))
+    top, rest = keys[:REASON_TOP], set(keys[REASON_TOP:])
+    radios, tabs, panes = [], [], []
+    for cur, base, title, versus in WINS:
+        rid = f"w-RS-{cur}"
+        chk = " checked" if cur == "MTD" else ""
+        radios.append(f'<input type="radio" class="r r-{cur}" name="w-RS" id="{rid}"{chk}>')
+        tabs.append(f'<label class="l-{cur}" for="{rid}">{e(title)}</label>')
+        c, b = cube.reason_counts(cur), cube.reason_counts(base)
+        dc, db = cube.cell(cur)["demand"], cube.cell(base)["demand"]
+
+        def row(label, stage, attr, n_c, n_b, cls=""):
+            pc = (100.0 * n_c / dc) if dc else None
+            pb = (100.0 * n_b / db) if db else None
+            v, u = delta("cadf_pct", pc, pb)
+            return (f'<tr class="{cls}"><td class="lab">{e(label)}</td>'
+                    f'<td class="t">{e(stage)}</td><td class="t">{e(attr)}</td>'
+                    f'<td>{f_int(n_c) if n_c else ""}</td>'
+                    f'<td>{f_pct(pc) if pc is not None and n_c else ""}</td>'
+                    f'<td class="d {d_cls("cadf_pct", v, u)}">{f_delta(v, u)}</td></tr>')
+
+        rows = [row(k[2], STAGE_LABEL[k[0]], ATTR_LABEL.get(k[1], k[1]),
+                    c.get(k, 0), b.get(k, 0)) for k in top]
+        other_c = sum(v for k, v in c.items() if k not in top)
+        other_b = sum(v for k, v in b.items() if k not in top)
+        if rest or other_c or other_b:
+            rows.append(row(f"All other reasons ({len(rest)})", "", "", other_c, other_b))
+        rows.append(row("All cancelled orders", "CADF + CBDF", "",
+                        sum(c.values()), sum(b.values()), "tot"))
+        panes.append(
+            f'<div class="pane p-{cur}"><div class="cap">{e(title)}: '
+            f'{e(win_label(cube, cur))} · change is vs {e(versus)} '
+            f'({e(win_label(cube, base))})</div><div class="scroll"><table class="grid">'
+            f'<thead><tr><th class="lab">Cancel reason</th><th class="t">Stage</th>'
+            f'<th class="t">Attributed to</th><th>Orders</th>'
+            f'<th>Share<span class="basis">% of demand</span></th>'
+            f'<th class="d">Share change<span class="basis">vs {e(versus)}</span></th>'
+            f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div></div>')
+    return (f'<div class="cut">{"".join(radios)}<div class="tabs">{"".join(tabs)}</div>'
+            f'{"".join(panes)}</div>')
+
+
 def strip(cube: Cube) -> str:
     ths = "".join(f'<th{" class=subh" if k in SUB_METRICS else ""}>{e(META[k][1])}'
                   f'<span class="basis">{e(META[k][2])}</span></th>' for k in STRIP_COLS)
@@ -325,6 +377,16 @@ DEFINITIONS = [
      "card 55612 also reads a dev sandbox table here; this report does not, so its "
      "Stockout / Missed split can differ slightly from that card. A schedule booking "
      "cancelled before matchmaking starts has no batch, so it counts as Stockout."),
+    ("CBDF by attribution",
+     "The same CBDF orders, split a second way: by the attribution of the cancel reason "
+     "recorded on the order (customer or porter), as dashboard card 60002 does. CBDF orders "
+     "whose reason carries another attribution, or that have no reason recorded, are shown as "
+     "<b>no attribution</b>, so the three add up to CBDF %."),
+    ("Cancel reasons",
+     "Cancelled orders (CADF and CBDF as defined above) grouped by "
+     "<code>dim_cancel_reasons_attribution.name</code> for the order's "
+     "<code>fo_cancel_reason_id</code>. The rows add up to CADF + CBDF; this is checked "
+     "against the order counts before the data is used."),
     ("Revenue", "<code>sum(FO_CUSTOMER_FARE_WITHOUT_PREVIOUS_DUE)</code> on completed orders."),
     ("AOV", "Revenue ÷ completed orders."),
     ("DAP",
@@ -402,6 +464,7 @@ border-bottom:1px solid var(--line)}
 table.grid thead th{background:var(--navy);color:#fff;font-weight:600;vertical-align:bottom;
 border-bottom:0;border-left:1px solid rgba(255,255,255,.18)}
 table.grid thead th.g{text-align:center}
+table.grid th.t,table.grid td.t{text-align:left}
 table.grid thead th.subh{font-weight:400;font-style:italic}
 table.grid th.lab,table.grid td.lab{text-align:left;position:sticky;left:0;z-index:1}
 table.grid td.lab{background:var(--bg);font-weight:600;border-right:1px solid var(--line)}
@@ -490,6 +553,9 @@ def build(cube: Cube, install: dict, status: str) -> str:
 <p class="lead">Tier 1 total, every metric, in each window beside its like-for-like comparison. Indented rows are parts of the row above them.</p>
 {scorecard(cube)}
 {cuts_html}
+<h2>Cancel reasons</h2>
+<p class="lead">Tier 1 total. Every cancelled order, by the reason recorded on it, whether it was cancelled before or after a driver was found, and who the reason is attributed to. The {REASON_TOP} largest reasons month to date are listed; the rest are grouped.</p>
+{reasons_section(cube)}
 <h2>Last 14 days</h2>
 <p class="lead">Tier 1 total by day. A heavier rule marks each Monday; Sundays are shaded.</p>
 {strip(cube)}

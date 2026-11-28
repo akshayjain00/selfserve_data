@@ -28,14 +28,15 @@ python3 gen_sql.py                    # writes sql/*.sql + sql/manifest.json
 python3 capture_exports.py            # tool output -> inbox/hcv_<name>.json
 python3 install_exports.py            # validate against the manifest -> data/
 python3 build_report.py               # -> docs/<run-date>-hcv-intracity-ops-report.html
-python3 test_pipeline.py              # 21 tests; run after any code change
+python3 test_pipeline.py              # 24 tests; run after any code change
 ```
 
 `gen_sql.py --target-date YYYY-MM-DD` re-creates a past run (the target date is the run date).
 
 ### Running the queries
 
-A normal run is **5 queries**: `daily_orders_1..3`, `daily_dap`, `period_alloc`. Paste each
+A normal run is **8 queries**: `daily_orders_1..3`, `daily_reasons_1..3`, `daily_dap`,
+`period_alloc`. Paste each
 file's text into `mcp__claude_ai_Snowflake__sql-exec` exactly as written. Run them one at a time.
 If neither the Snowflake nor the Metabase connector is live, stop and tell the owner.
 
@@ -54,7 +55,7 @@ installed. Claude Code then stores a result by size:
 | under 4 KB | inline in the conversation only |
 
 `capture_exports.py` searches the first two for each tag and writes the newest complete result to
-`inbox/`. All five exports are larger than 4 KB. In a harness without these stores, save each
+`inbox/`. All eight exports are larger than 4 KB. In a harness without these stores, save each
 query's JSON response as `inbox/hcv_<name>.json` by any means; `install_exports.py` validates it
 the same way.
 
@@ -69,7 +70,8 @@ reason, lower `ORDERS_CHUNK_DAYS`.
 Nothing reaches `data/` unless every export passes. It refuses an export that is missing, empty,
 truncated, carrying another run's tag, missing a required column, or failing a conservation rule:
 `N_ROWS == DEMAND` per cell (no join fan-out), `CBDF_SO + CBDF_MO == CBDF`, CADF splits ≤ CADF,
-every date of the range present, every window present, one row per key. A missing newest DAP day
+every date of the range present, every window present, one row per key, and cancel reasons
+adding up to the order facts' CADF and CBDF per day (a cross-export check). A missing newest DAP day
 is a warning, not a refusal, because that mart can land late.
 
 ## What the report contains
@@ -77,8 +79,9 @@ is a warning, not a refusal, because that mart can land late.
 | Section | Content |
 |---|---|
 | Headline | Demand, Fulfilment %, Revenue for yesterday, week to date, month to date |
-| Scorecard | all 15 metric rows × 3 windows, each beside its comparison and the change |
+| Scorecard | all 18 metric rows × 3 windows, each beside its comparison and the change |
 | By vehicle / order type / city | one table per cut, tabs for the three windows, Tier 1 total row |
+| Cancel reasons | top 12 reasons month to date, by stage and attribution, per window |
 | Last 14 days | Tier 1 total by day |
 | Definitions | every metric as computed, including where the KB disagrees |
 
@@ -92,7 +95,7 @@ Windows (period math copied from the reference pipeline's `Periods`):
 
 ## Architecture
 
-- **Composable sums** (`daily_orders_*`, `daily_dap`): pulled once at date × city ×
+- **Composable sums** (`daily_orders_*`, `daily_reasons_*`, `daily_dap`): pulled once at date × city ×
   vehicle_mapping × order_type (DAP: date × city × vehicle_mapping) and summed into every window
   and cut in Python (`metrics.Cube`). A new window costs no query.
 - **Non-composable** (`period_alloc`): allocation-time P50/P90 are computed in SQL for every

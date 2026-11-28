@@ -19,7 +19,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from hcvlib import (IST, Periods, orders_chunks, queries_for,  # noqa: E402
-                    required_cols, tag)
+                    reasons_chunks, required_cols, tag)
 
 
 def main() -> None:
@@ -55,6 +55,8 @@ def main() -> None:
         "required_cols": {n: required_cols(n) for n in sqls},
         "orders_chunks": {n: [a.isoformat(), b.isoformat()]
                           for n, (a, b) in orders_chunks(p).items()},
+        "reasons_chunks": {n: [a.isoformat(), b.isoformat()]
+                           for n, (a, b) in reasons_chunks(p).items()},
     }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(json.dumps({k: manifest[k] for k in

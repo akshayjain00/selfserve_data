@@ -42,13 +42,16 @@ def manifest_for(p: Periods) -> dict:
         "required_cols": {n: hcvlib.required_cols(n) for n in qs},
         "orders_chunks": {n: [x.isoformat(), y.isoformat()]
                           for n, (x, y) in hcvlib.orders_chunks(p).items()},
+        "reasons_chunks": {n: [x.isoformat(), y.isoformat()]
+                           for n, (x, y) in hcvlib.reasons_chunks(p).items()},
     }
 
 
 def order_row(d, city, vm, ot, demand=10, completed=6, cadf=2, cbdf=2, rev=6000.0):
-    # D CITY VM OT N_ROWS DEMAND ALLOCATED COMPLETED CADF cust partner porter CBDF SO MO REVENUE
+    # D CITY VM OT N_ROWS DEMAND ALLOCATED COMPLETED CADF cust partner porter CBDF SO MO
+    # REVENUE CBDF_CUSTOMER CBDF_PORTER
     return [d, city, vm, ot, demand, demand, completed + cadf, completed, cadf,
-            1, 1, 0, cbdf, 1, cbdf - 1, rev]
+            1, 1, 0, cbdf, 1, cbdf - 1, rev, 1, 0]
 
 
 def synth(p: Periods, data: pathlib.Path) -> dict:
@@ -64,6 +67,19 @@ def synth(p: Periods, data: pathlib.Path) -> dict:
                     for ot in ("SCHEDULE", "EXPRESS"):
                         rows.append(order_row(d, city, vm, ot, demand=10 + i % 3))
         (data / f"hcv_{name}.json").write_text(mcp_json(ocols + [m["tags"][name]], rows))
+        # reasons that add up exactly to the CADF / CBDF of the order rows above
+        rname, tot = name.replace("orders", "reasons"), {}
+        for r in rows:
+            tot[r[0]] = tot.get(r[0], [0, 0])
+            tot[r[0]][0] += r[8]
+            tot[r[0]][1] += r[12]
+        rrows = []
+        for d, (cadf, cbdf) in tot.items():
+            rrows += [[d, "CADF", "customer", "Changed my mind", cadf - 5],
+                      [d, "CADF", "partner", "Vehicle issue", 5],
+                      [d, "CBDF", "none", "No cancel reason recorded", cbdf]]
+        (data / f"hcv_{rname}.json").write_text(mcp_json(
+            hcvlib.REQUIRED_COLS["daily_reasons"] + [m["tags"][rname]], rrows))
     a, b = p.date_range()
     drows = [[(a + _dt.timedelta(days=i)).isoformat(), c, vm, 5, 5]
              for i in range((b - a).days + 1) for c in ("1", "2") for vm in ("9ft", "14ft")]
@@ -172,6 +188,14 @@ class TestInstaller(unittest.TestCase):
         probs = inst.validate("period_alloc", mcp_json(cols, rows), self.m)[1]
         self.assertTrue(any("missing windows" in x for x in probs))
 
+    def test_reasons_must_add_up_to_order_facts(self):
+        o = hcvlib.load_export(self.tmp / "hcv_daily_orders_1.json")
+        r = hcvlib.load_export(self.tmp / "hcv_daily_reasons_1.json")
+        self.assertEqual(inst.cross_check(o, r), [])
+        r[0] = dict(r[0], ORDERS=str(int(r[0]["ORDERS"]) + 1))
+        self.assertTrue(inst.cross_check(o, r))
+        self.assertTrue(inst.cross_check(o, r[3:]))          # a dropped day is caught too
+
     def test_garbage_refused(self):
         self.assertTrue(inst.validate("daily_dap", "not json", self.m)[1])
         self.assertTrue(inst.validate("daily_dap", mcp_json(["D"], []), self.m)[1])
@@ -242,6 +266,17 @@ class TestCube(unittest.TestCase):
         ip, dem = self.cube.in_progress("D1")
         self.assertEqual(ip, 0)                     # synth: allocated = completed + cadf
         self.assertGreater(dem, 0)
+
+    def test_cbdf_attribution_partitions_cbdf(self):
+        m = self.cube.cell("MTD")
+        self.assertAlmostEqual(
+            m["cbdf_customer_pct"] + m["cbdf_porter_pct"] + m["cbdf_other_pct"], m["cbdf_pct"])
+
+    def test_reason_counts_conserve(self):
+        c = self.cube
+        for win in ("D1", "WTD", "MTD", "LMTD"):
+            s = c.sums(c.dates(win))
+            self.assertAlmostEqual(sum(c.reason_counts(win).values()), s["CADF"] + s["CBDF"])
 
     def test_deltas(self):
         self.assertEqual(metrics.delta("ff_pct", 60.0, 57.5), (2.5, "pp"))

@@ -34,6 +34,9 @@ METRICS = [
     ("cbdf_pct", "CBDF %", "% of demand", "pct", -1),
     ("cbdf_so_pct", "Stockout", "% of demand", "pct", -1),
     ("cbdf_mo_pct", "Missed order", "% of demand", "pct", -1),
+    ("cbdf_customer_pct", "customer-attributed", "% of demand", "pct", -1),
+    ("cbdf_porter_pct", "porter-attributed", "% of demand", "pct", -1),
+    ("cbdf_other_pct", "no attribution", "% of demand", "pct", -1),
     ("revenue", "Revenue", "₹, completed orders", "money", +1),
     ("aov", "AOV", "₹ per completed order", "aov", 0),
     ("dap", "DAP", "partners per day", "dap", +1),
@@ -42,7 +45,8 @@ METRICS = [
 ]
 META = {m[0]: m for m in METRICS}
 SUB_METRICS = {"cadf_customer_pct", "cadf_partner_pct", "cadf_porter_pct",
-               "cbdf_so_pct", "cbdf_mo_pct"}
+               "cbdf_so_pct", "cbdf_mo_pct", "cbdf_customer_pct", "cbdf_porter_pct",
+               "cbdf_other_pct"}
 
 
 def derive(s: dict, days: float = 1.0) -> dict:
@@ -65,6 +69,10 @@ def derive(s: dict, days: float = 1.0) -> dict:
         "cbdf_pct": pct("CBDF"),
         "cbdf_so_pct": pct("CBDF_SO"),
         "cbdf_mo_pct": pct("CBDF_MO"),
+        "cbdf_customer_pct": pct("CBDF_CUSTOMER"),
+        "cbdf_porter_pct": pct("CBDF_PORTER"),
+        "cbdf_other_pct": ((100.0 * (s.get("CBDF", 0) - s.get("CBDF_CUSTOMER", 0)
+                                     - s.get("CBDF_PORTER", 0)) / d) if d else None),
         "revenue": (rev / days) if d else None,
         "aov": (rev / comp) if comp else None,
         "completed": (comp / days) if d else None,
@@ -104,6 +112,15 @@ class Cube:
                 if k in self.orders:
                     raise ValueError(f"duplicate order cell {k} across chunks")
                 self.orders[k] = {c: num(r[c]) for c in SUM_KEYS}
+
+        # (D, stage, attribution, reason) -> cancelled orders, Tier 1 total
+        self.reasons: dict[tuple, int] = {}
+        for f in sorted(data.glob("hcv_daily_reasons_*.json")):
+            for r in load_export(f):
+                k = (r["D"], r["STAGE"], r["ATTRIBUTION"], r["REASON"])
+                if k in self.reasons:
+                    raise ValueError(f"duplicate reason cell {k} across chunks")
+                self.reasons[k] = num(r["ORDERS"])
 
         self.dap: dict[tuple, int] = {}
         for r in load_export(data / "hcv_daily_dap.json"):
@@ -199,6 +216,17 @@ class Cube:
             period = f"DAY|{dates[0]}" if win == "D1" else win
             out["alloc_p50"], out["alloc_p90"] = self._pctl(period, cut, k)
         return out
+
+    def reason_counts(self, win: str) -> dict[tuple, float]:
+        """(stage, attribution, reason) -> cancelled orders in the window
+        (a per-day mean for SW4, like every other count)."""
+        dates = self.dates(win)
+        ds, div = set(dates), (len(dates) if win == "SW4" else 1)
+        out: dict[tuple, float] = defaultdict(float)
+        for k, v in self.reasons.items():
+            if k[0] in ds:
+                out[k[1:]] += v / div
+        return dict(out)
 
     def daily_demand(self) -> dict[str, float]:
         out: dict[str, float] = defaultdict(float)
